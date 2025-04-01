@@ -7,7 +7,9 @@ from rest_framework.schemas.openapi import AutoSchema
 from rest_framework import generics
 from django.db.models import Q
 import pandas as pd
-
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import SessionAuthentication, BasicAuthentication
+import time
 
 class SingleEventView(generics.RetrieveUpdateDestroyAPIView):
 	'''
@@ -75,37 +77,41 @@ def main_security_clocked_in_status_flip(request,id):
 		
 		
 		statuses=employee_clock_inout_events.order_by("-timestamp")
-		for s in statuses:
-			print(s.event_type,s.timestamp)
+		# for s in statuses:
+		# 	print(s.event_type,s.timestamp)
 		
 		current_status=statuses.first()
 		
-		if current_status is None:
-			newstatus="Clock In"
-			response_label="Clocked In"
+		if time.time()-current_status.timestamp.timestamp() >5:
+
+			if current_status is None:
+				newstatus="Clock In"
+				response_label="Clocked In"
+				
+			else:
+				current_status=current_status.event_type.name
 			
+			if current_status=="Clock In":
+				newstatus="Clock Out"
+				response_label="Clocked Out"
+			else:
+				newstatus="Clock In"
+				response_label="Clocked In"
+			
+			event_type=EventType.objects.get(name=newstatus)
+			
+			location=Location.objects.get(name="Main Security")
+			
+			flip_event=Event.objects.create(
+				employee=employee,
+				event_type=event_type,
+				location=location,
+				created_by=request.user
+			)
+			
+			flip_event_time=flip_event.timestamp
 		else:
-			current_status=current_status.event_type.name
-		
-		if current_status=="Clock In":
-			newstatus="Clock Out"
-			response_label="Clocked Out"
-		else:
-			newstatus="Clock In"
-			response_label="Clocked In"
-		
-		event_type=EventType.objects.get(name=newstatus)
-		
-		location=Location.objects.get(name="Main Security")
-		
-		flip_event=Event.objects.create(
-			employee=employee,
-			event_type=event_type,
-			location=location,
-			created_by=request.user
-		)
-		
-		flip_event_time=flip_event.timestamp
+			print("TOOSOON!")
 		
 		return redirect("main_security")
 	else:
