@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import *
+from common.models import Card, Employee, Event, EventType, Location
 
 # Register your models here.
 
