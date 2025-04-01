@@ -1,4 +1,4 @@
-from common.models import *
+from ..common.models import Card, Employee
 
 d = open("assigned_locations.tsv", "r")
 t = d.read()
