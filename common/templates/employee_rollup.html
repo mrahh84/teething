@@ -1,37 +1,82 @@
+<!DOCTYPE html> {# Basic HTML structure #}
+<html>
+<head>
+    <title>Events for {{employee.given_name}} {{employee.surname}}</title>
+     {# Basic styling - consider moving to a CSS file #}
+    <style>
+        table, th, td { border: 1px solid black; border-collapse: collapse; padding: 5px; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
 <body>
 
-<h2>{{employee.given_name}} {{employee.surname}}</h2>
+{% if messages %}
+    <ul class="messages" style="list-style: none; padding: 0; margin: 1em 0;">
+        {% for message in messages %}
+            {# Apply different styles based on the message level (success, warning, error) #}
+            <li{% if message.tags %} class="{{ message.tags }}" style="padding: 10px; border: 1px solid; margin-bottom: 5px;
+                {% if 'success' in message.tags %} background-color: #dff0d8; border-color: #d6e9c6; color: #3c763d; {% endif %}
+                {% if 'warning' in message.tags %} background-color: #fcf8e3; border-color: #faebcc; color: #8a6d3b; {% endif %}
+                {% if 'error' in message.tags %} background-color: #f2dede; border-color: #ebccd1; color: #a94442; {% endif %}
+                {% if 'info' in message.tags %} background-color: #d9edf7; border-color: #bce8f1; color: #31708f; {% endif %}
+            "{% endif %}>
+                {{ message }}
+            </li>
+        {% endfor %}
+    </ul>
+{% endif %}
 
-<p><strong>Card number:</strong>{{employee.card_number.designation}}</p>
+    {# Header with Logout link #}
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1>Employee Events</h1>
+        {% if user.is_authenticated %}
+            <span>Welcome, {{ user.username }}! <a href="{% url 'logout' %}">Logout</a></span>
+        {% endif %}
+    </div>
 
-<table>
+    <h2>{{ employee.given_name }} {{ employee.surname }}</h2>
 
-<tr style="border:1px solid black">
+    {% if employee.card_number %}
+        <p><strong>Card number:</strong> {{ employee.card_number.designation }}</p>
+    {% else %}
+        <p><strong>Card number:</strong> No card assigned</p>
+    {% endif %}
 
-	<td style="border:1px solid black">Date</td>
-	<td style="border:1px solid black">Event</td>
-	<td style="border:1px solid black">Time</td>
-	<td style="border:1px solid black">Edit</td>
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Event</th>
+                <th>Time</th>
+                <th>Location</th> {# Added Location #}
+                <th>Edit (Admin)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for event in employee_events %}
+            <tr>
+                <td>{{ event.timestamp | date:"Y-m-d" }}</td> {# Format date consistently #}
+                <td>{{ event.event_type.name }}</td>
+                {# Display time in local timezone if settings.USE_TZ=True #}
+                {# Use timezone template tag if needed: {% load tz %}{{ event.timestamp|localtime|time:"H:i:s" }} #}
+                <td>{% load tz %}{{ event.timestamp|localtime|time:"H:i:s" }}</td>
+                <td>{{ event.location.name }}</td> {# Display Location #}
+                <td>
+                    {# Link to Django admin for editing specific event #}
+                    <a href="{% url 'admin:common_event_change' event.id %}" target="_blank">
+                        Edit
+                    </a>
+                </td>
+            </tr>
+            {% empty %} {# Handle case where there are no events #}
+            <tr>
+                <td colspan="5">No events found for this employee.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 
-</tr>
-
-{% for event in employee_events %}
-
-<tr style="border:1px solid black">
-
-	<td style="border:1px solid black">{{event.timestamp.date}}</td>
-	<td style="border:1px solid black">{{event.event_type.name}}</td>
-	<td style="border:1px solid black">{{event.timestamp.astimezone.time}}</td>
-	<td style="border:1px solid black">
-		<a href="/admin/common/event/{{event.id}}/change/" target="_blank">
-			Edit
-		</a>
-	</td>
-
-</tr>
-
-{% endfor %}
-
-</table>
+    <p><a href="{% url 'main_security' %}">Back to Main Security</a></p>
 
 </body>
+</html>

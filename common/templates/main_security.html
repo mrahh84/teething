@@ -1,49 +1,102 @@
+<!DOCTYPE html> {# Basic HTML structure #}
+<html>
+<head>
+    <title>Main Security Dashboard</title>
+     {# Basic styling - consider moving to a CSS file #}
+    <style>
+        table, th, td { border: 1px solid black; border-collapse: collapse; padding: 5px; }
+        th { background-color: #f2f2f2; text-align: left;}
+    </style>
+</head>
 <body>
 
-<h2>Main Security</h2>
+    {% if messages %}
+        <ul class="messages" style="list-style: none; padding: 0; margin: 1em 0;">
+            {% for message in messages %}
+                {# Apply different styles based on the message level (success, warning, error) #}
+                <li{% if message.tags %} class="{{ message.tags }}" style="padding: 10px; border: 1px solid; margin-bottom: 5px;
+                    {% if 'success' in message.tags %} background-color: #dff0d8; border-color: #d6e9c6; color: #3c763d; {% endif %}
+                    {% if 'warning' in message.tags %} background-color: #fcf8e3; border-color: #faebcc; color: #8a6d3b; {% endif %}
+                    {% if 'error' in message.tags %} background-color: #f2dede; border-color: #ebccd1; color: #a94442; {% endif %}
+                    {% if 'info' in message.tags %} background-color: #d9edf7; border-color: #bce8f1; color: #31708f; {% endif %}
+                "{% endif %}>
+                    {{ message }}
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
 
-<table style="border:1px solid black">
+    {# Header with Logout link #}
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1>Main Security</h1>
+        {% if user.is_authenticated %}
+            <span>Welcome, {{ user.username }}! <a href="{% url 'logout' %}">Logout</a></span>
+        {% else %}
+             {# Should not happen if @login_required works, but good fallback #}
+             <a href="{% url 'login' %}">Login</a>
+        {% endif %}
+    </div>
 
-		<tr style="border:1px solid black">
-			<td style="border:1px solid black">Card</td>
-			<td style="border:1px solid black">Given Name</td>
-			<td style="border:1px solid black">Surname</td>
-			<td style="border:1px solid black">Status</td>
-			<td style="border:1px solid black">Change Status</td>
-		</tr>
+    <h2>Employee Status</h2>
 
-	{% for employee in employees %}
+    <table>
+        <thead>
+            <tr>
+                <th>Card</th>
+                <th>Given Name</th>
+                <th>Surname</th>
+                <th>Status</th>
+                <th>Change Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for employee in employees %}
+            <tr>
+                <td>
+                    {% if employee.card_number %}
+                        {# Link to employee's event details page #}
+                        <a href="{% url 'employee_events' employee.id %}" target="_blank">
+                            {{ employee.card_number.designation }}
+                        </a>
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
+                <td>{{ employee.given_name }}</td>
+                <td>{{ employee.surname }}</td>
+                <td>
+                    {# Use the is_clocked_in property #}
+                    {% if employee.is_clocked_in %}
+                        Clocked In
+                    {% else %}
+                        Clocked Out
+                    {% endif %}
+                    {# Use the last_clockinout_time property #}
+                    {% if employee.last_clockinout_time %}
+                         at {{ employee.last_clockinout_time | date:"Y-m-d H:i:s" }}
+                         {# Or just time: {{ employee.last_clockinout_time | time:"H:i:s" }} #}
+                    {% else %}
+                        (No clock events)
+                    {% endif %}
+                </td>
+                <td>
+                    {# Link to the clock in/out flip action URL #}
+                    <a href="{% url 'main_security_clocked_in_status_flip' employee.id %}">
+                        {% if employee.is_clocked_in %}
+                            Clock Out
+                        {% else %}
+                            Clock In
+                        {% endif %}
+                    </a>
+                </td>
+            </tr>
+            {% empty %} {# Handle case where there are no employees #}
+            <tr>
+                <td colspan="5">No employees found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 
-	<tr style="border:1px solid black">
-		<td style="border:1px solid black">
-			<a href="/common/employee_events/{{employee.id}}", target="_blank">
-				{{employee.card_number.designation}}
-			</a>
-		</td>
-		<td style="border:1px solid black">{{employee.given_name}}</td>
-		<td style="border:1px solid black">{{employee.surname}}</td>
-		<td style="border:1px solid black">
-			{% if employee.is_clocked_in %}
-				Clocked in
-			{% else %}
-				Clocked out
-			{% endif %}
-			at {{employee.last_clockinout_time}}
-		</td>
-
-
-		<td style="border:1px solid black">
-			<a href="flip_clocked_in_status/{{employee.id}}">
-				{% if employee.is_clocked_in %}
-					Clock Out
-				{% else %}
-					Clock In
-				{% endif %}
-			</a>
-		</td>
-
-	</tr>
-
-	{% endfor %}
-
-</table>
+</body>
+</html>

@@ -1,34 +1,57 @@
-import time
-
-from django.db.models import Q
-from django.http import HttpResponseForbidden
-from django.shortcuts import redirect, render
-from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseBadRequest
+from django.shortcuts import (
+    get_object_or_404,
+    redirect,
+    render,
+)
+from django.utils import timezone
 from rest_framework import generics
-from rest_framework.authentication import BasicAuthentication, SessionAuthentication
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.schemas.openapi import AutoSchema
 
-from .models import Employee, Event, Location
-from .serializers import EmployeeSerializer, EventSerializer, LocationSerializer
+from .models import Employee, Event, EventType, Location
+from .serializers import (
+    EmployeeSerializer,
+    EventSerializer,
+    LocationSerializer,
+    SingleEventSerializer,
+)
+
+# --- API Views ---
+# Apply authentication and permissions to all API views
 
 
 class SingleEventView(generics.RetrieveUpdateDestroyAPIView):
     """
-    The lookup field for sources is the pk (id)
+    API endpoint for retrieving, updating, or deleting a single Event.
+    Requires authentication.
+    Uses PrimaryKeyRelatedFields for related objects during updates.
     """
 
+    authentication_classes = [SessionAuthentication]  # Or TokenAuthentication, etc.
+    permission_classes = [IsAuthenticated]
     serializer_class = SingleEventSerializer
     queryset = Event.objects.all()
     lookup_field = "id"
 
+    # Optional: Set created_by automatically on create/update
+    # def perform_create(self, serializer):
+    #     serializer.save(created_by=self.request.user)
+
+    # def perform_update(self, serializer):
+    #     serializer.save(created_by=self.request.user) # Or maybe don't update created_by
+
 
 class SingleLocationView(generics.RetrieveUpdateDestroyAPIView):
     """
-    The lookup field for sources is the pk (id)
+    API endpoint for retrieving, updating, or deleting a single Location.
+    Requires authentication.
     """
 
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsAuthenticated]
     serializer_class = LocationSerializer
     queryset = Location.objects.all()
     lookup_field = "id"
@@ -36,97 +59,137 @@ class SingleLocationView(generics.RetrieveUpdateDestroyAPIView):
 
 class SingleEmployeeView(generics.RetrieveUpdateDestroyAPIView):
     """
-    The lookup field for sources is the pk (id)
+    API endpoint for retrieving, updating, or deleting a single Employee.
+    Requires authentication.
+    Uses EmployeeSerializer which provides detailed info for retrieve
+    and accepts IDs for related fields during updates.
     """
 
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsAuthenticated]
     serializer_class = EmployeeSerializer
     queryset = Employee.objects.all()
     lookup_field = "id"
 
 
 class ListEventsView(generics.ListAPIView):
-    serializer_class = EventSerializer
-    queryset = Event.objects.all()
+    """
+    API endpoint for listing all Events.
+    Requires authentication. Shows nested details of related objects.
+    """
+
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+    serializer_class = EventSerializer  # Use the detailed serializer for listing
+    queryset = (
+        Event.objects.all()
+        .select_related(  # Optimize query
+            "event_type", "employee", "location", "created_by"
+        )
+        .order_by("-timestamp")
+    )
 
 
-@extend_schema(exclude=True)
+# --- Template Views ---
+# Apply login_required decorator
+
+
+@login_required  # Redirects to LOGIN_URL if user not authenticated
+# @extend_schema(exclude=True) # Keep exclude if you don't want this in API docs
 def main_security(request):
-    if request.user.is_authenticated:
-        employees = Employee.objects.all()
-        employees = employees.order_by("surname", "given_name")
+    """
+    Displays the main security dashboard, listing all employees
+    and their current clock-in/out status. Requires login.
+    """
+    # Get employees ordered by surname, then given name (using model's Meta ordering)
+    employees = Employee.objects.prefetch_related("employee_events__event_type").all()
 
-        return render(request, "main_security.html", {"employees": employees})
+    context = {
+        "employees": employees,
+        "user": request.user,  # Pass user for potential use in template (e.g., showing username)
+    }
+    return render(request, "main_security.html", context)
 
-    else:
-        return HttpResponseForbidden("Forbidden")
 
-
-@extend_schema(exclude=True)
+@login_required  # Protect this view
+# @extend_schema(exclude=True)
 def main_security_clocked_in_status_flip(request, id):
-    if request.user.is_authenticated:
-        employee = Employee.objects.get(id=id)
+    """
+    Handles the clock-in/clock-out action for an employee from the main security view.
+    Creates a new 'Clock In' or 'Clock Out' event. Requires login.
+    Includes a basic debounce mechanism.
+    """
+    employee = get_object_or_404(Employee, id=id)
 
-        employee_events = employee.employee_events.all()
+    # Determine the *opposite* action to take
+    currently_clocked_in = employee.is_clocked_in()
+    target_event_type_name = "Clock Out" if currently_clocked_in else "Clock In"
 
-        employee_clock_inout_events = employee_events.filter(
-            Q(event_type__name="Clock In") | Q(event_type__name="Clock Out")
+    # Basic Debounce: Prevent accidental double-clicks/rapid toggling
+    # Check the time of the *very last* clock event for this user
+    last_event_time = employee.last_clockinout_time
+    debounce_seconds = 5  # Adjust as needed
+    if (
+        last_event_time
+        and (timezone.now() - last_event_time).total_seconds() < debounce_seconds
+    ):
+        # NOTE: include a message for the user
+        messages.warning(
+            request, f"Please wait {debounce_seconds} seconds before clocking again."
         )
+        print(
+            f"Clock action for {employee} blocked by debounce ({debounce_seconds}s)"
+        )  # Log for debugging
+        return redirect("main_security")  # Redirect without making changes
 
-        statuses = employee_clock_inout_events.order_by("-timestamp")
-        # for s in statuses:
-        # 	print(s.event_type,s.timestamp)
+    try:
+        # Get the EventType instance (Clock In or Clock Out)
+        event_type = EventType.objects.get(name=target_event_type_name)
+        # Assume the event happens at 'Main Security' location - adjust if needed
+        location = Location.objects.get(
+            name="Main Security"
+        )  # Ensure this location exists!
+    except (EventType.DoesNotExist, Location.DoesNotExist) as e:
+        # Handle case where required EventType or Location is missing
+        print(f"Error: Required EventType or Location missing: {e}")  # Log error
+        messages.error(request, "System configuration error. Cannot process request.")
+        return HttpResponseBadRequest(
+            "System configuration error."
+        )  # Or redirect with message
 
-        current_status = statuses.first()
+    # Create the new clock event
+    Event.objects.create(
+        employee=employee,
+        event_type=event_type,
+        location=location,
+        created_by=request.user,  # Record which logged-in user performed the action
+        # timestamp defaults to timezone.now
+    )
 
-        if time.time() - current_status.timestamp.timestamp() > 5:
-            if current_status is None:
-                newstatus = "Clock In"
-                response_label = "Clocked In"
+    # Optional: Add a success message
+    messages.success(request, f"{employee} successfully {event_type}.")
 
-            else:
-                current_status = current_status.event_type.name
-
-            if current_status == "Clock In":
-                newstatus = "Clock Out"
-                response_label = "Clocked Out"
-            else:
-                newstatus = "Clock In"
-                response_label = "Clocked In"
-
-            event_type = EventType.objects.get(name=newstatus)
-
-            location = Location.objects.get(name="Main Security")
-
-            flip_event = Event.objects.create(
-                employee=employee,
-                event_type=event_type,
-                location=location,
-                created_by=request.user,
-            )
-
-            flip_event_time = flip_event.timestamp
-        else:
-            print("TOOSOON!")
-
-        return redirect("main_security")
-    else:
-        return HttpResponseForbidden("Forbidden")
+    return redirect("main_security")
 
 
-@extend_schema(exclude=True)
+@login_required  # Protect this view
+# @extend_schema(exclude=True)
 def employee_events(request, id):
-    if request.user.is_authenticated:
-        employee = Employee.objects.get(id=id)
+    """
+    Displays a detailed list of all events for a specific employee.
+    Requires login.
+    """
+    employee = get_object_or_404(Employee, id=id)
 
-        employee_events = employee.employee_events.all()
+    # Get all events for this employee, ordered by timestamp
+    # Use prefetch_related for efficiency if accessing related fields in the loop
+    employee_events = employee.employee_events.select_related(
+        "event_type", "location"
+    ).order_by("-timestamp")
 
-        print(employee_events.first().timestamp)
-
-        return render(
-            request,
-            "employee_rollup.html",
-            {"employee": employee, "employee_events": employee_events},
-        )
-
-    else:
-        return HttpResponseForbidden("Forbidden")
+    context = {
+        "employee": employee,
+        "employee_events": employee_events,
+        "user": request.user,
+    }
+    return render(request, "employee_rollup.html", context)
