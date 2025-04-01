@@ -27,7 +27,7 @@ from drf_spectacular.views import (
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("common/", include("common.urls")),
-    # Add Django's built-in auth views
+    # Django's built-in auth views
     path(
         "login/",
         auth_views.LoginView.as_view(template_name="registration/login.html"),
