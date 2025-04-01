@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('common', '0002_employee_assigned_locations'),
+        ("common", "0002_employee_assigned_locations"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='event',
-            name='timestamp',
+            model_name="event",
+            name="timestamp",
             field=models.DateTimeField(auto_now=True),
         ),
     ]

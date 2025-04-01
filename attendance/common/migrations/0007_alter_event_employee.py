@@ -5,15 +5,18 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('common', '0006_alter_event_timestamp'),
+        ("common", "0006_alter_event_timestamp"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='event',
-            name='employee',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='employee_events', to='common.employee'),
+            model_name="event",
+            name="employee",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="employee_events",
+                to="common.employee",
+            ),
         ),
     ]

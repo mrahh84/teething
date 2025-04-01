@@ -3,7 +3,7 @@
 <h2>Main Security</h2>
 
 <table style="border:1px solid black">
-	
+
 		<tr style="border:1px solid black">
 			<td style="border:1px solid black">Card</td>
 			<td style="border:1px solid black">Given Name</td>
@@ -11,9 +11,9 @@
 			<td style="border:1px solid black">Status</td>
 			<td style="border:1px solid black">Change Status</td>
 		</tr>
-	
+
 	{% for employee in employees %}
-	
+
 	<tr style="border:1px solid black">
 		<td style="border:1px solid black">
 			<a href="/common/employee_events/{{employee.id}}", target="_blank">
@@ -24,14 +24,14 @@
 		<td style="border:1px solid black">{{employee.surname}}</td>
 		<td style="border:1px solid black">
 			{% if employee.is_clocked_in %}
-				Clocked in 
+				Clocked in
 			{% else %}
 				Clocked out
 			{% endif %}
 			at {{employee.last_clockinout_time}}
 		</td>
-		
-		
+
+
 		<td style="border:1px solid black">
 			<a href="flip_clocked_in_status/{{employee.id}}">
 				{% if employee.is_clocked_in %}
@@ -41,9 +41,9 @@
 				{% endif %}
 			</a>
 		</td>
-		
+
 	</tr>
-	
+
 	{% endfor %}
-	
+
 </table>
