@@ -7,6 +7,7 @@ from django.shortcuts import (
     render,
 )
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema
 from rest_framework import generics
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
@@ -26,7 +27,7 @@ from .serializers import (
 class SingleEventView(generics.RetrieveUpdateDestroyAPIView):
     """
     API endpoint for retrieving, updating, or deleting a single Event.
-    Requires authentication.
+    Requires authentication for creating, updating or deleting.
     Uses PrimaryKeyRelatedFields for related objects during updates.
     """
 
@@ -47,7 +48,7 @@ class SingleEventView(generics.RetrieveUpdateDestroyAPIView):
 class SingleLocationView(generics.RetrieveUpdateDestroyAPIView):
     """
     API endpoint for retrieving, updating, or deleting a single Location.
-    Requires authentication.
+    Requires authentication for creating, updating or deleting.
     """
 
     authentication_classes = [SessionAuthentication]
@@ -60,7 +61,7 @@ class SingleLocationView(generics.RetrieveUpdateDestroyAPIView):
 class SingleEmployeeView(generics.RetrieveUpdateDestroyAPIView):
     """
     API endpoint for retrieving, updating, or deleting a single Employee.
-    Requires authentication.
+    Requires authentication for creating, updating or deleting.
     Uses EmployeeSerializer which provides detailed info for retrieve
     and accepts IDs for related fields during updates.
     """
@@ -75,7 +76,8 @@ class SingleEmployeeView(generics.RetrieveUpdateDestroyAPIView):
 class ListEventsView(generics.ListAPIView):
     """
     API endpoint for listing all Events.
-    Requires authentication. Shows nested details of related objects.
+    Requires authentication for creating, updating or deleting.
+    Shows nested details of related objects.
     """
 
     authentication_classes = [SessionAuthentication]
@@ -95,7 +97,9 @@ class ListEventsView(generics.ListAPIView):
 
 
 @login_required  # Redirects to LOGIN_URL if user not authenticated
-# @extend_schema(exclude=True) # Keep exclude if you don't want this in API docs
+@extend_schema(exclude=True)
+# NOTE: Keep exclude if you don't want this in API docs
+# Link: https://drf-spectacular.readthedocs.io/en/latest/drf_spectacular.html#drf_spectacular.utils.extend_schema
 def main_security(request):
     """
     Displays the main security dashboard, listing all employees
@@ -112,7 +116,7 @@ def main_security(request):
 
 
 @login_required  # Protect this view
-# @extend_schema(exclude=True)
+@extend_schema(exclude=True)
 def main_security_clocked_in_status_flip(request, id):
     """
     Handles the clock-in/clock-out action for an employee from the main security view.
@@ -173,7 +177,7 @@ def main_security_clocked_in_status_flip(request, id):
 
 
 @login_required  # Protect this view
-# @extend_schema(exclude=True)
+@extend_schema(exclude=True)
 def employee_events(request, id):
     """
     Displays a detailed list of all events for a specific employee.
