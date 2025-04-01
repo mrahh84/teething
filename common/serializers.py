@@ -83,8 +83,10 @@ class EventSerializer(serializers.ModelSerializer):
 
     # Use nested serializers for read-only representation
     event_type = EventTypeSerializer(many=False, read_only=True)
+    # Original employee representation:
+    employee = EmployeeSerializer(many=False, read_only=True)
     # Use a simpler employee representation here to avoid deep nesting
-    employee = serializers.StringRelatedField(many=False, read_only=True)
+    # employee = serializers.StringRelatedField(many=False, read_only=True)
     location = LocationSerializer(many=False, read_only=True)
     # Show username of the user who created the event
     created_by_user = serializers.CharField(
