@@ -9,7 +9,7 @@ from django.shortcuts import (
 from django.utils import timezone
 from rest_framework import generics
 from rest_framework.authentication import SessionAuthentication
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
 from .models import Employee, Event, EventType, Location
 from .serializers import (
@@ -31,7 +31,7 @@ class SingleEventView(generics.RetrieveUpdateDestroyAPIView):
     """
 
     authentication_classes = [SessionAuthentication]  # Or TokenAuthentication, etc.
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticatedOrReadOnly]
     serializer_class = SingleEventSerializer
     queryset = Event.objects.all()
     lookup_field = "id"
@@ -51,7 +51,7 @@ class SingleLocationView(generics.RetrieveUpdateDestroyAPIView):
     """
 
     authentication_classes = [SessionAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticatedOrReadOnly]
     serializer_class = LocationSerializer
     queryset = Location.objects.all()
     lookup_field = "id"
@@ -66,7 +66,7 @@ class SingleEmployeeView(generics.RetrieveUpdateDestroyAPIView):
     """
 
     authentication_classes = [SessionAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticatedOrReadOnly]
     serializer_class = EmployeeSerializer
     queryset = Employee.objects.all()
     lookup_field = "id"
@@ -79,7 +79,7 @@ class ListEventsView(generics.ListAPIView):
     """
 
     authentication_classes = [SessionAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticatedOrReadOnly]
     serializer_class = EventSerializer  # Use the detailed serializer for listing
     queryset = (
         Event.objects.all()
