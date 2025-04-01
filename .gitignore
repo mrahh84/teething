@@ -4,4 +4,4 @@ db.sqlite3
 __pycache__/
 static/
 
-attendance/assigned_locations.tsv
+data/
