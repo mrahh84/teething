@@ -1,0 +1,747 @@
+openapi: 3.0.3
+info:
+  title: ''
+  version: 0.0.0
+paths:
+  /common/api/employees/{id}/:
+    get:
+      operationId: common_api_employees_retrieve
+      description: |-
+        API endpoint for retrieving, updating, or deleting a single Employee.
+        Requires authentication for creating, updating or deleting.
+        Uses EmployeeSerializer which provides detailed info for retrieve
+        and accepts IDs for related fields during updates.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - common
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+          description: ''
+    put:
+      operationId: common_api_employees_update
+      description: |-
+        API endpoint for retrieving, updating, or deleting a single Employee.
+        Requires authentication for creating, updating or deleting.
+        Uses EmployeeSerializer which provides detailed info for retrieve
+        and accepts IDs for related fields during updates.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - common
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Employee'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+          description: ''
+    patch:
+      operationId: common_api_employees_partial_update
+      description: |-
+        API endpoint for retrieving, updating, or deleting a single Employee.
+        Requires authentication for creating, updating or deleting.
+        Uses EmployeeSerializer which provides detailed info for retrieve
+        and accepts IDs for related fields during updates.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - common
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedEmployee'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+          description: ''
+    delete:
+      operationId: common_api_employees_destroy
+      description: |-
+        API endpoint for retrieving, updating, or deleting a single Employee.
+        Requires authentication for creating, updating or deleting.
+        Uses EmployeeSerializer which provides detailed info for retrieve
+        and accepts IDs for related fields during updates.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - common
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /common/api/events/:
+    get:
+      operationId: common_api_events_list
+      description: |-
+        API endpoint for listing all Events.
+        Requires authentication for creating, updating or deleting.
+        Shows nested details of related objects.
+      parameters:
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      tags:
+      - common
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedEventList'
+          description: ''
+  /common/api/events/{id}/:
+    get:
+      operationId: common_api_events_retrieve
+      description: |-
+        API endpoint for retrieving, updating, or deleting a single Event.
+        Requires authentication for creating, updating or deleting.
+        Uses PrimaryKeyRelatedFields for related objects during updates.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - common
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SingleEvent'
+          description: ''
+    put:
+      operationId: common_api_events_update
+      description: |-
+        API endpoint for retrieving, updating, or deleting a single Event.
+        Requires authentication for creating, updating or deleting.
+        Uses PrimaryKeyRelatedFields for related objects during updates.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - common
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SingleEvent'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SingleEvent'
+          description: ''
+    patch:
+      operationId: common_api_events_partial_update
+      description: |-
+        API endpoint for retrieving, updating, or deleting a single Event.
+        Requires authentication for creating, updating or deleting.
+        Uses PrimaryKeyRelatedFields for related objects during updates.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - common
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedSingleEvent'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SingleEvent'
+          description: ''
+    delete:
+      operationId: common_api_events_destroy
+      description: |-
+        API endpoint for retrieving, updating, or deleting a single Event.
+        Requires authentication for creating, updating or deleting.
+        Uses PrimaryKeyRelatedFields for related objects during updates.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - common
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /common/api/locations/{id}/:
+    get:
+      operationId: common_api_locations_retrieve
+      description: |-
+        API endpoint for retrieving, updating, or deleting a single Location.
+        Requires authentication for creating, updating or deleting.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - common
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Location'
+          description: ''
+    put:
+      operationId: common_api_locations_update
+      description: |-
+        API endpoint for retrieving, updating, or deleting a single Location.
+        Requires authentication for creating, updating or deleting.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - common
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Location'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Location'
+          description: ''
+    patch:
+      operationId: common_api_locations_partial_update
+      description: |-
+        API endpoint for retrieving, updating, or deleting a single Location.
+        Requires authentication for creating, updating or deleting.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - common
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedLocation'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Location'
+          description: ''
+    delete:
+      operationId: common_api_locations_destroy
+      description: |-
+        API endpoint for retrieving, updating, or deleting a single Location.
+        Requires authentication for creating, updating or deleting.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - common
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /schema/:
+    get:
+      operationId: schema_retrieve
+      description: |-
+        OpenApi3 schema for this API. Format can be selected via content negotiation.
+
+        - YAML: application/vnd.oai.openapi
+        - JSON: application/vnd.oai.openapi+json
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - af
+          - ar
+          - ar-dz
+          - ast
+          - az
+          - be
+          - bg
+          - bn
+          - br
+          - bs
+          - ca
+          - ckb
+          - cs
+          - cy
+          - da
+          - de
+          - dsb
+          - el
+          - en
+          - en-au
+          - en-gb
+          - eo
+          - es
+          - es-ar
+          - es-co
+          - es-mx
+          - es-ni
+          - es-ve
+          - et
+          - eu
+          - fa
+          - fi
+          - fr
+          - fy
+          - ga
+          - gd
+          - gl
+          - he
+          - hi
+          - hr
+          - hsb
+          - hu
+          - hy
+          - ia
+          - id
+          - ig
+          - io
+          - is
+          - it
+          - ja
+          - ka
+          - kab
+          - kk
+          - km
+          - kn
+          - ko
+          - ky
+          - lb
+          - lt
+          - lv
+          - mk
+          - ml
+          - mn
+          - mr
+          - ms
+          - my
+          - nb
+          - ne
+          - nl
+          - nn
+          - os
+          - pa
+          - pl
+          - pt
+          - pt-br
+          - ro
+          - ru
+          - sk
+          - sl
+          - sq
+          - sr
+          - sr-latn
+          - sv
+          - sw
+          - ta
+          - te
+          - tg
+          - th
+          - tk
+          - tr
+          - tt
+          - udm
+          - uk
+          - ur
+          - uz
+          - vi
+          - zh-hans
+          - zh-hant
+      tags:
+      - schema
+      security:
+      - basicAuth: []
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/vnd.oai.openapi:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/yaml:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/vnd.oai.openapi+json:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+components:
+  schemas:
+    Employee:
+      type: object
+      description: Serializer for the Employee model, including clock-in status.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        given_name:
+          type: string
+        surname:
+          type: string
+        card_number:
+          type: integer
+          readOnly: true
+          nullable: true
+          description: The access card currently assigned to the employee.
+        card_designation:
+          type: string
+          readOnly: true
+          nullable: true
+        assigned_locations:
+          type: array
+          items:
+            type: integer
+          readOnly: true
+          description: Locations this employee is typically associated with (informational).
+        is_clocked_in:
+          type: boolean
+          readOnly: true
+        last_clockinout_time:
+          type: string
+          format: date-time
+          readOnly: true
+        assigned_location_ids:
+          type: array
+          items:
+            type: integer
+            writeOnly: true
+          writeOnly: true
+        card_id:
+          type: integer
+          writeOnly: true
+          nullable: true
+      required:
+      - assigned_locations
+      - card_designation
+      - card_number
+      - given_name
+      - id
+      - is_clocked_in
+      - last_clockinout_time
+      - surname
+    Event:
+      type: object
+      description: Serializer for the Event model, showing related object details.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        event_type:
+          allOf:
+          - $ref: '#/components/schemas/EventType'
+          readOnly: true
+        employee:
+          type: string
+          readOnly: true
+        location:
+          allOf:
+          - $ref: '#/components/schemas/Location'
+          readOnly: true
+        timestamp:
+          type: string
+          format: date-time
+          readOnly: true
+          description: When the event occurred.
+        created_by:
+          type: integer
+          readOnly: true
+          nullable: true
+          description: The system user who recorded this event, if applicable.
+        created_by_user:
+          type: string
+          readOnly: true
+          nullable: true
+      required:
+      - created_by
+      - created_by_user
+      - employee
+      - event_type
+      - id
+      - location
+      - timestamp
+    EventType:
+      type: object
+      description: Serializer for the EventType model.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          description: The name describing the event type.
+      required:
+      - id
+      - name
+    Location:
+      type: object
+      description: Serializer for the Location model.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          description: Name of the location (e.g., 'Main Security', 'Repository and
+            Conservation').
+      required:
+      - id
+      - name
+    PaginatedEventList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Event'
+    PatchedEmployee:
+      type: object
+      description: Serializer for the Employee model, including clock-in status.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        given_name:
+          type: string
+        surname:
+          type: string
+        card_number:
+          type: integer
+          readOnly: true
+          nullable: true
+          description: The access card currently assigned to the employee.
+        card_designation:
+          type: string
+          readOnly: true
+          nullable: true
+        assigned_locations:
+          type: array
+          items:
+            type: integer
+          readOnly: true
+          description: Locations this employee is typically associated with (informational).
+        is_clocked_in:
+          type: boolean
+          readOnly: true
+        last_clockinout_time:
+          type: string
+          format: date-time
+          readOnly: true
+        assigned_location_ids:
+          type: array
+          items:
+            type: integer
+            writeOnly: true
+          writeOnly: true
+        card_id:
+          type: integer
+          writeOnly: true
+          nullable: true
+    PatchedLocation:
+      type: object
+      description: Serializer for the Location model.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          description: Name of the location (e.g., 'Main Security', 'Repository and
+            Conservation').
+    PatchedSingleEvent:
+      type: object
+      description: Serializer for creating/updating a single Event instance.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        event_type:
+          type: integer
+        employee:
+          type: integer
+        location:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+          description: When the event occurred.
+        created_by:
+          type: integer
+          readOnly: true
+          nullable: true
+          description: The system user who recorded this event, if applicable.
+    SingleEvent:
+      type: object
+      description: Serializer for creating/updating a single Event instance.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        event_type:
+          type: integer
+        employee:
+          type: integer
+        location:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+          description: When the event occurred.
+        created_by:
+          type: integer
+          readOnly: true
+          nullable: true
+          description: The system user who recorded this event, if applicable.
+      required:
+      - created_by
+      - employee
+      - event_type
+      - id
+      - location
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+    tokenAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Token-based authentication with required prefix "Token"

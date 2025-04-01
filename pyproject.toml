@@ -11,3 +11,12 @@ dependencies = [
     "drf-spectacular>=0.28.0",
     "markdown>=3.7",
 ]
+
+[dependency-groups]
+nbook = [
+    "httpx>=0.28.1",
+    "marimo[recommended]>=0.12.0",
+    "plotly>=6.0.1",
+    "polars[numpy,pandas,plot,pydantic,timezone]>=1.26.0",
+    "pydantic>=2.11.1",
+]

@@ -7,3 +7,11 @@ django-filter
 
 # See: https://drf-spectacular.readthedocs.io/en/latest/readme.html
 drf-spectacular
+
+# # Notebooks
+# # uv add --group nbook [package]
+# marimo[recommended]
+# httpx
+# pydantic
+# polars[numpy, pandas, pydantic, plot, timezone]
+# plotly
