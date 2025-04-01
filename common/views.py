@@ -1,7 +1,7 @@
 import time
 
-import pandas as pd
 from django.db.models import Q
+from django.http import HttpResponseForbidden
 from django.shortcuts import redirect, render
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
@@ -10,8 +10,8 @@ from rest_framework.authentication import BasicAuthentication, SessionAuthentica
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.schemas.openapi import AutoSchema
 
-from .models import *
-from .serializers import *
+from .models import Employee, Event, Location
+from .serializers import EmployeeSerializer, EventSerializer, LocationSerializer
 
 
 class SingleEventView(generics.RetrieveUpdateDestroyAPIView):
