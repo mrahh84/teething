@@ -43,6 +43,15 @@ INSTALLED_APPS = [
     "drf_spectacular",
 ]
 
+# Login Details
+
+# Redirect here if @login_required fails
+LOGIN_URL = "login"
+# Redirect here after successful login (assume 'main_security' is main page)
+LOGIN_REDIRECT_URL = "main_security"
+# Redirect here after logout
+LOGOUT_REDIRECT_URL = "login"  # Change to a better view if created
+
 REST_FRAMEWORK = {
     "DEFAULT_METADATA_CLASS": "rest_framework.metadata.SimpleMetadata",
     "DEFAULT_AUTHENTICATION_CLASSES": [
