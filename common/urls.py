@@ -34,4 +34,7 @@ urlpatterns = [
         views.SingleLocationView.as_view(),
         name="api_single_location",
     ),
+    # --- Health Check Views ---
+    # Health check endpoint
+    path("health/", views.health_check, name="health_check"),
 ]

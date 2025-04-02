@@ -1,0 +1,22 @@
+services:
+  road-attendance-app:
+    platform: linux/arm64/v8
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile
+      args:
+        REQ_TXT_PATH: ./requirements.txt
+        SCPT_TXT_PATH: ./scripts/
+    environment:
+      DockerHOME: /home/app/
+    ports:
+      - 2718:8000
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "-s", "http://localhost:8000/common/health/"]
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+      start_period: 50s
+    restart: unless-stopped
+    volumes:
+      - ./:/home/app/

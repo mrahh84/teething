@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseBadRequest
+from django.db import connections
+from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import (
     get_object_or_404,
     redirect,
@@ -197,3 +198,21 @@ def employee_events(request, id):
         "user": request.user,
     }
     return render(request, "employee_rollup.html", context)
+
+
+# --- Health Check Views ---
+# No login required, no permissions needed for a basic health check
+# Exclude from schema if using drf-spectacular
+
+
+@extend_schema(exclude=True)
+def health_check(request):
+    """
+    Basic health check endpoint. Returns HTTP 200 OK if the app is running.
+    """
+    try:
+        connections["default"].cursor()
+    except Exception as e:
+        return HttpResponse("Database unavailable", status=503)
+
+    return HttpResponse("OK", status=200)
