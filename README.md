@@ -48,10 +48,11 @@ It includes a basic web interface for security personnel and a RESTful API for p
 
 1.  Start the Django development server:
     ```bash
-    python3 manage.py runserver
+    docker-compose up
+    # python3 manage.py runserver
     ```
 2.  Access the web interface by logging in and navigating to `/common/main_security/`.
-3.  Access the API endpoints under `/common/api/`.
+3.  Access the API endpoints under `/common/api/` and the Swagger UI at `/` i.e. the home page.
 
 ## API Endpoints (Brief)
 
