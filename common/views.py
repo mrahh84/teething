@@ -18,6 +18,7 @@ from datetime import datetime, timedelta, date
 from django.urls import reverse
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 import json
+import traceback
 
 from .models import Employee, Event, EventType, Location
 from .serializers import (
@@ -259,7 +260,7 @@ def main_security_clocked_in_status_flip(request, id):
         )  # Or redirect with message
 
     # Create the new clock event
-    Event.objects.create(
+    event = Event.objects.create(
         employee=employee,
         event_type=event_type,
         location=location,
@@ -267,8 +268,9 @@ def main_security_clocked_in_status_flip(request, id):
         # timestamp defaults to timezone.now
     )
 
-    # Optional: Add a success message
-    messages.success(request, f"{employee} successfully {event_type}.")
+    # Optional: Add a success message with time and date
+    event_time = event.timestamp.strftime("%H:%M:%S on %d %b %Y")
+    messages.success(request, f"{employee} successfully {event_type} at {event_time}.")
 
     # Preserve the filter parameters when redirecting
     query_params = request.GET.copy()
@@ -642,7 +644,8 @@ def generate_marimo_report(request, report_type):
         print("Marimo not installed")
         return HttpResponse("Marimo is not installed. Reports require Marimo to be installed.", status=500)
     except Exception as e:
-        print(f"Error generating report: {str(e)}")
+        error_msg = f"Error generating report: {str(e)}\n\n{traceback.format_exc()}"
+        print(error_msg)  # Log the full error to the console
         return HttpResponse(f"Error generating report: {str(e)}", status=500)
 
 def generate_daily_dashboard_html(request, selected_date):
@@ -1170,6 +1173,9 @@ def generate_period_summary_html(request, period_type, start_date, end_date, sta
             }
             stacked_bar_traces.append(trace)
         
+        # Define period_name before using it
+        period_name = {'day': 'Daily', 'week': 'Weekly', 'month': 'Monthly'}[period_type]
+        
         stacked_layout = {
             'title': f'{period_name} Hours Worked by Employee',
             'barmode': 'stack',
@@ -1225,8 +1231,6 @@ def generate_period_summary_html(request, period_type, start_date, end_date, sta
         trend_json = json.dumps({'data': trend_traces, 'layout': trend_layout})
         
         # Create HTML report
-        period_name = {'day': 'Daily', 'week': 'Weekly', 'month': 'Monthly'}[period_type]
-        
         html = f"""
         <!DOCTYPE html>
         <html>
@@ -1315,6 +1319,8 @@ def generate_period_summary_html(request, period_type, start_date, end_date, sta
         return HttpResponse(html, content_type='text/html')
         
     except Exception as e:
+        error_msg = f"Error generating period summary report: {str(e)}\n\n{traceback.format_exc()}"
+        print(error_msg)  # Log the full error to the console
         return HttpResponse(f"Error generating period summary report: {str(e)}", status=500)
 
 def generate_late_early_html(request, start_date, end_date, late_threshold, early_threshold, start_time_str, end_time_str):
