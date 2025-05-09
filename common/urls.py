@@ -13,6 +13,30 @@ urlpatterns = [
         views.main_security_clocked_in_status_flip,
         name="main_security_clocked_in_status_flip",
     ),
+    # Event editing URLs
+    path(
+        "employee_events/<int:employee_id>/update_event/",
+        views.update_event,
+        name="update_event",
+    ),
+    path(
+        "employee_events/<int:employee_id>/delete_event/",
+        views.delete_event,
+        name="delete_event",
+    ),
+    # --- Reports Section ---
+    path("reports/", views.reports_dashboard, name="reports_dashboard"),
+    # Interactive report routes
+    path("reports/daily_dashboard/", views.daily_dashboard_report, name="daily_dashboard_report"),
+    path("reports/employee_history/", views.employee_history_report, name="employee_history_report"),
+    path("reports/period_summary/", views.period_summary_report, name="period_summary_report"),
+    path("reports/late_early/", views.late_early_report, name="late_early_report"),
+    # Report generation endpoints
+    path(
+        "reports/generate/<str:report_type>/",
+        views.generate_marimo_report,
+        name="generate_marimo_report",
+    ),
     # --- API Views ---
     # List all events (GET)
     path(

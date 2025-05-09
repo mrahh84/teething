@@ -451,6 +451,7 @@ paths:
           - tr
           - tt
           - udm
+          - ug
           - uk
           - ur
           - uz
@@ -550,7 +551,8 @@ components:
           - $ref: '#/components/schemas/EventType'
           readOnly: true
         employee:
-          type: string
+          allOf:
+          - $ref: '#/components/schemas/Employee'
           readOnly: true
         location:
           allOf:
