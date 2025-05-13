@@ -33,8 +33,11 @@ report_urls = [
     path("reports/", views.reports_dashboard, name="reports_dashboard"),
     path("reports/daily_dashboard/", views.daily_dashboard_report, name="daily_dashboard_report"),
     path("reports/employee_history/", views.employee_history_report, name="employee_history_report"),
+    path("reports/employee_history/csv/", views.employee_history_report_csv, name="employee_history_report_csv"),
     path("reports/period_summary/", views.period_summary_report, name="period_summary_report"),
+    path("reports/period_summary/csv/", views.period_summary_report_csv, name="period_summary_report_csv"),
     path("reports/late_early/", views.late_early_report, name="late_early_report"),
+    path("reports/late_early/csv/", views.late_early_report_csv, name="late_early_report_csv"),
     path(
         "reports/generate/<str:report_type>/",
         views.generate_marimo_report,

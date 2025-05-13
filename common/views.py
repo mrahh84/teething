@@ -2,7 +2,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db import connections
-from django.http import HttpResponse, HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseBadRequest, StreamingHttpResponse
 from django.shortcuts import (
     get_object_or_404,
     redirect,
@@ -19,6 +19,7 @@ from django.urls import reverse
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 import json
 import traceback
+import csv
 
 from .models import Employee, Event, EventType, Location
 from .serializers import (
@@ -1582,3 +1583,189 @@ def health_check(request):
         return HttpResponse("Database unavailable", status=503)
 
     return HttpResponse("OK", status=200)
+
+def employee_history_report_csv(request):
+    """Download employee attendance history as CSV"""
+    employee_id = request.GET.get('employee_id')
+    start_date = request.GET.get('start_date', (timezone.now() - timedelta(days=30)).date().isoformat())
+    end_date = request.GET.get('end_date', timezone.now().date().isoformat())
+    if not employee_id:
+        return HttpResponseBadRequest("Employee ID is required")
+    try:
+        start_date = datetime.fromisoformat(start_date).date()
+        end_date = datetime.fromisoformat(end_date).date()
+    except ValueError:
+        return HttpResponseBadRequest("Invalid date format")
+    employee = get_object_or_404(Employee, id=employee_id)
+    start_datetime = timezone.make_aware(datetime.combine(start_date, datetime.min.time()))
+    end_datetime = timezone.make_aware(datetime.combine(end_date, datetime.min.time()))
+    events = Event.objects.filter(
+        employee=employee,
+        timestamp__range=(start_datetime, end_datetime)
+    ).select_related('event_type', 'location').order_by('timestamp')
+    def row_gen():
+        yield ['Date', 'Clock In', 'Clock Out', 'Hours']
+        event_days = {}
+        clock_in_time = None
+        for event in events:
+            event_date = event.timestamp.date()
+            if event_date not in event_days:
+                event_days[event_date] = {'clock_in': None, 'clock_out': None, 'hours': 0}
+            if event.event_type.name == "Clock In":
+                event_days[event_date]['clock_in'] = event.timestamp
+                clock_in_time = event.timestamp
+            elif event.event_type.name == "Clock Out" and clock_in_time:
+                event_days[event_date]['clock_out'] = event.timestamp
+                hours = (event.timestamp - clock_in_time).total_seconds() / 3600
+                event_days[event_date]['hours'] = round(hours, 2)
+                clock_in_time = None
+        for date_key in sorted(event_days.keys()):
+            day = event_days[date_key]
+            yield [date_key.strftime('%Y-%m-%d'),
+                   day['clock_in'].strftime('%H:%M') if day['clock_in'] else '',
+                   day['clock_out'].strftime('%H:%M') if day['clock_out'] else '',
+                   day['hours']]
+    response = StreamingHttpResponse(
+        (','.join(map(str, row)) + '\n' for row in row_gen()),
+        content_type='text/csv'
+    )
+    response['Content-Disposition'] = f'attachment; filename="employee_history_{employee_id}.csv"'
+    return response
+
+
+def period_summary_report_csv(request):
+    """Download period summary as CSV"""
+    period = request.GET.get('period', 'day')
+    start_date = request.GET.get('start_date', timezone.now().date().isoformat())
+    start_time = request.GET.get('start_time', '09:00')
+    end_time = request.GET.get('end_time', '17:00')
+    try:
+        start_date = datetime.fromisoformat(start_date).date()
+        end_date = timezone.now().date()
+    except ValueError:
+        return HttpResponseBadRequest("Invalid date format")
+    end_date = request.GET.get('end_date', end_date.isoformat())
+    try:
+        end_date = datetime.fromisoformat(end_date).date()
+    except ValueError:
+        return HttpResponseBadRequest("Invalid end date format")
+    start_datetime = timezone.make_aware(datetime.combine(start_date, datetime.min.time()))
+    end_datetime = timezone.make_aware(datetime.combine(end_date, datetime.min.time()))
+    events = Event.objects.filter(
+        timestamp__range=(start_datetime, end_datetime),
+        event_type__name__in=["Clock In", "Clock Out"]
+    ).select_related('employee', 'event_type')
+    # Group events by period and employee
+    period_data = {}
+    if period == 'day':
+        current_date = start_date
+        while current_date < end_date:
+            period_data[current_date] = {}
+            current_date += timedelta(days=1)
+    elif period == 'week':
+        current_date = start_date
+        while current_date < end_date:
+            week_start = current_date - timedelta(days=current_date.weekday())
+            if week_start not in period_data:
+                period_data[week_start] = {}
+            current_date += timedelta(days=1)
+    elif period == 'month':
+        current_date = start_date
+        while current_date < end_date:
+            month_start = current_date.replace(day=1)
+            if month_start not in period_data:
+                period_data[month_start] = {}
+            current_date += timedelta(days=1)
+    for event in events:
+        employee_id = event.employee.id
+        employee_name = f"{event.employee.given_name} {event.employee.surname}"
+        event_date = event.timestamp.date()
+        if period == 'day':
+            period_key = event_date
+        elif period == 'week':
+            period_key = event_date - timedelta(days=event_date.weekday())
+        elif period == 'month':
+            period_key = event_date.replace(day=1)
+        if period_key not in period_data:
+            continue
+        if employee_id not in period_data[period_key]:
+            period_data[period_key][employee_id] = {
+                'name': employee_name,
+                'first_clock_in': None,
+                'last_clock_out': None,
+                'hours': 0
+            }
+        emp_data = period_data[period_key][employee_id]
+        if event.event_type.name == "Clock In":
+            if emp_data['first_clock_in'] is None or event.timestamp < emp_data['first_clock_in']:
+                emp_data['first_clock_in'] = event.timestamp
+        elif event.event_type.name == "Clock Out":
+            if emp_data['last_clock_out'] is None or event.timestamp > emp_data['last_clock_out']:
+                emp_data['last_clock_out'] = event.timestamp
+    for period_key in period_data:
+        for emp_id, emp_data in period_data[period_key].items():
+            if emp_data['first_clock_in'] and emp_data['last_clock_out']:
+                hours = (emp_data['last_clock_out'] - emp_data['first_clock_in']).total_seconds() / 3600
+                emp_data['hours'] = round(hours, 2)
+    def row_gen():
+        yield ['Period', 'Employee', 'First Clock In', 'Last Clock Out', 'Hours']
+        for period_key in sorted(period_data.keys()):
+            for emp_id, emp_data in period_data[period_key].items():
+                yield [str(period_key), emp_data['name'],
+                       emp_data['first_clock_in'].strftime('%Y-%m-%d %H:%M') if emp_data['first_clock_in'] else '',
+                       emp_data['last_clock_out'].strftime('%Y-%m-%d %H:%M') if emp_data['last_clock_out'] else '',
+                       emp_data['hours']]
+    response = StreamingHttpResponse(
+        (','.join(map(str, row)) + '\n' for row in row_gen()),
+        content_type='text/csv'
+    )
+    response['Content-Disposition'] = f'attachment; filename="period_summary_{period}.csv"'
+    return response
+
+
+def late_early_report_csv(request):
+    """Download late/early report as CSV"""
+    start_date = request.GET.get('start_date', (timezone.now() - timedelta(days=30)).date().isoformat())
+    end_date = request.GET.get('end_date', timezone.now().date().isoformat())
+    late_threshold = int(request.GET.get('late_threshold', '15'))
+    early_threshold = int(request.GET.get('early_threshold', '15'))
+    start_time = request.GET.get('start_time', '09:00')
+    end_time = request.GET.get('end_time', '17:00')
+    try:
+        start_date = datetime.fromisoformat(start_date).date()
+        end_date = datetime.fromisoformat(end_date).date()
+    except ValueError:
+        return HttpResponseBadRequest("Invalid date format")
+    start_datetime = timezone.make_aware(datetime.combine(start_date, datetime.min.time()))
+    end_datetime = timezone.make_aware(datetime.combine(end_date, datetime.min.time()))
+    events = Event.objects.filter(
+        timestamp__range=(start_datetime, end_datetime),
+        event_type__name__in=["Clock In", "Clock Out"]
+    ).select_related('employee', 'event_type')
+    late_arrivals = []
+    early_departures = []
+    for event in events:
+        event_time = event.timestamp.time()
+        employee_name = f"{event.employee.given_name} {event.employee.surname}"
+        if event.event_type.name == "Clock In":
+            if event_time > datetime.strptime(start_time, '%H:%M').time():
+                minutes_late = (datetime.combine(date.min, event_time) - datetime.combine(date.min, datetime.strptime(start_time, '%H:%M').time())).total_seconds() / 60
+                if minutes_late >= late_threshold:
+                    late_arrivals.append([employee_name, event.timestamp.date(), event_time.strftime('%H:%M'), int(minutes_late)])
+        elif event.event_type.name == "Clock Out":
+            if event_time < datetime.strptime(end_time, '%H:%M').time():
+                minutes_early = (datetime.combine(date.min, datetime.strptime(end_time, '%H:%M').time()) - datetime.combine(date.min, event_time)).total_seconds() / 60
+                if minutes_early >= early_threshold:
+                    early_departures.append([employee_name, event.timestamp.date(), event_time.strftime('%H:%M'), int(minutes_early)])
+    def row_gen():
+        yield ['Type', 'Employee', 'Date', 'Time', 'Minutes']
+        for row in late_arrivals:
+            yield ['Late Arrival'] + row
+        for row in early_departures:
+            yield ['Early Departure'] + row
+    response = StreamingHttpResponse(
+        (','.join(map(str, row)) + '\n' for row in row_gen()),
+        content_type='text/csv'
+    )
+    response['Content-Disposition'] = 'attachment; filename="late_early_report.csv"'
+    return response

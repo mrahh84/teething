@@ -163,6 +163,7 @@
     <div class="report-description">
         <p>View detailed attendance history for individual employees with calculated hours worked and visualizations.</p>
     </div>
+    <a class="btn" style="margin-bottom: 15px;" href="{% url 'employee_history_report_csv' %}?employee_id={{ selected_employee_id }}&start_date={{ start_date }}&end_date={{ end_date }}">Download CSV</a>
     
     <form method="get" action="" class="filters">
         <div class="filter-group">

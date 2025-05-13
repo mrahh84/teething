@@ -176,6 +176,7 @@
     <div class="report-description">
         <p>Track employee punctuality with customizable thresholds for lateness and early departures.</p>
     </div>
+    <a class="btn" style="margin-bottom: 15px;" href="{% url 'late_early_report_csv' %}?start_date={{ start_date }}&end_date={{ end_date }}&late_threshold={{ late_threshold }}&early_threshold={{ early_threshold }}&start_time={{ start_time }}&end_time={{ end_time }}">Download CSV</a>
     
     <form method="get" action="" class="filters">
         <div class="filter-group">
