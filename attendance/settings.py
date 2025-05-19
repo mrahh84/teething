@@ -107,12 +107,12 @@ WSGI_APPLICATION = "attendance.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": config('DB_ENGINE', default='django.db.backends.sqlite3'),
-        "NAME": config('DB_NAME', default=BASE_DIR / 'db.sqlite3'),
-        "USER": config('DB_USER', default=''),
-        "PASSWORD": config('DB_PASSWORD', default=''),
-        "HOST": config('DB_HOST', default=''),
-        "PORT": config('DB_PORT', default=''),
+        "ENGINE": config("DB_ENGINE") or "django.db.backends.sqlite3",
+        "NAME": config("DB_NAME") or BASE_DIR.joinpath("db.sqlite3"),
+        "USER": config("DB_USER", default=""),
+        "PASSWORD": config("DB_PASSWORD", default=""),
+        "HOST": config("DB_HOST", default=""),
+        "PORT": config("DB_PORT", default="", cast=lambda v: int(v) if v else None),
     }
 }
 
