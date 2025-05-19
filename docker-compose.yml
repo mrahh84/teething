@@ -9,6 +9,16 @@ services:
         SCPT_TXT_PATH: ./scripts/
     environment:
       DockerHOME: /home/app/
+      # Pass through environment variables from .env
+      SECRET_KEY: ${SECRET_KEY}
+      DEBUG: ${DEBUG}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS}
+      DB_ENGINE: ${DB_ENGINE}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
     ports:
       - 2718:8000
     healthcheck:
@@ -20,3 +30,5 @@ services:
     restart: unless-stopped
     volumes:
       - ./:/home/app/
+    env_file:
+      - .env

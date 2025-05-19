@@ -1,87 +1,482 @@
 <!DOCTYPE html> {# Basic HTML structure #}
 <html>
 <head>
-    <title>Main Security Dashboard</title>
-     {# Basic styling - consider moving to a CSS file #}
+    <title>Clock-in Dashboard | Attendance System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        table, th, td { border: 1px solid black; border-collapse: collapse; padding: 5px; }
-        th { background-color: #f2f2f2; text-align: left;}
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #34495e;
+            --accent-color: #3498db;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --light-gray: #f5f5f5;
+            --med-gray: #e0e0e0;
+            --dark-gray: #95a5a6;
+            --text-color: #333;
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            margin: 0;
+            padding: 15px;
+            background-color: #f9f9f9;
+        }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--med-gray);
+        }
+        
+        h1, h2 {
+            margin: 0;
+            padding: 0;
+        }
+        
+        .dashboard-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-card h3 {
+            margin-top: 0;
+            color: var(--dark-gray);
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-card .stat-value {
+            font-size: 32px;
+            font-weight: 600;
+            margin: 10px 0;
+        }
+        
+        .stat-card.clocked-in .stat-value {
+            color: var(--success-color);
+        }
+        
+        .stat-card.clocked-out .stat-value {
+            color: var(--danger-color);
+        }
+        
+        .stat-card.total .stat-value {
+            color: var(--primary-color);
+        }
+        
+        .controls-wrapper {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+        }
+        
+        @media (max-width: 768px) {
+            .controls {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .search-box {
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+        
+        input[type="text"], select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--med-gray);
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        input[type="text"]:focus, select:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.25);
+        }
+        
+        .filter-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        th {
+            background-color: var(--primary-color);
+            color: white;
+            text-align: left;
+            padding: 12px;
+            font-weight: 500;
+            position: relative;
+            cursor: pointer;
+        }
+        
+        th:hover {
+            background-color: var(--secondary-color);
+        }
+        
+        th.sorted:after {
+            content: " ▾";
+            font-size: 12px;
+        }
+        
+        th.sorted.desc:after {
+            content: " ▴";
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid var(--med-gray);
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        tr:nth-child(even) {
+            background-color: var(--light-gray);
+        }
+        
+        tr:hover {
+            background-color: rgba(52, 152, 219, 0.1);
+        }
+        
+        a {
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+        
+        a:hover {
+            text-decoration: underline;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 8px 12px;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            text-align: center;
+            text-decoration: none;
+        }
+        
+        .btn:hover {
+            background-color: #2980b9;
+            text-decoration: none;
+        }
+        
+        .btn-success {
+            background-color: var(--success-color);
+        }
+        
+        .btn-success:hover {
+            background-color: #27ae60;
+        }
+        
+        .btn-danger {
+            background-color: var(--danger-color);
+        }
+        
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        
+        .message-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 20px 0;
+        }
+        
+        .message {
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        
+        .message.success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .message.warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+        }
+        
+        .message.error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .message.info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .status-in {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .status-out {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            padding: 10px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .pagination-info {
+            font-size: 14px;
+        }
+        
+        .pagination-controls a {
+            display: inline-block;
+            padding: 5px 10px;
+            margin: 0 5px;
+            border-radius: 4px;
+            background-color: var(--light-gray);
+        }
+        
+        .pagination-controls a.active {
+            background-color: var(--accent-color);
+            color: white;
+        }
+        
+        .pagination-controls a:hover:not(.active) {
+            background-color: var(--med-gray);
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .employee-action {
+            white-space: nowrap;
+        }
+        
+        .time-indicator {
+            display: block;
+            font-size: 11px;
+            color: var(--dark-gray);
+        }
+        
+        .card-number {
+            font-family: monospace;
+            background: var(--light-gray);
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        
+        .alphabet-filter {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 15px;
+        }
+        
+        .alphabet-filter a {
+            display: block;
+            width: 30px;
+            height: 30px;
+            line-height: 30px;
+            text-align: center;
+            background: var(--light-gray);
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .alphabet-filter a.active,
+        .alphabet-filter a:hover {
+            background: var(--accent-color);
+            color: white;
+            text-decoration: none;
+        }
+        
+        .alphabet-filter a.all {
+            width: auto;
+            padding: 0 10px;
+        }
     </style>
 </head>
 <body>
+    <header>
+        <h1>Clock-in Dashboard</h1>
+        {% if user.is_authenticated %}
+            <div>
+                Welcome, {{ user.username }}! 
+                <a href="{% url 'reports_dashboard' %}" class="btn">Reports</a>
+                <a href="{% url 'logout' %}" class="btn btn-danger">Logout</a>
+            </div>
+        {% else %}
+            <a href="{% url 'login' %}" class="btn">Login</a>
+        {% endif %}
+    </header>
 
     {% if messages %}
-        <ul class="messages" style="list-style: none; padding: 0; margin: 1em 0;">
+        <ul class="message-list">
             {% for message in messages %}
-                {# Apply different styles based on the message level (success, warning, error) #}
-                <li{% if message.tags %} class="{{ message.tags }}" style="padding: 10px; border: 1px solid; margin-bottom: 5px;
-                    {% if 'success' in message.tags %} background-color: #dff0d8; border-color: #d6e9c6; color: #3c763d; {% endif %}
-                    {% if 'warning' in message.tags %} background-color: #fcf8e3; border-color: #faebcc; color: #8a6d3b; {% endif %}
-                    {% if 'error' in message.tags %} background-color: #f2dede; border-color: #ebccd1; color: #a94442; {% endif %}
-                    {% if 'info' in message.tags %} background-color: #d9edf7; border-color: #bce8f1; color: #31708f; {% endif %}
-                "{% endif %}>
-                    {{ message }}
-                </li>
+                <li class="message {{ message.tags }}">{{ message }}</li>
             {% endfor %}
         </ul>
     {% endif %}
-
-    {# Header with Logout link #}
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h1>Main Security</h1>
-        {% if user.is_authenticated %}
-            <span>Welcome, {{ user.username }}! <a href="{% url 'logout' %}">Logout</a></span>
-        {% else %}
-             {# Should not happen if @login_required works, but good fallback #}
-             <a href="{% url 'login' %}">Login</a>
-        {% endif %}
+    
+    <div class="dashboard-summary">
+        <div class="stat-card total">
+            <h3>Total Employees</h3>
+            <div class="stat-value" id="total-employees">{{ total_employees }}</div>
+        </div>
+        <div class="stat-card clocked-in">
+            <h3>Clocked In</h3>
+            <div class="stat-value" id="clocked-in-count">{{ clocked_in_count }}</div>
+        </div>
+        <div class="stat-card clocked-out">
+            <h3>Clocked Out</h3>
+            <div class="stat-value" id="clocked-out-count">{{ clocked_out_count }}</div>
+        </div>
     </div>
 
-    <h2>Employee Status</h2>
+    <div class="controls-wrapper">
+        <h2>Employee Status</h2>
+        <div class="controls">
+            <div class="filter-group">
+                <label for="search">Search:</label>
+                <input type="text" id="search" placeholder="Search by name or card..." oninput="filterEmployees()" value="{{ search_query }}">
+            </div>
+            <div class="filter-group">
+                <label for="status-filter">Status Filter:</label>
+                <select id="status-filter" onchange="filterEmployees()">
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Employees</option>
+                    <option value="in" {% if status_filter == 'in' %}selected{% endif %}>Clocked In</option>
+                    <option value="out" {% if status_filter == 'out' %}selected{% endif %}>Clocked Out</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="items-per-page">Rows per page:</label>
+                <select id="items-per-page" onchange="changeItemsPerPage()">
+                    <option value="10">10</option>
+                    <option value="25" selected>25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="alphabet-filter">
+            <a href="#" class="all active" data-letter="all">All</a>
+            {% for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ" %}
+                <a href="#" data-letter="{{ letter }}">{{ letter }}</a>
+            {% endfor %}
+        </div>
+        
+        <div style="margin-top: 15px; display: flex; justify-content: flex-end;">
+            <button type="button" class="btn" onclick="applyServerFilters()">Apply Server Filters</button>
+            <a href="{% url 'main_security' %}" class="btn" style="margin-left: 10px;">Clear All Filters</a>
+        </div>
+    </div>
 
-    <table>
+    <table id="employee-table">
         <thead>
             <tr>
-                <th>Card</th>
-                <th>Given Name</th>
-                <th>Surname</th>
+                <th onclick="sortTable(0)">Card</th>
+                <th onclick="sortTable(1)">Given Name</th>
+                <th onclick="sortTable(2)" class="sorted">Surname</th>
                 <th>Status</th>
-                <th>Change Status</th>
+                <th>Action</th>
             </tr>
         </thead>
         <tbody>
             {% for employee in employees %}
-            <tr>
+            <tr class="employee-row" 
+                data-status="{% if employee.is_clocked_in %}in{% else %}out{% endif %}" 
+                data-firstname="{{ employee.given_name }}"
+                data-lastname="{{ employee.surname }}">
                 <td>
                     {% if employee.card_number %}
-                        {# Link to employee's event details page #}
-                        <a href="{% url 'employee_events' employee.id %}" target="_blank">
-                            {{ employee.card_number.designation }}
+                        <a href="{% url 'employee_events' employee.id %}">
+                            <span class="card-number">{{ employee.card_number.designation }}</span>
                         </a>
                     {% else %}
-                        N/A
+                        <span class="card-number">N/A</span>
                     {% endif %}
                 </td>
                 <td>{{ employee.given_name }}</td>
                 <td>{{ employee.surname }}</td>
                 <td>
-                    {# Use the is_clocked_in property #}
-                    {% if employee.is_clocked_in %}
-                        Clocked In
-                    {% else %}
-                        Clocked Out
-                    {% endif %}
-                    {# Use the last_clockinout_time property #}
+                    <span class="status-badge status-{% if employee.is_clocked_in %}in{% else %}out{% endif %}">
+                        {% if employee.is_clocked_in %}Clocked In{% else %}Clocked Out{% endif %}
+                    </span>
                     {% if employee.last_clockinout_time %}
-                         at {{ employee.last_clockinout_time | date:"Y-m-d H:i:s" }}
-                         {# Or just time: {{ employee.last_clockinout_time | time:"H:i:s" }} #}
+                        <span class="time-indicator">{{ employee.last_clockinout_time | date:"Y-m-d H:i:s" }}</span>
                     {% else %}
-                        (No clock events)
+                        <span class="time-indicator">(No clock events)</span>
                     {% endif %}
                 </td>
-                <td>
-                    {# Link to the clock in/out flip action URL #}
-                    <a href="{% url 'main_security_clocked_in_status_flip' employee.id %}">
+                <td class="employee-action">
+                    <a href="{% url 'main_security_clocked_in_status_flip' employee.id %}" class="btn {% if employee.is_clocked_in %}btn-danger{% else %}btn-success{% endif %}">
                         {% if employee.is_clocked_in %}
                             Clock Out
                         {% else %}
@@ -90,7 +485,7 @@
                     </a>
                 </td>
             </tr>
-            {% empty %} {# Handle case where there are no employees #}
+            {% empty %}
             <tr>
                 <td colspan="5">No employees found.</td>
             </tr>
@@ -98,5 +493,279 @@
         </tbody>
     </table>
 
+    <div class="pagination">
+        <div class="pagination-info">
+            Showing <span id="start-item">1</span> to <span id="end-item">25</span> of <span id="total-items">{{ employees|length }}</span> employees
+        </div>
+        <div class="pagination-controls" id="pagination-controls">
+            <!-- Pagination links will be inserted here by JavaScript -->
+        </div>
+    </div>
+
+    <script>
+        // Current page and items per page
+        let currentPage = 1;
+        let itemsPerPage = 25;
+        // Handle sort column using server-provided variables
+        let sortColumn = 2; // Default to surname
+        if ("{{ sort_by }}" === "given_name") {
+            sortColumn = 1;
+        } else if ("{{ sort_by }}" === "card") {
+            sortColumn = 0;
+        }
+        let sortDirection = "{{ sort_direction }}";
+        let currentLetter = "{{ start_letter|default:'all' }}";
+        
+        // Initialize on document load
+        document.addEventListener('DOMContentLoaded', function() {
+            setupTable();
+            setupAlphabetFilter();
+        });
+        
+        function setupTable() {
+            filterEmployees();
+            setupPagination();
+        }
+        
+        function setupAlphabetFilter() {
+            const letters = document.querySelectorAll('.alphabet-filter a');
+            letters.forEach(letter => {
+                letter.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    // Remove active class from all letters
+                    letters.forEach(l => l.classList.remove('active'));
+                    // Add active class to clicked letter
+                    this.classList.add('active');
+                    // Set current letter
+                    currentLetter = this.getAttribute('data-letter');
+                    // Filter employees
+                    filterEmployees();
+                });
+            });
+        }
+        
+        function updateDashboardCounts() {
+            // Dashboard counts are now set from server-side data
+            // This function is kept for compatibility
+        }
+        
+        function filterEmployees() {
+            const searchText = document.getElementById('search').value.toLowerCase();
+            const statusFilter = document.getElementById('status-filter').value;
+            const rows = document.querySelectorAll('#employee-table tbody tr.employee-row');
+            let visibleCount = 0;
+            
+            rows.forEach(row => {
+                const cardCell = row.cells[0].textContent.trim().toLowerCase();
+                const firstNameCell = row.cells[1].textContent.trim().toLowerCase();
+                const lastNameCell = row.cells[2].textContent.trim().toLowerCase();
+                const rowStatus = row.getAttribute('data-status');
+                const lastName = row.getAttribute('data-lastname');
+                
+                const matchesSearch = cardCell.includes(searchText) || 
+                                     firstNameCell.includes(searchText) || 
+                                     lastNameCell.includes(searchText);
+                                     
+                const matchesStatus = statusFilter === 'all' || rowStatus === statusFilter;
+                
+                // Check if matches letter filter
+                let matchesLetter = true;
+                if (currentLetter !== 'all') {
+                    matchesLetter = lastName && lastName.toUpperCase().startsWith(currentLetter);
+                }
+                
+                if (matchesSearch && matchesStatus && matchesLetter) {
+                    row.classList.remove('hidden');
+                    visibleCount++;
+                } else {
+                    row.classList.add('hidden');
+                }
+            });
+            
+            document.getElementById('total-items').textContent = visibleCount;
+            
+            // Reset to first page whenever filter changes
+            currentPage = 1;
+            applyPagination();
+        }
+        
+        function applyServerFilters() {
+            const searchText = document.getElementById('search').value;
+            const statusFilter = document.getElementById('status-filter').value;
+            const itemsPerPage = document.getElementById('items-per-page').value;
+            
+            // Build the URL with query parameters
+            let url = new URL(window.location.href);
+            url.searchParams.set('search', searchText);
+            url.searchParams.set('status', statusFilter);
+            url.searchParams.set('sort', getSortByFromColumnIndex(sortColumn));
+            url.searchParams.set('direction', sortDirection);
+            url.searchParams.set('items', itemsPerPage);
+            
+            // Add letter filter if not "all"
+            if (currentLetter !== 'all') {
+                url.searchParams.set('letter', currentLetter);
+            } else {
+                url.searchParams.delete('letter');
+            }
+            
+            // Navigate to the URL with the filters
+            window.location.href = url.toString();
+        }
+        
+        function getSortByFromColumnIndex(columnIndex) {
+            switch(columnIndex) {
+                case 0: return 'card';
+                case 1: return 'given_name';
+                case 2: return 'surname';
+                default: return 'surname';
+            }
+        }
+        
+        function sortTable(columnIndex) {
+            const table = document.getElementById('employee-table');
+            const header = table.querySelectorAll('th')[columnIndex];
+            
+            // Update sort direction
+            if (sortColumn === columnIndex) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortDirection = 'asc';
+                
+                // Remove sorting indicator from previous column
+                const headers = table.querySelectorAll('th');
+                headers.forEach(h => h.classList.remove('sorted', 'desc'));
+            }
+            
+            sortColumn = columnIndex;
+            
+            // Add sorting indicator to current column
+            header.classList.add('sorted');
+            if (sortDirection === 'desc') {
+                header.classList.add('desc');
+            } else {
+                header.classList.remove('desc');
+            }
+            
+            // Get all rows except header
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr.employee-row'));
+            
+            // Sort rows
+            rows.sort((a, b) => {
+                let aValue = a.cells[columnIndex].textContent.trim();
+                let bValue = b.cells[columnIndex].textContent.trim();
+                
+                // Handle special case for "N/A" values
+                if (aValue === 'N/A') aValue = '';
+                if (bValue === 'N/A') bValue = '';
+                
+                const comparison = aValue.localeCompare(bValue, undefined, {sensitivity: 'base'});
+                return sortDirection === 'asc' ? comparison : -comparison;
+            });
+            
+            // Reorder rows in the table
+            rows.forEach(row => tbody.appendChild(row));
+            
+            // Re-apply pagination
+            applyPagination();
+        }
+        
+        function setupPagination() {
+            applyPagination();
+        }
+        
+        function applyPagination() {
+            const table = document.getElementById('employee-table');
+            const rows = table.querySelectorAll('tbody tr.employee-row:not(.hidden)');
+            const totalItems = rows.length;
+            const pageCount = Math.ceil(totalItems / itemsPerPage);
+            
+            // Make sure currentPage is within bounds
+            if (currentPage > pageCount) {
+                currentPage = pageCount > 0 ? pageCount : 1;
+            }
+            
+            // Show items for current page
+            rows.forEach((row, index) => {
+                const start = (currentPage - 1) * itemsPerPage;
+                const end = start + itemsPerPage;
+                
+                if (index >= start && index < end) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Update pagination info
+            const startItem = totalItems > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0;
+            const endItem = Math.min(startItem + itemsPerPage - 1, totalItems);
+            
+            document.getElementById('start-item').textContent = startItem;
+            document.getElementById('end-item').textContent = endItem;
+            
+            // Generate pagination controls
+            const paginationControls = document.getElementById('pagination-controls');
+            paginationControls.innerHTML = '';
+            
+            if (pageCount <= 1) {
+                return; // No need for pagination controls
+            }
+            
+            // Previous button
+            const prevLink = document.createElement('a');
+            prevLink.href = '#';
+            prevLink.textContent = '« Prev';
+            prevLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (currentPage > 1) {
+                    currentPage--;
+                    applyPagination();
+                }
+            });
+            paginationControls.appendChild(prevLink);
+            
+            // Page numbers (show up to 5 pages around current page)
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(pageCount, startPage + 4);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const pageLink = document.createElement('a');
+                pageLink.href = '#';
+                pageLink.textContent = i;
+                pageLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    currentPage = i;
+                    applyPagination();
+                });
+                
+                if (i === currentPage) {
+                    pageLink.classList.add('active');
+                }
+                
+                paginationControls.appendChild(pageLink);
+            }
+            
+            // Next button
+            const nextLink = document.createElement('a');
+            nextLink.href = '#';
+            nextLink.textContent = 'Next »';
+            nextLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (currentPage < pageCount) {
+                    currentPage++;
+                    applyPagination();
+                }
+            });
+            paginationControls.appendChild(nextLink);
+        }
+        
+        function changeItemsPerPage() {
+            itemsPerPage = parseInt(document.getElementById('items-per-page').value);
+            currentPage = 1; // Reset to first page
+            applyPagination();
+        }
+    </script>
 </body>
 </html>

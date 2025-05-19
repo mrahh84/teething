@@ -8,10 +8,17 @@ django-filter
 # See: https://drf-spectacular.readthedocs.io/en/latest/readme.html
 drf-spectacular
 
+# For environment variables and configuration management
+python-decouple
+
+# For interactive reports and data analysis
+marimo[recommended]
+pandas
+matplotlib
+plotly
+
 # # Notebooks
 # # uv add --group nbook [package]
-# marimo[recommended]
 # httpx
 # pydantic
 # polars[numpy, pandas, pydantic, plot, timezone]
-# plotly

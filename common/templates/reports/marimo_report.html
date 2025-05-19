@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ report_title }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #34495e;
+            --accent-color: #3498db;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --light-gray: #f5f5f5;
+            --med-gray: #e0e0e0;
+            --dark-gray: #95a5a6;
+            --text-color: #333;
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            margin: 0;
+            padding: 15px;
+            background-color: #f9f9f9;
+        }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--med-gray);
+        }
+        
+        h1, h2, h3 {
+            margin: 0;
+            padding: 0;
+        }
+        
+        a {
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+        
+        a:hover {
+            text-decoration: underline;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 8px 12px;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            text-align: center;
+            text-decoration: none;
+        }
+        
+        .btn:hover {
+            background-color: #2980b9;
+            text-decoration: none;
+        }
+        
+        .btn-danger {
+            background-color: var(--danger-color);
+        }
+        
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        
+        .navigation {
+            margin-bottom: 20px;
+        }
+        
+        .navigation a {
+            margin-right: 15px;
+        }
+        
+        .report-description {
+            margin-bottom: 20px;
+            color: var(--dark-gray);
+        }
+        
+        .report-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            height: calc(100vh - 180px);
+            min-height: 500px;
+        }
+        
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>{{ report_title }}</h1>
+        {% if user.is_authenticated %}
+            <div>
+                Welcome, {{ user.username }}! 
+                <a href="{% url 'logout' %}" class="btn btn-danger">Logout</a>
+            </div>
+        {% else %}
+            <a href="{% url 'login' %}" class="btn">Login</a>
+        {% endif %}
+    </header>
+    
+    <div class="navigation">
+        <a href="{% url 'reports_dashboard' %}">← Back to Reports Dashboard</a>
+    </div>
+
+    {% if report_description %}
+    <div class="report-description">
+        <p>{{ report_description }}</p>
+    </div>
+    {% endif %}
+    
+    <div class="report-container">
+        <iframe src="{{ report_url }}" title="{{ report_title }}"></iframe>
+    </div>
+</body>
+</html> 
