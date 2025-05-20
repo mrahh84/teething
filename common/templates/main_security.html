@@ -16,11 +16,11 @@
             --dark-gray: #95a5a6;
             --text-color: #333;
         }
-        
+
         * {
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             line-height: 1.6;
@@ -29,7 +29,7 @@
             padding: 15px;
             background-color: #f9f9f9;
         }
-        
+
         header {
             display: flex;
             justify-content: space-between;
@@ -38,19 +38,19 @@
             margin-bottom: 20px;
             border-bottom: 1px solid var(--med-gray);
         }
-        
+
         h1, h2 {
             margin: 0;
             padding: 0;
         }
-        
+
         .dashboard-summary {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 15px;
             margin-bottom: 20px;
         }
-        
+
         .stat-card {
             background: white;
             padding: 15px;
@@ -58,7 +58,7 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             text-align: center;
         }
-        
+
         .stat-card h3 {
             margin-top: 0;
             color: var(--dark-gray);
@@ -66,25 +66,25 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        
+
         .stat-card .stat-value {
             font-size: 32px;
             font-weight: 600;
             margin: 10px 0;
         }
-        
+
         .stat-card.clocked-in .stat-value {
             color: var(--success-color);
         }
-        
+
         .stat-card.clocked-out .stat-value {
             color: var(--danger-color);
         }
-        
+
         .stat-card.total .stat-value {
             color: var(--primary-color);
         }
-        
+
         .controls-wrapper {
             background: white;
             padding: 15px;
@@ -92,25 +92,25 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             margin-bottom: 20px;
         }
-        
+
         .controls {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
             gap: 15px;
         }
-        
+
         @media (max-width: 768px) {
             .controls {
                 grid-template-columns: 1fr;
             }
         }
-        
+
         .search-box {
             flex: 1;
             display: flex;
             align-items: center;
         }
-        
+
         input[type="text"], select {
             width: 100%;
             padding: 8px 12px;
@@ -118,20 +118,20 @@
             border-radius: 4px;
             font-size: 14px;
         }
-        
+
         input[type="text"]:focus, select:focus {
             outline: none;
             border-color: var(--accent-color);
             box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.25);
         }
-        
+
         .filter-group label {
             display: block;
             margin-bottom: 5px;
             font-weight: 500;
             font-size: 14px;
         }
-        
+
         table {
             width: 100%;
             border-collapse: collapse;
@@ -140,7 +140,7 @@
             border-radius: 8px;
             overflow: hidden;
         }
-        
+
         th {
             background-color: var(--primary-color);
             color: white;
@@ -150,46 +150,46 @@
             position: relative;
             cursor: pointer;
         }
-        
+
         th:hover {
             background-color: var(--secondary-color);
         }
-        
+
         th.sorted:after {
             content: " ▾";
             font-size: 12px;
         }
-        
+
         th.sorted.desc:after {
             content: " ▴";
         }
-        
+
         td {
             padding: 12px;
             border-bottom: 1px solid var(--med-gray);
         }
-        
+
         tr:last-child td {
             border-bottom: none;
         }
-        
+
         tr:nth-child(even) {
             background-color: var(--light-gray);
         }
-        
+
         tr:hover {
             background-color: rgba(52, 152, 219, 0.1);
         }
-        
+
         a {
             color: var(--accent-color);
             text-decoration: none;
         }
-        
+
         a:hover {
             text-decoration: underline;
         }
-        
+
         .btn {
             display: inline-block;
             padding: 8px 12px;
@@ -202,64 +202,64 @@
             text-align: center;
             text-decoration: none;
         }
-        
+
         .btn:hover {
             background-color: #2980b9;
             text-decoration: none;
         }
-        
+
         .btn-success {
             background-color: var(--success-color);
         }
-        
+
         .btn-success:hover {
             background-color: #27ae60;
         }
-        
+
         .btn-danger {
             background-color: var(--danger-color);
         }
-        
+
         .btn-danger:hover {
             background-color: #c0392b;
         }
-        
+
         .message-list {
             list-style: none;
             padding: 0;
             margin: 0 0 20px 0;
         }
-        
+
         .message {
             padding: 10px 15px;
             border-radius: 4px;
             margin-bottom: 10px;
         }
-        
+
         .message.success {
             background-color: #d4edda;
             border: 1px solid #c3e6cb;
             color: #155724;
         }
-        
+
         .message.warning {
             background-color: #fff3cd;
             border: 1px solid #ffeeba;
             color: #856404;
         }
-        
+
         .message.error {
             background-color: #f8d7da;
             border: 1px solid #f5c6cb;
             color: #721c24;
         }
-        
+
         .message.info {
             background-color: #d1ecf1;
             border: 1px solid #bee5eb;
             color: #0c5460;
         }
-        
+
         .status-badge {
             display: inline-block;
             padding: 4px 8px;
@@ -267,17 +267,17 @@
             font-size: 12px;
             font-weight: 500;
         }
-        
+
         .status-in {
             background-color: #d4edda;
             color: #155724;
         }
-        
+
         .status-out {
             background-color: #f8d7da;
             color: #721c24;
         }
-        
+
         .pagination {
             display: flex;
             justify-content: space-between;
@@ -288,11 +288,11 @@
             border-radius: 8px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
-        
+
         .pagination-info {
             font-size: 14px;
         }
-        
+
         .pagination-controls a {
             display: inline-block;
             padding: 5px 10px;
@@ -300,44 +300,44 @@
             border-radius: 4px;
             background-color: var(--light-gray);
         }
-        
+
         .pagination-controls a.active {
             background-color: var(--accent-color);
             color: white;
         }
-        
+
         .pagination-controls a:hover:not(.active) {
             background-color: var(--med-gray);
         }
-        
+
         .hidden {
             display: none;
         }
-        
+
         .employee-action {
             white-space: nowrap;
         }
-        
+
         .time-indicator {
             display: block;
             font-size: 11px;
             color: var(--dark-gray);
         }
-        
+
         .card-number {
             font-family: monospace;
             background: var(--light-gray);
             padding: 2px 4px;
             border-radius: 3px;
         }
-        
+
         .alphabet-filter {
             display: flex;
             flex-wrap: wrap;
             gap: 5px;
             margin-top: 15px;
         }
-        
+
         .alphabet-filter a {
             display: block;
             width: 30px;
@@ -348,14 +348,14 @@
             border-radius: 4px;
             font-size: 14px;
         }
-        
+
         .alphabet-filter a.active,
         .alphabet-filter a:hover {
             background: var(--accent-color);
             color: white;
             text-decoration: none;
         }
-        
+
         .alphabet-filter a.all {
             width: auto;
             padding: 0 10px;
@@ -367,7 +367,7 @@
         <h1>Clock-in Dashboard</h1>
         {% if user.is_authenticated %}
             <div>
-                Welcome, {{ user.username }}! 
+                Welcome, {{ user.username }}!
                 <a href="{% url 'reports_dashboard' %}" class="btn">Reports</a>
                 <a href="{% url 'logout' %}" class="btn btn-danger">Logout</a>
             </div>
@@ -383,7 +383,7 @@
             {% endfor %}
         </ul>
     {% endif %}
-    
+
     <div class="dashboard-summary">
         <div class="stat-card total">
             <h3>Total Employees</h3>
@@ -424,14 +424,14 @@
                 </select>
             </div>
         </div>
-        
+
         <div class="alphabet-filter">
             <a href="#" class="all active" data-letter="all">All</a>
             {% for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ" %}
                 <a href="#" data-letter="{{ letter }}">{{ letter }}</a>
             {% endfor %}
         </div>
-        
+
         <div style="margin-top: 15px; display: flex; justify-content: flex-end;">
             <button type="button" class="btn" onclick="applyServerFilters()">Apply Server Filters</button>
             <a href="{% url 'main_security' %}" class="btn" style="margin-left: 10px;">Clear All Filters</a>
@@ -450,8 +450,8 @@
         </thead>
         <tbody>
             {% for employee in employees %}
-            <tr class="employee-row" 
-                data-status="{% if employee.is_clocked_in %}in{% else %}out{% endif %}" 
+            <tr class="employee-row"
+                data-status="{% if employee.is_clocked_in %}in{% else %}out{% endif %}"
                 data-firstname="{{ employee.given_name }}"
                 data-lastname="{{ employee.surname }}">
                 <td>
@@ -470,7 +470,7 @@
                         {% if employee.is_clocked_in %}Clocked In{% else %}Clocked Out{% endif %}
                     </span>
                     {% if employee.last_clockinout_time %}
-                        <span class="time-indicator">{{ employee.last_clockinout_time | date:"Y-m-d H:i:s" }}</span>
+                        <span class="time-indicator">{{ employee.last_clockinout_time | date:"d-M-Y h:i A" }}</span>
                     {% else %}
                         <span class="time-indicator">(No clock events)</span>
                     {% endif %}
@@ -515,18 +515,18 @@
         }
         let sortDirection = "{{ sort_direction }}";
         let currentLetter = "{{ start_letter|default:'all' }}";
-        
+
         // Initialize on document load
         document.addEventListener('DOMContentLoaded', function() {
             setupTable();
             setupAlphabetFilter();
         });
-        
+
         function setupTable() {
             filterEmployees();
             setupPagination();
         }
-        
+
         function setupAlphabetFilter() {
             const letters = document.querySelectorAll('.alphabet-filter a');
             letters.forEach(letter => {
@@ -543,37 +543,37 @@
                 });
             });
         }
-        
+
         function updateDashboardCounts() {
             // Dashboard counts are now set from server-side data
             // This function is kept for compatibility
         }
-        
+
         function filterEmployees() {
             const searchText = document.getElementById('search').value.toLowerCase();
             const statusFilter = document.getElementById('status-filter').value;
             const rows = document.querySelectorAll('#employee-table tbody tr.employee-row');
             let visibleCount = 0;
-            
+
             rows.forEach(row => {
                 const cardCell = row.cells[0].textContent.trim().toLowerCase();
                 const firstNameCell = row.cells[1].textContent.trim().toLowerCase();
                 const lastNameCell = row.cells[2].textContent.trim().toLowerCase();
                 const rowStatus = row.getAttribute('data-status');
                 const lastName = row.getAttribute('data-lastname');
-                
-                const matchesSearch = cardCell.includes(searchText) || 
-                                     firstNameCell.includes(searchText) || 
+
+                const matchesSearch = cardCell.includes(searchText) ||
+                                     firstNameCell.includes(searchText) ||
                                      lastNameCell.includes(searchText);
-                                     
+
                 const matchesStatus = statusFilter === 'all' || rowStatus === statusFilter;
-                
+
                 // Check if matches letter filter
                 let matchesLetter = true;
                 if (currentLetter !== 'all') {
                     matchesLetter = lastName && lastName.toUpperCase().startsWith(currentLetter);
                 }
-                
+
                 if (matchesSearch && matchesStatus && matchesLetter) {
                     row.classList.remove('hidden');
                     visibleCount++;
@@ -581,19 +581,19 @@
                     row.classList.add('hidden');
                 }
             });
-            
+
             document.getElementById('total-items').textContent = visibleCount;
-            
+
             // Reset to first page whenever filter changes
             currentPage = 1;
             applyPagination();
         }
-        
+
         function applyServerFilters() {
             const searchText = document.getElementById('search').value;
             const statusFilter = document.getElementById('status-filter').value;
             const itemsPerPage = document.getElementById('items-per-page').value;
-            
+
             // Build the URL with query parameters
             let url = new URL(window.location.href);
             url.searchParams.set('search', searchText);
@@ -601,18 +601,18 @@
             url.searchParams.set('sort', getSortByFromColumnIndex(sortColumn));
             url.searchParams.set('direction', sortDirection);
             url.searchParams.set('items', itemsPerPage);
-            
+
             // Add letter filter if not "all"
             if (currentLetter !== 'all') {
                 url.searchParams.set('letter', currentLetter);
             } else {
                 url.searchParams.delete('letter');
             }
-            
+
             // Navigate to the URL with the filters
             window.location.href = url.toString();
         }
-        
+
         function getSortByFromColumnIndex(columnIndex) {
             switch(columnIndex) {
                 case 0: return 'card';
@@ -621,24 +621,24 @@
                 default: return 'surname';
             }
         }
-        
+
         function sortTable(columnIndex) {
             const table = document.getElementById('employee-table');
             const header = table.querySelectorAll('th')[columnIndex];
-            
+
             // Update sort direction
             if (sortColumn === columnIndex) {
                 sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
             } else {
                 sortDirection = 'asc';
-                
+
                 // Remove sorting indicator from previous column
                 const headers = table.querySelectorAll('th');
                 headers.forEach(h => h.classList.remove('sorted', 'desc'));
             }
-            
+
             sortColumn = columnIndex;
-            
+
             // Add sorting indicator to current column
             header.classList.add('sorted');
             if (sortDirection === 'desc') {
@@ -646,73 +646,73 @@
             } else {
                 header.classList.remove('desc');
             }
-            
+
             // Get all rows except header
             const tbody = table.querySelector('tbody');
             const rows = Array.from(tbody.querySelectorAll('tr.employee-row'));
-            
+
             // Sort rows
             rows.sort((a, b) => {
                 let aValue = a.cells[columnIndex].textContent.trim();
                 let bValue = b.cells[columnIndex].textContent.trim();
-                
+
                 // Handle special case for "N/A" values
                 if (aValue === 'N/A') aValue = '';
                 if (bValue === 'N/A') bValue = '';
-                
+
                 const comparison = aValue.localeCompare(bValue, undefined, {sensitivity: 'base'});
                 return sortDirection === 'asc' ? comparison : -comparison;
             });
-            
+
             // Reorder rows in the table
             rows.forEach(row => tbody.appendChild(row));
-            
+
             // Re-apply pagination
             applyPagination();
         }
-        
+
         function setupPagination() {
             applyPagination();
         }
-        
+
         function applyPagination() {
             const table = document.getElementById('employee-table');
             const rows = table.querySelectorAll('tbody tr.employee-row:not(.hidden)');
             const totalItems = rows.length;
             const pageCount = Math.ceil(totalItems / itemsPerPage);
-            
+
             // Make sure currentPage is within bounds
             if (currentPage > pageCount) {
                 currentPage = pageCount > 0 ? pageCount : 1;
             }
-            
+
             // Show items for current page
             rows.forEach((row, index) => {
                 const start = (currentPage - 1) * itemsPerPage;
                 const end = start + itemsPerPage;
-                
+
                 if (index >= start && index < end) {
                     row.style.display = '';
                 } else {
                     row.style.display = 'none';
                 }
             });
-            
+
             // Update pagination info
             const startItem = totalItems > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0;
             const endItem = Math.min(startItem + itemsPerPage - 1, totalItems);
-            
+
             document.getElementById('start-item').textContent = startItem;
             document.getElementById('end-item').textContent = endItem;
-            
+
             // Generate pagination controls
             const paginationControls = document.getElementById('pagination-controls');
             paginationControls.innerHTML = '';
-            
+
             if (pageCount <= 1) {
                 return; // No need for pagination controls
             }
-            
+
             // Previous button
             const prevLink = document.createElement('a');
             prevLink.href = '#';
@@ -725,11 +725,11 @@
                 }
             });
             paginationControls.appendChild(prevLink);
-            
+
             // Page numbers (show up to 5 pages around current page)
             const startPage = Math.max(1, currentPage - 2);
             const endPage = Math.min(pageCount, startPage + 4);
-            
+
             for (let i = startPage; i <= endPage; i++) {
                 const pageLink = document.createElement('a');
                 pageLink.href = '#';
@@ -739,14 +739,14 @@
                     currentPage = i;
                     applyPagination();
                 });
-                
+
                 if (i === currentPage) {
                     pageLink.classList.add('active');
                 }
-                
+
                 paginationControls.appendChild(pageLink);
             }
-            
+
             // Next button
             const nextLink = document.createElement('a');
             nextLink.href = '#';
@@ -760,7 +760,7 @@
             });
             paginationControls.appendChild(nextLink);
         }
-        
+
         function changeItemsPerPage() {
             itemsPerPage = parseInt(document.getElementById('items-per-page').value);
             currentPage = 1; // Reset to first page

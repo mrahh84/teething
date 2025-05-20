@@ -465,7 +465,7 @@
                 {% endif %}
             </div>
             {% if employee.last_clockinout_time %}
-                <small>since {{ employee.last_clockinout_time | date:"Y-m-d H:i:s" }}</small>
+                <small>since {{ employee.last_clockinout_time | date:"d-M-Y h:i A" }}</small>
             {% endif %}
         </div>
     </div>
@@ -532,7 +532,7 @@
                 <td class="event-type-{% if event.event_type.name == 'Clock In' %}clock-in{% elif event.event_type.name == 'Clock Out' %}clock-out{% endif %}">
                     {{ event.event_type.name }}
                 </td>
-                <td class="time-cell">{% load tz %}{{ event.timestamp|localtime|time:"H:i:s" }}</td>
+                <td class="time-cell">{% load tz %}{{ event.timestamp|localtime|time:"h:i A" }}</td>
                 <td>{{ event.location.name }}</td>
                 <td>{{ event.created_by.username|default:"System" }}</td>
                 <td>
