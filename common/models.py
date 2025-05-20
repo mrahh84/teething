@@ -140,7 +140,7 @@ class Event(models.Model):
 
     def __str__(self):
         """Return a description of the event."""
-        return f"{self.event_type.name} by {self.employee} at {self.timestamp.strftime('%Y-%m-%d %H:%M:%S')}"
+        return f"{self.event_type.name} by {self.employee} at {timezone.localtime(self.timestamp).strftime('%Y-%m-%d %H:%M:%S')}"
 
 
 # NOTE:
