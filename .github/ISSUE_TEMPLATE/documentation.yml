@@ -1,0 +1,56 @@
+# .github/ISSUE_TEMPLATE/documentation.yml
+name: Documentation Update
+description: Request for documentation changes
+title: "[DOCS] "
+labels: ["documentation"]
+body:
+  - type: dropdown
+    id: doc-type
+    attributes:
+      label: Documentation Type
+      options:
+        - Setup Guide
+        - API Documentation
+        - User Guide
+        - Development Guide
+        - Architecture Guide
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: audience
+    attributes:
+      label: Target Audience
+      options:
+        - Developers
+        - System Administrators
+        - End Users
+        - Project Managers
+    validations:
+      required: true
+  - type: textarea
+    id: changes-needed
+    attributes:
+      label: Changes Needed
+      placeholder: Describe what needs to be updated
+    validations:
+      required: true
+  - type: textarea
+    id: related-components
+    attributes:
+      label: Related Components
+      placeholder: List affected components or systems
+  - type: checkboxes
+    id: requirements
+    attributes:
+      label: Requirements
+      options:
+        - label: Code examples needed
+        - label: Diagrams needed
+        - label: API documentation needed
+        - label: Technical review required
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      placeholder: Any other relevant information
