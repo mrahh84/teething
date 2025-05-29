@@ -476,15 +476,18 @@ def daily_dashboard_report(request):
     """
     Display the daily attendance dashboard using Marimo.
     """
+    # Get today's date in local timezone
+    today_local = timezone.localtime().date()
+
     # Get filter parameters
-    date_str = request.GET.get("date", timezone.now().date().isoformat())
+    date_str = request.GET.get("date", today_local.isoformat())
 
     try:
-        # Try to convert to date to validate format
+        # Try to convert string to date to validate format
         selected_date = datetime.fromisoformat(date_str).date()
     except ValueError:
-        # If invalid date, default to today
-        selected_date = timezone.now().date()
+        # If invalid date, default to today's local date
+        selected_date = today_local
         date_str = selected_date.isoformat()
 
     context = {
@@ -778,7 +781,7 @@ def generate_daily_dashboard_html(request, selected_date):
         )
 
         last_event_info = (
-            f"{last_event.event_type.name} at {last_event.timestamp.strftime('%H:%M')} on {last_event.timestamp.strftime('%Y-%m-%d')}"
+            f"{last_event.event_type.name} at {timezone.localtime(last_event.timestamp).strftime('%H:%M')} on {timezone.localtime(last_event.timestamp).strftime('%Y-%m-%d')}"
             if last_event
             else "No events recorded"
         )
