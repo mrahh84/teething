@@ -54,6 +54,27 @@ LOGIN_REDIRECT_URL = "main_security"
 # Redirect here after logout
 LOGOUT_REDIRECT_URL = "login"  # Change to a better view if created
 
+# Caching Configuration
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'attendance-cache',
+        'TIMEOUT': 300,  # 5 minutes default timeout
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000,
+        }
+    }
+}
+
+# Cache timeouts for different operations
+CACHE_TIMEOUTS = {
+    'employee_status': 60,  # Cache employee clock status for 1 minute
+    'employee_last_event': 60,  # Cache last event time for 1 minute  
+    'event_types': 3600,  # Cache event types for 1 hour
+    'locations': 3600,  # Cache locations for 1 hour
+    'main_security_page': 30,  # Cache main security page data for 30 seconds
+}
+
 REST_FRAMEWORK = {
     "DEFAULT_METADATA_CLASS": "rest_framework.metadata.SimpleMetadata",
     "DEFAULT_AUTHENTICATION_CLASSES": [

@@ -113,6 +113,7 @@ def main_security(request):
     """
     Displays the main security dashboard, listing all employees
     and their current clock-in/out status. Requires login.
+    Optimized with caching for better performance.
     """
     # Get request parameters for sorting and filtering
     search_query = request.GET.get('search', '')
@@ -129,6 +130,25 @@ def main_security(request):
             server_items_per_page = 100
     except ValueError:
         server_items_per_page = 100
+    
+    # Try to get cached data first
+    try:
+        from common.cache_utils import (
+            get_main_security_cache_key, 
+            get_cached_main_security_data,
+            cache_main_security_data,
+            bulk_cache_employee_statuses
+        )
+        
+        cache_key = get_main_security_cache_key(
+            int(page_number), sort_by, sort_direction, status_filter, search_query
+        )
+        cached_data = get_cached_main_security_data(cache_key)
+        
+        if cached_data:
+            return render(request, "main_security.html", cached_data)
+    except ImportError:
+        pass  # Fall back to non-cached version
         
     # Start with all employees, using optimized queries
     employees_query = Employee.objects.select_related('card_number').all()
@@ -171,6 +191,13 @@ def main_security(request):
     # because we need to apply status filtering and card sorting in Python
     all_employees = list(employees_query)
     
+    # Bulk cache employee statuses to improve performance
+    try:
+        employee_ids = [emp.id for emp in all_employees]
+        bulk_cache_employee_statuses(employee_ids)
+    except (ImportError, NameError):
+        pass  # Ignore if caching not available
+    
     # Apply status filtering in Python since it's a calculated property
     if status_filter == 'in':
         all_employees = [employee for employee in all_employees if employee.is_clocked_in()]
@@ -211,6 +238,13 @@ def main_security(request):
         "total_pages": paginator.num_pages,
         "items_per_page": server_items_per_page,
     }
+    
+    # Cache the result for future requests
+    try:
+        cache_main_security_data(cache_key, context)
+    except (ImportError, NameError):
+        pass  # Ignore if caching not available
+    
     return render(request, "main_security.html", context)
 
 
@@ -221,6 +255,7 @@ def main_security_clocked_in_status_flip(request, id):
     Handles the clock-in/clock-out action for an employee from the main security view.
     Creates a new 'Clock In' or 'Clock Out' event. Requires login.
     Includes a basic debounce mechanism.
+    Optimized with caching for better performance.
     """
     employee = get_object_or_404(Employee, id=id)
 
@@ -246,12 +281,25 @@ def main_security_clocked_in_status_flip(request, id):
         return redirect("main_security")  # Redirect without making changes
 
     try:
-        # Get the EventType instance (Clock In or Clock Out)
-        event_type = EventType.objects.get(name=target_event_type_name)
-        # Assume the event happens at 'Main Security' location - adjust if needed
-        location = Location.objects.get(
-            name="Main Security"
-        )  # Ensure this location exists!
+        # Try to get cached event types and locations first for better performance
+        try:
+            from common.cache_utils import get_cached_event_types, get_cached_locations
+            event_types = get_cached_event_types()
+            locations = get_cached_locations()
+            
+            event_type = event_types.get(target_event_type_name)
+            location = locations.get("Main Security")
+            
+            if not event_type:
+                raise EventType.DoesNotExist(f"Event type '{target_event_type_name}' not found in cache")
+            if not location:
+                raise Location.DoesNotExist("Location 'Main Security' not found in cache")
+                
+        except ImportError:
+            # Fall back to database queries if caching not available
+            event_type = EventType.objects.get(name=target_event_type_name)
+            location = Location.objects.get(name="Main Security")
+            
     except (EventType.DoesNotExist, Location.DoesNotExist) as e:
         # Handle case where required EventType or Location is missing
         print(f"Error: Required EventType or Location missing: {e}")  # Log error
@@ -284,7 +332,7 @@ def main_security_clocked_in_status_flip(request, id):
         return redirect(redirect_url)
 
 
-@login_required  # Protect this view
+@login_required
 @extend_schema(exclude=True)
 def employee_events(request, id):
     """

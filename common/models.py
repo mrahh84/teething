@@ -89,27 +89,67 @@ class Employee(models.Model):
         """
         Checks if the employee's last clock event was 'Clock In'.
         Returns False if there are no clock events.
+        Uses caching to improve performance.
         """
+        # Try to get cached status first
+        try:
+            from common.cache_utils import get_cached_employee_status, cache_employee_status
+            cached_status = get_cached_employee_status(self.id)
+            if cached_status is not None:
+                return cached_status
+        except ImportError:
+            pass  # Fall back to non-cached version if cache utils not available
+        
+        # Not cached, query database
         last_clock_event = self._get_clock_in_out_events().first()
 
         if not last_clock_event:
             # NOTE: This handles our last known/stated bug on never clocked in individuals
-            return False  # No clock events means not clocked in, ever
-
-        return last_clock_event.event_type.name == "Clock In"
+            is_clocked_in = False  # No clock events means not clocked in, ever
+        else:
+            is_clocked_in = last_clock_event.event_type.name == "Clock In"
+        
+        # Cache the result
+        try:
+            cache_employee_status(self.id, is_clocked_in, 
+                                last_clock_event.timestamp if last_clock_event else None)
+        except (ImportError, NameError):
+            pass  # Ignore caching errors
+        
+        return is_clocked_in
 
     @property  # Make it behave like a property in templates/serializers
     def last_clockinout_time(self) -> Optional[timezone.datetime]:
         """
         Returns the timestamp of the employee's last clock in or out event.
         Returns None if there are no clock events.
+        Uses caching to improve performance.
         """
+        # Try to get cached last event time first
+        try:
+            from common.cache_utils import get_cached_employee_last_event, cache_employee_status
+            cached_time = get_cached_employee_last_event(self.id)
+            if cached_time is not None:
+                return cached_time
+        except ImportError:
+            pass  # Fall back to non-cached version if cache utils not available
+        
+        # Not cached, query database
         last_clock_event = self._get_clock_in_out_events().first()
 
         if not last_clock_event:
-            return None  # No clock events
+            last_time = None  # No clock events
+        else:
+            last_time = last_clock_event.timestamp
+        
+        # Cache the result along with clock status
+        try:
+            is_clocked_in = last_clock_event.event_type.name == "Clock In" if last_clock_event else False
+            cache_employee_status(self.id, is_clocked_in, last_time)
+        except (ImportError, NameError):
+            pass  # Ignore caching errors
 
-        return last_clock_event.timestamp
+        return last_time
 
 
 class Event(models.Model):
@@ -141,6 +181,17 @@ class Event(models.Model):
     def __str__(self):
         """Return a description of the event."""
         return f"{self.event_type.name} by {self.employee} at {self.timestamp.strftime('%Y-%m-%d %H:%M:%S')}"
+
+    def save(self, *args, **kwargs):
+        """Override save to invalidate employee cache when events are created."""
+        super().save(*args, **kwargs)
+        # Invalidate cache for this employee when a new event is created
+        try:
+            from common.cache_utils import invalidate_employee_cache, invalidate_main_security_cache
+            invalidate_employee_cache(self.employee_id)
+            invalidate_main_security_cache()  # Also invalidate main security page cache
+        except ImportError:
+            pass  # Ignore if cache utils not available
 
 
 # NOTE:
