@@ -22,12 +22,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY')
+SECRET_KEY = config("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=False, cast=bool)
+DEBUG = config("DEBUG", default=False, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv())
 
 STATIC_ROOT = "static"
 
@@ -56,23 +56,23 @@ LOGOUT_REDIRECT_URL = "login"  # Change to a better view if created
 
 # Caching Configuration
 CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'attendance-cache',
-        'TIMEOUT': 300,  # 5 minutes default timeout
-        'OPTIONS': {
-            'MAX_ENTRIES': 1000,
-        }
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "attendance-cache",
+        "TIMEOUT": 300,  # 5 minutes default timeout
+        "OPTIONS": {
+            "MAX_ENTRIES": 1000,
+        },
     }
 }
 
 # Cache timeouts for different operations
 CACHE_TIMEOUTS = {
-    'employee_status': 60,  # Cache employee clock status for 1 minute
-    'employee_last_event': 60,  # Cache last event time for 1 minute  
-    'event_types': 3600,  # Cache event types for 1 hour
-    'locations': 3600,  # Cache locations for 1 hour
-    'main_security_page': 30,  # Cache main security page data for 30 seconds
+    "employee_status": 60,  # Cache employee clock status for 1 minute
+    "employee_last_event": 60,  # Cache last event time for 1 minute
+    "event_types": 3600,  # Cache event types for 1 hour
+    "locations": 3600,  # Cache locations for 1 hour
+    "main_security_page": 30,  # Cache main security page data for 30 seconds
 }
 
 REST_FRAMEWORK = {
@@ -128,8 +128,8 @@ WSGI_APPLICATION = "attendance.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": config("DB_ENGINE") or "django.db.backends.sqlite3",
-        "NAME": config("DB_NAME") or BASE_DIR.joinpath("db.sqlite3"),
+        "ENGINE": config("DB_ENGINE", default="") or "django.db.backends.sqlite3",
+        "NAME": config("DB_NAME", default="") or BASE_DIR.joinpath("db.sqlite3"),
         "USER": config("DB_USER", default=""),
         "PASSWORD": config("DB_PASSWORD", default=""),
         "HOST": config("DB_HOST", default=""),
