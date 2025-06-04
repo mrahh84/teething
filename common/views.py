@@ -1410,12 +1410,12 @@ def generate_period_summary_html(
                 period["employees"].items(), key=lambda x: x[1]["name"]
             ):
                 first_in = (
-                    emp_data["first_clock_in"].strftime("%Y-%m-%d %H:%M")
+                    timezone.localtime(emp_data["first_clock_in"]).strftime("%Y-%m-%d %H:%M")
                     if emp_data["first_clock_in"]
                     else "—"
                 )
                 last_out = (
-                    emp_data["last_clock_out"].strftime("%Y-%m-%d %H:%M")
+                    timezone.localtime(emp_data["last_clock_out"]).strftime("%Y-%m-%d %H:%M")
                     if emp_data["last_clock_out"]
                     else "—"
                 )
@@ -1507,7 +1507,8 @@ def generate_late_early_html(
         early_departures = []
 
         for event in events:
-            event_time = event.timestamp.time()
+            local_timestamp = timezone.localtime(event.timestamp)
+            event_time = local_timestamp.time()
             employee_name = f"{event.employee.given_name} {event.employee.surname}"
 
             if event.event_type.name == "Clock In":
@@ -1837,8 +1838,8 @@ def employee_history_report_csv(request):
             day = event_days[date_key]
             yield [
                 date_key.strftime("%Y-%m-%d"),
-                day["clock_in"].strftime("%H:%M") if day["clock_in"] else "",
-                day["clock_out"].strftime("%H:%M") if day["clock_out"] else "",
+                timezone.localtime(day["clock_in"]).strftime("%H:%M") if day["clock_in"] else "",
+                timezone.localtime(day["clock_out"]).strftime("%H:%M") if day["clock_out"] else "",
                 day["hours"],
             ]
 
@@ -1943,10 +1944,10 @@ def period_summary_report_csv(request):
                 yield [
                     str(period_key),
                     emp_data["name"],
-                    emp_data["first_clock_in"].strftime("%Y-%m-%d %H:%M")
+                    timezone.localtime(emp_data["first_clock_in"]).strftime("%Y-%m-%d %H:%M")
                     if emp_data["first_clock_in"]
                     else "",
-                    emp_data["last_clock_out"].strftime("%Y-%m-%d %H:%M")
+                    timezone.localtime(emp_data["last_clock_out"]).strftime("%Y-%m-%d %H:%M")
                     if emp_data["last_clock_out"]
                     else "",
                     emp_data["hours"],
@@ -1987,7 +1988,8 @@ def late_early_report_csv(request):
     late_arrivals = []
     early_departures = []
     for event in events:
-        event_time = event.timestamp.time()
+        local_timestamp = timezone.localtime(event.timestamp)
+        event_time = local_timestamp.time()
         employee_name = f"{event.employee.given_name} {event.employee.surname}"
         if event.event_type.name == "Clock In":
             if event_time > datetime.strptime(start_time, "%H:%M").time():
@@ -2001,7 +2003,7 @@ def late_early_report_csv(request):
                     late_arrivals.append(
                         [
                             employee_name,
-                            event.timestamp.date(),
+                            local_timestamp.date(),
                             event_time.strftime("%H:%M"),
                             int(minutes_late),
                         ]
@@ -2018,7 +2020,7 @@ def late_early_report_csv(request):
                     early_departures.append(
                         [
                             employee_name,
-                            event.timestamp.date(),
+                            local_timestamp.date(),
                             event_time.strftime("%H:%M"),
                             int(minutes_early),
                         ]
