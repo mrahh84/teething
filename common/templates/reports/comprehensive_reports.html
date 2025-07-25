@@ -522,8 +522,6 @@ function loadAnalyticsContent() {
     const startDate = url.searchParams.get('start_date') || '{{ start_date }}';
     const endDate = url.searchParams.get('end_date') || '{{ end_date }}';
     
-    console.log('Loading analytics with dates:', startDate, endDate);
-    
     // Make AJAX request to load analytics
     fetch(`{% url 'attendance_analytics' %}?start_date=${startDate}&end_date=${endDate}`, {
         headers: {
@@ -531,18 +529,14 @@ function loadAnalyticsContent() {
         }
     })
         .then(response => {
-            console.log('Analytics response status:', response.status);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             return response.text();
         })
         .then(html => {
-            console.log('Analytics HTML length:', html.length);
-            
             // The response should now be just the analytics content
             analyticsContent.innerHTML = html;
-            console.log('Analytics content loaded successfully');
         })
         .catch(error => {
             console.error('Error loading analytics:', error);
