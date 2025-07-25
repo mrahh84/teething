@@ -414,6 +414,52 @@
     font-family: monospace;
 }
 
+/* Analytics Content Styling */
+#analytics-content .analytics-container {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+}
+
+#analytics-content .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+#analytics-content .stat-card {
+    padding: 15px;
+}
+
+#analytics-content .stat-number {
+    font-size: 2rem;
+}
+
+#analytics-content .section {
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+#analytics-content .table-container {
+    overflow-x: auto;
+}
+
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.error {
+    text-align: center;
+    padding: 40px;
+    color: #dc3545;
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .tab-navigation {
@@ -428,6 +474,10 @@
     
     .filter-form .field-group {
         grid-template-columns: 1fr;
+    }
+    
+    #analytics-content .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 </style>
@@ -479,10 +529,21 @@ function loadAnalyticsContent() {
             // Extract the content from the analytics page
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
-            const analyticsSection = doc.querySelector('.attendance-card .card-body');
             
-            if (analyticsSection) {
-                analyticsContent.innerHTML = analyticsSection.innerHTML;
+            // Look for the analytics container content
+            const analyticsContainer = doc.querySelector('.analytics-container');
+            
+            if (analyticsContainer) {
+                // Remove the header and navigation, keep only the content
+                const header = analyticsContainer.querySelector('.analytics-header');
+                const navigation = analyticsContainer.querySelector('.navigation');
+                const filterSection = analyticsContainer.querySelector('.filter-section');
+                
+                if (header) header.remove();
+                if (navigation) navigation.remove();
+                if (filterSection) filterSection.remove();
+                
+                analyticsContent.innerHTML = analyticsContainer.innerHTML;
             } else {
                 analyticsContent.innerHTML = '<div class="error">Failed to load analytics content</div>';
             }
