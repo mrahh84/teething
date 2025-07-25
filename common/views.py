@@ -272,6 +272,7 @@ def progressive_entry(request):
     
     context = {
         'today': today,
+        'today_records': today_records,
         'employee_attendance': employee_attendance,
         'employees': employees,
     }

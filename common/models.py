@@ -383,6 +383,8 @@ class AttendanceRecord(models.Model):
     @property
     def worked_hours(self):
         """Calculate total hours worked for this day"""
+        from datetime import datetime
+        
         if not self.arrival_datetime or not self.departure_time:
             return None
         
@@ -432,14 +434,18 @@ class AttendanceRecord(models.Model):
         """Automatically update status based on completion"""
         completion = self.completion_percentage
         
+        new_status = 'DRAFT'
         if completion == 0:
-            self.status = 'DRAFT'
+            new_status = 'DRAFT'
         elif completion < 100:
-            self.status = 'PARTIAL'
+            new_status = 'PARTIAL'
         else:
-            self.status = 'COMPLETE'
+            new_status = 'COMPLETE'
         
-        self.save()
+        # Use update to avoid recursion
+        if self.status != new_status:
+            AttendanceRecord.objects.filter(id=self.id).update(status=new_status)
+            self.status = new_status
 
     def save(self, *args, **kwargs):
         """Override save to auto-update status"""

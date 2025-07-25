@@ -89,6 +89,8 @@
                         <tr>
                             <th>Employee</th>
                             <th>Status</th>
+                            <th>Arrival Time</th>
+                            <th>Departure Time</th>
                             <th>Stand-up</th>
                             <th>Lunch Time</th>
                             <th>Left On Time</th>
@@ -107,6 +109,20 @@
                                 <span class="status-badge status-{{ record.status|lower }}">
                                     {{ record.get_status_display }}
                                 </span>
+                            </td>
+                            <td>
+                                {% if record.arrival_time %}
+                                    <span class="time-display">{{ record.arrival_time|time:"H:i" }}</span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.departure_time %}
+                                    <span class="time-display">{{ record.departure_time|time:"H:i" }}</span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
                             </td>
                             <td>
                                 <select class="inline-select" data-field="standup_attendance" data-employee-id="{{ record.employee.id }}">
