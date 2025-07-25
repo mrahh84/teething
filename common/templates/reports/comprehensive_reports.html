@@ -9,6 +9,10 @@
     <div class="card-body">
         <!-- Tab Navigation -->
         <div class="tab-navigation">
+            <button class="tab-button {% if active_tab == 'comprehensive_attendance' %}active{% endif %}" 
+                    onclick="switchTab('comprehensive_attendance')">
+                📊 Comprehensive Attendance
+            </button>
             <button class="tab-button {% if active_tab == 'analytics' %}active{% endif %}" 
                     onclick="switchTab('analytics')">
                 📈 Analytics Dashboard
@@ -33,6 +37,43 @@
 
         <!-- Tab Content -->
         <div class="tab-content">
+            <!-- Comprehensive Attendance Tab -->
+            <div id="comprehensive_attendance-tab" class="tab-pane {% if active_tab == 'comprehensive_attendance' %}active{% endif %}">
+                <div class="tab-header">
+                    <h3>📊 Comprehensive Attendance Report</h3>
+                    <p>Detailed attendance analysis matching the CSV report format with risk assessment</p>
+                </div>
+                
+                <!-- Date Range Filter -->
+                <form method="get" class="filter-form">
+                    <input type="hidden" name="tab" value="comprehensive_attendance">
+                    <div class="field-group">
+                        <div>
+                            <label for="start_date">Start Date</label>
+                            <input type="date" name="start_date" value="{{ start_date }}" class="form-control">
+                        </div>
+                        <div>
+                            <label for="end_date">End Date</label>
+                            <input type="date" name="end_date" value="{{ end_date }}" class="form-control">
+                        </div>
+                        <div>
+                            <button type="submit" class="btn btn-primary">🔄 Update Report</button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Comprehensive Attendance Report iframe -->
+                <div class="marimo-container">
+                    <iframe 
+                        src="{% url 'comprehensive_attendance_report' %}?start_date={{ start_date }}&end_date={{ end_date }}&iframe=1"
+                        width="100%" 
+                        height="800px" 
+                        frameborder="0"
+                        title="Comprehensive Attendance Report">
+                    </iframe>
+                </div>
+            </div>
+
             <!-- Analytics Tab -->
             <div id="analytics-tab" class="tab-pane {% if active_tab == 'analytics' %}active{% endif %}">
                 <div class="tab-header">

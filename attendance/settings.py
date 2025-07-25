@@ -134,6 +134,10 @@ DATABASES = {
         "PASSWORD": config("DB_PASSWORD", default=""),
         "HOST": config("DB_HOST", default=""),
         "PORT": config("DB_PORT", default="", cast=lambda v: int(v) if v else None),
+        "OPTIONS": {
+            "timeout": 20,  # 20 second timeout for database operations
+            "check_same_thread": False,  # Allow multiple threads to access the database
+        } if config("DB_ENGINE", default="") == "" or "sqlite" in config("DB_ENGINE", default="").lower() else {},
     }
 }
 
@@ -173,6 +177,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = "static/"
+
+# Security settings
+# Allow same-origin iframe loading for reports
+X_FRAME_OPTIONS = 'SAMEORIGIN'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
