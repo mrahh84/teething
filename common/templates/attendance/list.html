@@ -1,0 +1,203 @@
+{% extends "attendance/base.html" %}
+{% load attendance_extras %}
+
+{% block attendance_content %}
+<div class="attendance-card">
+    <div class="card-header">
+        <h2>Attendance Records</h2>
+        <div style="float: right; color: #721c24; font-weight: bold;">
+            Absent Today: {{ page_obj.object_list|absent_count }}
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Filter Form -->
+        <form method="get" class="controls-wrapper" style="margin-bottom: 20px;">
+            <div class="controls">
+                <div class="filter-group">
+                    <label for="{{ filter_form.date_from.id_for_label }}">{{ filter_form.date_from.label }}</label>
+                    {{ filter_form.date_from }}
+                </div>
+                <div class="filter-group">
+                    <label for="{{ filter_form.date_to.id_for_label }}">{{ filter_form.date_to.label }}</label>
+                    {{ filter_form.date_to }}
+                </div>
+                <div class="filter-group">
+                    <label for="{{ filter_form.employee.id_for_label }}">{{ filter_form.employee.label }}</label>
+                    {{ filter_form.employee }}
+                </div>
+                <div class="filter-group">
+                    <label for="{{ filter_form.has_issues.id_for_label }}">{{ filter_form.has_issues.label }}</label>
+                    {{ filter_form.has_issues }}
+                </div>
+            </div>
+            <div style="text-align: right; margin-top: 15px;">
+                <button type="submit" class="btn">Apply Filters</button>
+                <a href="{% url 'attendance_list' %}" class="btn" style="margin-left: 10px;">Clear Filters</a>
+            </div>
+        </form>
+
+        <!-- Records Table -->
+        {% if page_obj %}
+            <table class="attendance-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Employee</th>
+                        <th>Arrival</th>
+                        <th>Stand-up</th>
+                        <th>Lunch Time</th>
+                        <th>Left Lunch On Time</th>
+                        <th>Returned On Time</th>
+                        <th>Returned After Lunch</th>
+                        <th>Departure</th>
+                        <th>Hours</th>
+                        <th>Issues</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in page_obj %}
+                    <tr class="{% if record.absent %}absent-row{% elif record.is_problematic_day %}problematic-day{% endif %}">
+                        <td>{{ record.date|date:"M d, Y" }}</td>
+                        <td>{{ record.employee }}</td>
+                        <td>
+                            {% if record.arrival_time %}
+                                <span class="{% if record.is_late_arrival %}text-danger{% endif %}">
+                                    {{ record.arrival_time|time:"H:i" }}
+                                </span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if record.standup_attendance %}
+                                <span class="status-badge status-{{ record.standup_attendance|lower }}">
+                                    {{ record.standup_attendance }}
+                                </span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if record.lunch_time %}
+                                {{ record.lunch_time|time:"H:i" }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if record.left_lunch_on_time %}
+                                {{ record.left_lunch_on_time }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if record.returned_on_time_after_lunch %}
+                                {{ record.returned_on_time_after_lunch }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if record.returned_after_lunch %}
+                                {{ record.returned_after_lunch }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if record.departure_time %}
+                                <span class="{% if record.is_early_departure %}text-danger{% endif %}">
+                                    {{ record.departure_time|time:"H:i" }}
+                                </span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if record.worked_hours %}
+                                {{ record.worked_hours|floatformat:1 }}h
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if record.total_issues is not None %}
+                                {% if record.total_issues > 0 %}
+                                    <span class="badge bg-danger">{{ record.total_issues }}</span>
+                                {% else %}
+                                    <span class="badge bg-success">0</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if record.absent %}
+                                <span class="status-badge status-absent">Absent</span>
+                            {% elif record.is_problematic_day %}
+                                <span class="status-badge status-no">Problematic</span>
+                            {% else %}
+                                <span class="status-badge status-yes">Present</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if record.id %}
+                                <a href="{% url 'attendance_edit' record.id %}" class="btn btn-sm btn-primary">Edit</a>
+                                <a href="{% url 'attendance_delete' record.id %}" class="btn btn-sm btn-danger">Delete</a>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <div class="pagination">
+                <div class="pagination-info">
+                    Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} records
+                </div>
+                <div class="pagination-controls">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">« Prev</a>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <a href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="active">{{ num }}</a>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <a href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Next »</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        {% else %}
+            <div style="text-align: center; padding: 40px;">
+                <p>No attendance records found.</p>
+                <a href="{% url 'attendance_entry' %}" class="btn btn-primary">Add First Record</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.absent-row {
+    background: #fff3cd !important;
+}
+.status-badge.status-absent {
+    background: #fff3cd;
+    color: #856404;
+    font-weight: bold;
+}
+</style>
+{% endblock %} 

@@ -1,0 +1,803 @@
+{% extends "attendance/base.html" %}
+
+{% block attendance_content %}
+<div class="attendance-card">
+    <div class="card-header">
+        <h2>📝 Historical Progressive Entry Results</h2>
+        <p style="margin: 0; color: #6c757d;">
+            {% if employee %}
+                Editing records for {{ employee }} from {{ date_from|date:"M d, Y" }} to {{ date_to|date:"M d, Y" }}
+            {% else %}
+                Editing records from {{ date_from|date:"M d, Y" }} to {{ date_to|date:"M d, Y" }}
+            {% endif %}
+        </p>
+    </div>
+    <div class="card-body">
+        <!-- Summary Statistics -->
+        <div class="summary-stats">
+            <div class="stat-card">
+                <div class="stat-icon">📅</div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ total_days }}</div>
+                    <div class="stat-label">Total Days</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📄</div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ date_page.number }}</div>
+                    <div class="stat-label">Page {{ date_page.number }} of {{ date_page.paginator.num_pages }}</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-content">
+                    <div class="stat-value">
+                        {% if employee %}1{% else %}
+                            {% if records_by_date %}
+                                {% for date_key, records in records_by_date.items %}
+                                    {% if forloop.first %}
+                                        {{ records|length }}
+                                    {% endif %}
+                                {% empty %}
+                                    0
+                                {% endfor %}
+                            {% else %}
+                                0
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                    <div class="stat-label">Employees</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ total_records }}</div>
+                    <div class="stat-label">Total Records</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div class="pagination-controls">
+            <div class="pagination-info">
+                <span>Showing {{ records_by_date|length }} of {{ total_days }} days</span>
+            </div>
+            <div class="pagination-settings">
+                <form method="get" class="pagination-form">
+                    <input type="hidden" name="date_from" value="{{ date_from|date:'Y-m-d' }}">
+                    <input type="hidden" name="date_to" value="{{ date_to|date:'Y-m-d' }}">
+                    {% if employee %}
+                        <input type="hidden" name="employee" value="{{ employee.id }}">
+                    {% endif %}
+                    <label for="days_per_page">Days per page:</label>
+                    <select name="days_per_page" id="days_per_page" onchange="this.form.submit()">
+                        <option value="3" {% if days_per_page == 3 %}selected{% endif %}>3 days</option>
+                        <option value="5" {% if days_per_page == 5 %}selected{% endif %}>5 days</option>
+                        <option value="7" {% if days_per_page == 7 %}selected{% endif %}>7 days</option>
+                        <option value="10" {% if days_per_page == 10 %}selected{% endif %}>10 days</option>
+                        <option value="14" {% if days_per_page == 14 %}selected{% endif %}>14 days</option>
+                    </select>
+                </form>
+            </div>
+        </div>
+
+        <!-- Bulk Update Section -->
+        {% if records_by_date %}
+        <div class="bulk-update-section">
+            <h3>🔄 Bulk Update Tools</h3>
+            <div class="bulk-tools-grid">
+                <!-- Quick Bulk Actions -->
+                <div class="bulk-tool-card">
+                    <h4>⚡ Quick Actions</h4>
+                    <div class="quick-actions">
+                        <button class="btn btn-sm btn-outline-primary bulk-action-btn" data-action="mark-all-present">
+                            ✅ Mark All Present
+                        </button>
+                        <button class="btn btn-sm btn-outline-warning bulk-action-btn" data-action="mark-all-late">
+                            ⏰ Mark All Late
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger bulk-action-btn" data-action="mark-all-absent">
+                            🚫 Mark All Absent
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Field-specific Bulk Update -->
+                <div class="bulk-tool-card">
+                    <h4>🎯 Field Update</h4>
+                    <form method="post" class="bulk-update-form">
+                        {% csrf_token %}
+                        <div class="bulk-form-grid">
+                            <div class="form-group">
+                                <label for="{{ bulk_form.field_to_update.id_for_label }}">{{ bulk_form.field_to_update.label }}</label>
+                                {{ bulk_form.field_to_update }}
+                            </div>
+                            <div class="form-group">
+                                <label for="{{ bulk_form.new_value.id_for_label }}">{{ bulk_form.new_value.label }}</label>
+                                {{ bulk_form.new_value }}
+                            </div>
+                            <div class="form-group">
+                                <button type="submit" name="bulk_update" class="btn btn-warning">
+                                    🔄 Update All
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Compact Employee Grid by Date -->
+        {% for date_key, records in records_by_date.items %}
+        <div class="date-section">
+            <div class="date-header">
+                <h3>📅 {{ date_key|date:"l, F d, Y" }}</h3>
+                <div class="date-actions">
+                    <span class="date-count">{{ records|length }} employees</span>
+                    <button class="btn btn-sm btn-outline-primary date-bulk-edit" data-date="{{ date_key|date:'Y-m-d' }}">
+                        ✏️ Edit All
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Employee Grid -->
+            <div class="employee-grid">
+                {% for record in records %}
+                <div class="employee-card" data-record-id="{{ record.id }}" data-date="{{ date_key|date:'Y-m-d' }}">
+                    <div class="employee-header">
+                        <h4>{{ record.employee }}</h4>
+                        <span class="status-badge status-{{ record.status|lower }}">
+                            {{ record.get_status_display }}
+                        </span>
+                    </div>
+                    
+                    <div class="employee-fields">
+                        <!-- Stand-up -->
+                        <div class="field-group">
+                            <label>Stand-up</label>
+                            <select class="inline-select compact" data-field="standup_attendance" data-record-id="{{ record.id }}">
+                                <option value="">-</option>
+                                <option value="YES" {% if record.standup_attendance == 'YES' %}selected{% endif %}>✅</option>
+                                <option value="NO" {% if record.standup_attendance == 'NO' %}selected{% endif %}>❌</option>
+                                <option value="LATE" {% if record.standup_attendance == 'LATE' %}selected{% endif %}>⏰</option>
+                                <option value="ABSENT" {% if record.standup_attendance == 'ABSENT' %}selected{% endif %}>🚫</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Lunch Time -->
+                        <div class="field-group">
+                            <label>Lunch</label>
+                            <select class="inline-select compact" data-field="lunch_time" data-record-id="{{ record.id }}">
+                                <option value="">-</option>
+                                <option value="12:00" {% if record.lunch_time and record.lunch_time|time:'H:i' == '12:00' %}selected{% endif %}>12:00</option>
+                                <option value="12:30" {% if record.lunch_time and record.lunch_time|time:'H:i' == '12:30' %}selected{% endif %}>12:30</option>
+                                <option value="13:00" {% if record.lunch_time and record.lunch_time|time:'H:i' == '13:00' %}selected{% endif %}>13:00</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Left On Time -->
+                        <div class="field-group">
+                            <label>Left</label>
+                            <select class="inline-select compact" data-field="left_lunch_on_time" data-record-id="{{ record.id }}">
+                                <option value="">-</option>
+                                <option value="YES" {% if record.left_lunch_on_time == 'YES' %}selected{% endif %}>✅</option>
+                                <option value="NO" {% if record.left_lunch_on_time == 'NO' %}selected{% endif %}>❌</option>
+                                <option value="LATE" {% if record.left_lunch_on_time == 'LATE' %}selected{% endif %}>⏰</option>
+                                <option value="ABSENT" {% if record.left_lunch_on_time == 'ABSENT' %}selected{% endif %}>🚫</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Returned On Time -->
+                        <div class="field-group">
+                            <label>Returned</label>
+                            <select class="inline-select compact" data-field="returned_on_time_after_lunch" data-record-id="{{ record.id }}">
+                                <option value="">-</option>
+                                <option value="YES" {% if record.returned_on_time_after_lunch == 'YES' %}selected{% endif %}>✅</option>
+                                <option value="NO" {% if record.returned_on_time_after_lunch == 'NO' %}selected{% endif %}>❌</option>
+                                <option value="LATE" {% if record.returned_on_time_after_lunch == 'LATE' %}selected{% endif %}>⏰</option>
+                                <option value="ABSENT" {% if record.returned_on_time_after_lunch == 'ABSENT' %}selected{% endif %}>🚫</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="employee-footer">
+                        <div class="completion-indicator">
+                            <span class="completion-text">{{ record.completion_percentage|floatformat:0 }}%</span>
+                        </div>
+                        {% if record.last_updated_by %}
+                        <small class="last-updated">
+                            {{ record.last_updated_by.username }} at {{ record.updated_at|time:"H:i" }}
+                        </small>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="no-records">
+            <div class="no-records-icon">📭</div>
+            <h3>No Records Found</h3>
+            <p>No attendance records found for the selected date range and criteria.</p>
+            <a href="{% url 'historical_progressive_entry' %}" class="btn btn-primary">🔍 Search Again</a>
+        </div>
+        {% endfor %}
+
+        <!-- Pagination Navigation -->
+        {% if date_page.paginator.num_pages > 1 %}
+        <div class="pagination-navigation">
+            <div class="pagination-info">
+                <span>Page {{ date_page.number }} of {{ date_page.paginator.num_pages }}</span>
+            </div>
+            
+            <div class="pagination-links">
+                {% if date_page.has_previous %}
+                    <a href="?date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}{% if employee %}&employee={{ employee.id }}{% endif %}&days_per_page={{ days_per_page }}&page=1" class="btn btn-sm btn-outline-secondary">
+                        ⏮️ First
+                    </a>
+                    <a href="?date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}{% if employee %}&employee={{ employee.id }}{% endif %}&days_per_page={{ days_per_page }}&page={{ date_page.previous_page_number }}" class="btn btn-sm btn-outline-secondary">
+                        ◀️ Previous
+                    </a>
+                {% endif %}
+                
+                {% for page_num in date_page.paginator.page_range %}
+                    {% if page_num == date_page.number %}
+                        <span class="btn btn-sm btn-primary">{{ page_num }}</span>
+                    {% elif page_num > date_page.number|add:'-3' and page_num < date_page.number|add:'3' %}
+                        <a href="?date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}{% if employee %}&employee={{ employee.id }}{% endif %}&days_per_page={{ days_per_page }}&page={{ page_num }}" class="btn btn-sm btn-outline-secondary">
+                            {{ page_num }}
+                        </a>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if date_page.has_next %}
+                    <a href="?date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}{% if employee %}&employee={{ employee.id }}{% endif %}&days_per_page={{ days_per_page }}&page={{ date_page.next_page_number }}" class="btn btn-sm btn-outline-secondary">
+                        Next ▶️
+                    </a>
+                    <a href="?date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}{% if employee %}&employee={{ employee.id }}{% endif %}&days_per_page={{ days_per_page }}&page={{ date_page.paginator.num_pages }}" class="btn btn-sm btn-outline-secondary">
+                        Last ⏭️
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Navigation -->
+        <div class="navigation-section">
+            <a href="{% url 'historical_progressive_entry' %}" class="btn btn-secondary">
+                🔍 New Search
+            </a>
+            <a href="{% url 'progressive_entry' %}" class="btn btn-primary">
+                📝 Today's Progressive Entry
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Summary Stats */
+.summary-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.stat-card {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.stat-icon {
+    font-size: 1.5em;
+}
+
+.stat-value {
+    font-size: 1.5em;
+    font-weight: 600;
+    color: #007bff;
+}
+
+.stat-label {
+    font-size: 0.9em;
+    color: #6c757d;
+}
+
+/* Bulk Update Section */
+.bulk-update-section {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 25px;
+}
+
+.bulk-update-section h3 {
+    margin-top: 0;
+    color: #856404;
+    margin-bottom: 15px;
+}
+
+.bulk-tools-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.bulk-tool-card {
+    background: white;
+    padding: 15px;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+}
+
+.bulk-tool-card h4 {
+    margin: 0 0 10px 0;
+    font-size: 1em;
+    color: #495057;
+}
+
+.quick-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.bulk-action-btn {
+    font-size: 0.8em;
+    padding: 4px 8px;
+}
+
+.bulk-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 10px;
+    align-items: end;
+}
+
+.bulk-form-grid .form-group {
+    margin: 0;
+}
+
+.bulk-form-grid label {
+    font-size: 0.8em;
+    margin-bottom: 3px;
+}
+
+.bulk-form-grid select,
+.bulk-form-grid input {
+    font-size: 0.9em;
+    padding: 6px 8px;
+}
+
+/* Date Section */
+.date-section {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 25px;
+    overflow: hidden;
+}
+
+.date-header {
+    background: #f8f9fa;
+    padding: 12px 20px;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.date-header h3 {
+    margin: 0;
+    font-size: 1.1em;
+    color: #495057;
+}
+
+.date-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.date-count {
+    font-size: 0.9em;
+    color: #6c757d;
+}
+
+/* Employee Grid */
+.employee-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 15px;
+    padding: 20px;
+}
+
+.employee-card {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 15px;
+    transition: all 0.2s ease;
+}
+
+.employee-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+}
+
+.employee-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.employee-header h4 {
+    margin: 0;
+    font-size: 1em;
+    color: #495057;
+}
+
+.employee-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.field-group label {
+    font-size: 0.75em;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.inline-select.compact {
+    font-size: 0.8em;
+    padding: 4px 6px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    background: white;
+}
+
+.employee-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 8px;
+    border-top: 1px solid #dee2e6;
+}
+
+.completion-indicator {
+    font-size: 0.8em;
+    font-weight: 600;
+}
+
+.completion-text {
+    color: #007bff;
+}
+
+.last-updated {
+    font-size: 0.7em;
+    color: #6c757d;
+}
+
+/* Status Badges */
+.status-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 500;
+}
+
+.status-yes { background: #d4edda; color: #155724; }
+.status-no { background: #f8d7da; color: #721c24; }
+.status-absent { background: #fff3cd; color: #856404; }
+.status-late { background: #d1ecf1; color: #0c5460; }
+.status-appointment { background: #e2e3e5; color: #383d41; }
+
+/* No Records */
+.no-records {
+    text-align: center;
+    padding: 40px 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.no-records-icon {
+    font-size: 3em;
+    margin-bottom: 15px;
+}
+
+/* Pagination Controls */
+.pagination-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.pagination-info {
+    font-size: 0.9em;
+    color: #6c757d;
+}
+
+.pagination-settings {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.pagination-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pagination-form label {
+    font-size: 0.9em;
+    color: #495057;
+    margin: 0;
+}
+
+.pagination-form select {
+    padding: 4px 8px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+/* Pagination Navigation */
+.pagination-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin: 20px 0;
+}
+
+.pagination-links {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.pagination-links .btn {
+    min-width: 40px;
+    text-align: center;
+}
+
+/* Navigation */
+.navigation-section {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #dee2e6;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .bulk-tools-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .bulk-form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .employee-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .date-header {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+    }
+    
+    .employee-fields {
+        grid-template-columns: 1fr;
+    }
+    
+    .pagination-controls {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+    }
+    
+    .pagination-navigation {
+        flex-direction: column;
+        gap: 15px;
+        align-items: center;
+    }
+    
+    .pagination-links {
+        justify-content: center;
+    }
+    
+    .summary-stats {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-save functionality for inline selects
+    const selects = document.querySelectorAll('.inline-select');
+    selects.forEach(select => {
+        select.addEventListener('change', function() {
+            const recordId = this.dataset.recordId;
+            const fieldName = this.dataset.field;
+            const fieldValue = this.value;
+            
+            // Show loading state
+            this.style.opacity = '0.6';
+            
+            fetch('', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: `record_id=${recordId}&field_name=${fieldName}&field_value=${fieldValue}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success indicator
+                    this.style.borderColor = '#28a745';
+                    setTimeout(() => {
+                        this.style.borderColor = '#ced4da';
+                    }, 1000);
+                } else {
+                    // Show error indicator
+                    this.style.borderColor = '#dc3545';
+                    setTimeout(() => {
+                        this.style.borderColor = '#ced4da';
+                    }, 2000);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                this.style.borderColor = '#dc3545';
+                setTimeout(() => {
+                    this.style.borderColor = '#ced4da';
+                }, 2000);
+            })
+            .finally(() => {
+                this.style.opacity = '1';
+            });
+        });
+    });
+    
+    // Bulk action buttons
+    const bulkActionBtns = document.querySelectorAll('.bulk-action-btn');
+    bulkActionBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const action = this.dataset.action;
+            
+            // Show confirmation dialog
+            const actionText = action.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            if (confirm(`Are you sure you want to ${actionText} for all employees in the selected date range?`)) {
+                // Get all dates in the current view
+                const dates = Array.from(document.querySelectorAll('.date-section')).map(section => {
+                    return section.querySelector('.date-bulk-edit').dataset.date;
+                });
+                
+                // Update all dates
+                let totalUpdated = 0;
+                const promises = dates.map(date => {
+                    return fetch('', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        },
+                        body: `action_type=bulk_action&action=${action}&target_date=${date}`
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            totalUpdated += data.updated_count;
+                            // Refresh the page to show updated data
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1000);
+                        } else {
+                            console.error('Bulk action failed:', data.error);
+                        }
+                    });
+                });
+                
+                Promise.all(promises).then(() => {
+                    if (totalUpdated > 0) {
+                        alert(`Successfully updated ${totalUpdated} records across all dates!`);
+                    }
+                });
+            }
+        });
+    });
+    
+    // Date bulk edit buttons
+    const dateBulkEditBtns = document.querySelectorAll('.date-bulk-edit');
+    dateBulkEditBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const date = this.dataset.date;
+            
+            // Create a modal or dropdown for date-specific actions
+            const action = prompt(`Choose action for ${date}:\n1. Mark all present\n2. Mark all late\n3. Mark all absent\n\nEnter 1, 2, or 3:`);
+            
+            if (action) {
+                let actionName = '';
+                switch(action.trim()) {
+                    case '1':
+                        actionName = 'mark-all-present';
+                        break;
+                    case '2':
+                        actionName = 'mark-all-late';
+                        break;
+                    case '3':
+                        actionName = 'mark-all-absent';
+                        break;
+                    default:
+                        alert('Invalid action selected');
+                        return;
+                }
+                
+                if (confirm(`Are you sure you want to mark all employees as ${actionName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} for ${date}?`)) {
+                    fetch('', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        },
+                        body: `action_type=bulk_action&action=${actionName}&target_date=${date}`
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert(`Successfully updated ${data.updated_count} records for ${date}!`);
+                            window.location.reload();
+                        } else {
+                            alert('Error: ' + data.error);
+                        }
+                    });
+                }
+            }
+        });
+    });
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,90 @@
+{% extends "main_security.html" %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+.attendance-nav {
+    background: #f8f9fa;
+    padding: 15px 0;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #dee2e6;
+}
+.attendance-nav .nav-link {
+    color: #495057;
+    text-decoration: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    margin-right: 10px;
+    font-weight: 500;
+}
+.attendance-nav .nav-link:hover {
+    background: #e9ecef;
+    color: #212529;
+}
+.attendance-nav .nav-link.active {
+    background: var(--accent-color);
+    color: white;
+}
+.attendance-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+.attendance-card .card-header {
+    background: #f8f9fa;
+    padding: 15px 20px;
+    border-bottom: 1px solid #dee2e6;
+    border-radius: 8px 8px 0 0;
+}
+.attendance-card .card-body {
+    padding: 20px;
+}
+.attendance-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+.attendance-table th,
+.attendance-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #dee2e6;
+}
+.attendance-table th {
+    background: var(--primary-color);
+    color: white;
+    font-weight: 600;
+}
+.attendance-table tr:hover {
+    background: #f8f9fa;
+}
+.status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+.status-yes { background: #d4edda; color: #155724; }
+.status-no { background: #f8d7da; color: #721c24; }
+.status-absent { background: #fff3cd; color: #856404; }
+.status-late { background: #d1ecf1; color: #0c5460; }
+.status-appointment { background: #e2e3e5; color: #383d41; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="attendance-nav">
+    <a href="{% url 'attendance_list' %}" class="nav-link {% if request.resolver_match.url_name == 'attendance_list' %}active{% endif %}">Attendance Records</a>
+    <a href="{% url 'attendance_entry' %}" class="nav-link {% if request.resolver_match.url_name == 'attendance_entry' %}active{% endif %}">Single Entry</a>
+    <a href="{% url 'progressive_entry' %}" class="nav-link {% if request.resolver_match.url_name == 'progressive_entry' %}active{% endif %}">Progressive Entry</a>
+    <a href="{% url 'historical_progressive_entry' %}" class="nav-link {% if request.resolver_match.url_name == 'historical_progressive_entry' or request.resolver_match.url_name == 'historical_progressive_results' %}active{% endif %}">Historical Entry</a>
+    <a href="{% url 'comprehensive_reports' %}" class="nav-link {% if request.resolver_match.url_name == 'comprehensive_reports' or request.resolver_match.url_name == 'attendance_analytics' %}active{% endif %}">Analytics & Reports</a>
+    <a href="{% url 'attendance_export_csv' %}" class="nav-link">Export CSV</a>
+</div>
+{% block attendance_content %}{% endblock %}
+{% endblock %} 

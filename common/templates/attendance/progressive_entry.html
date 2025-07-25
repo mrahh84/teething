@@ -1,0 +1,495 @@
+{% extends "attendance/base.html" %}
+
+{% block attendance_content %}
+<div class="attendance-card">
+    <div class="card-header">
+        <h2>📝 Progressive Attendance Entry</h2>
+        <p style="margin: 0; color: #6c757d;">Update attendance data throughout the day - {{ today|date:"l, F d, Y" }}</p>
+    </div>
+    <div class="card-body">
+        <!-- Today's Progress Overview -->
+        <div class="progress-overview">
+            <div class="progress-stats">
+                <div class="stat-item">
+                    <span class="stat-label">📊 Total Records</span>
+                    <span class="stat-value">{{ today_records.count }}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">✅ Complete</span>
+                    <span class="stat-value">{{ today_records|length|add:"0" }}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">⏳ In Progress</span>
+                    <span class="stat-value">{{ today_records|length|add:"0" }}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">📅 Today</span>
+                    <span class="stat-value">{{ today|date:"M d" }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Entry Section -->
+        <div class="quick-entry-section">
+            <div class="quick-entry-header">
+                <h3>⚡ Quick Entry</h3>
+                <p>Add new attendance record or update existing one</p>
+            </div>
+            
+            <form method="post" id="quickEntryForm" class="quick-entry-form">
+                {% csrf_token %}
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ form.employee.id_for_label }}">{{ form.employee.label }}</label>
+                        {{ form.employee }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.standup_attendance.id_for_label }}">{{ form.standup_attendance.label }}</label>
+                        {{ form.standup_attendance }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.lunch_time.id_for_label }}">{{ form.lunch_time.label }}</label>
+                        {{ form.lunch_time }}
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ form.left_lunch_on_time.id_for_label }}">{{ form.left_lunch_on_time.label }}</label>
+                        {{ form.left_lunch_on_time }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.returned_on_time_after_lunch.id_for_label }}">{{ form.returned_on_time_after_lunch.label }}</label>
+                        {{ form.returned_on_time_after_lunch }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.returned_after_lunch.id_for_label }}">{{ form.returned_after_lunch.label }}</label>
+                        {{ form.returned_after_lunch }}
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group notes-group">
+                        <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+                        {{ form.notes }}
+                    </div>
+                    <div class="form-group submit-group">
+                        <button type="submit" class="btn btn-primary btn-save">💾 Save</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Today's Records Table -->
+        <div class="today-records-section">
+            <h3>📋 Today's Attendance Records</h3>
+            
+
+            <div class="table-responsive">
+                <table class="attendance-table progressive-table">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Status</th>
+                            <th>Stand-up</th>
+                            <th>Lunch Time</th>
+                            <th>Left On Time</th>
+                            <th>Returned On Time</th>
+                            <th>Returned After</th>
+                            <th>Completion</th>
+                            <th>Last Updated</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in today_records %}
+                        <tr class="record-row" data-employee-id="{{ record.employee.id }}">
+                            <td><strong>{{ record.employee }}</strong></td>
+                            <td>
+                                <span class="status-badge status-{{ record.status|lower }}">
+                                    {{ record.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <select class="inline-select" data-field="standup_attendance" data-employee-id="{{ record.employee.id }}">
+                                    <option value="">-</option>
+                                    <option value="YES" {% if record.standup_attendance == 'YES' %}selected{% endif %}>✅ Yes</option>
+                                    <option value="NO" {% if record.standup_attendance == 'NO' %}selected{% endif %}>❌ No</option>
+                                    <option value="LATE" {% if record.standup_attendance == 'LATE' %}selected{% endif %}>⏰ Late</option>
+                                    <option value="ABSENT" {% if record.standup_attendance == 'ABSENT' %}selected{% endif %}>🚫 Absent</option>
+                                </select>
+                            </td>
+                            <td>
+                                <select class="inline-select" data-field="lunch_time" data-employee-id="{{ record.employee.id }}">
+                                    <option value="">-</option>
+                                    <option value="12:00" {% if record.lunch_time and record.lunch_time|time:'H:i' == '12:00' %}selected{% endif %}>12:00 PM</option>
+                                    <option value="12:30" {% if record.lunch_time and record.lunch_time|time:'H:i' == '12:30' %}selected{% endif %}>12:30 PM</option>
+                                    <option value="13:00" {% if record.lunch_time and record.lunch_time|time:'H:i' == '13:00' %}selected{% endif %}>1:00 PM</option>
+                                </select>
+                            </td>
+                            <td>
+                                <select class="inline-select" data-field="left_lunch_on_time" data-employee-id="{{ record.employee.id }}">
+                                    <option value="">-</option>
+                                    <option value="YES" {% if record.left_lunch_on_time == 'YES' %}selected{% endif %}>✅ Yes</option>
+                                    <option value="NO" {% if record.left_lunch_on_time == 'NO' %}selected{% endif %}>❌ No</option>
+                                    <option value="LATE" {% if record.left_lunch_on_time == 'LATE' %}selected{% endif %}>⏰ Late</option>
+                                    <option value="ABSENT" {% if record.left_lunch_on_time == 'ABSENT' %}selected{% endif %}>🚫 Absent</option>
+                                </select>
+                            </td>
+                            <td>
+                                <select class="inline-select" data-field="returned_on_time_after_lunch" data-employee-id="{{ record.employee.id }}">
+                                    <option value="">-</option>
+                                    <option value="YES" {% if record.returned_on_time_after_lunch == 'YES' %}selected{% endif %}>✅ Yes</option>
+                                    <option value="NO" {% if record.returned_on_time_after_lunch == 'NO' %}selected{% endif %}>❌ No</option>
+                                    <option value="LATE" {% if record.returned_on_time_after_lunch == 'LATE' %}selected{% endif %}>⏰ Late</option>
+                                    <option value="ABSENT" {% if record.returned_on_time_after_lunch == 'ABSENT' %}selected{% endif %}>🚫 Absent</option>
+                                </select>
+                            </td>
+                            <td>
+                                <select class="inline-select" data-field="returned_after_lunch" data-employee-id="{{ record.employee.id }}">
+                                    <option value="">-</option>
+                                    <option value="YES" {% if record.returned_after_lunch == 'YES' %}selected{% endif %}>✅ Yes</option>
+                                    <option value="NO" {% if record.returned_after_lunch == 'NO' %}selected{% endif %}>❌ No</option>
+                                    <option value="LATE" {% if record.returned_after_lunch == 'LATE' %}selected{% endif %}>⏰ Late</option>
+                                    <option value="ABSENT" {% if record.returned_after_lunch == 'ABSENT' %}selected{% endif %}>🚫 Absent</option>
+                                </select>
+                            </td>
+                            <td>
+                                <div class="completion-bar">
+                                    <div class="completion-fill" style="width: {{ record.completion_percentage }}%"></div>
+                                    <span class="completion-text">{{ record.completion_percentage|floatformat:0 }}%</span>
+                                </div>
+                            </td>
+                            <td>
+                                <small>
+                                    {% if record.last_updated_by %}
+                                        {{ record.last_updated_by.username }}<br>
+                                        {{ record.updated_at|time:"H:i" }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </small>
+                            </td>
+                            <td>
+                                {% if record.id %}
+                                    <a href="{% url 'attendance_edit' record.id %}" class="btn btn-sm btn-primary">✏️ Edit</a>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="10" style="text-align: center; padding: 40px;">
+                                <p>No attendance records for today yet.</p>
+                                <p>Start by adding records using the form above.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.progress-overview {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+    border-left: 4px solid #007bff;
+}
+
+.progress-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 20px;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.9em;
+    color: #6c757d;
+    margin-bottom: 5px;
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.5em;
+    font-weight: 600;
+    color: #007bff;
+}
+
+.quick-entry-section {
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    margin-bottom: 25px;
+}
+
+.quick-entry-header {
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.quick-entry-header h3 {
+    margin: 0 0 5px 0;
+    color: #495057;
+    font-size: 1.2em;
+    font-weight: 600;
+}
+
+.quick-entry-header p {
+    margin: 0;
+    color: #6c757d;
+    font-size: 0.9em;
+}
+
+.quick-entry-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    align-items: end;
+}
+
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .quick-entry-section {
+        padding: 15px;
+    }
+    
+    .quick-entry-header h3 {
+        font-size: 1.1em;
+    }
+    
+    .form-group select,
+    .form-group textarea {
+        padding: 10px 12px;
+        font-size: 1em;
+    }
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.form-group label {
+    font-size: 0.85em;
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 2px;
+}
+
+.form-group select,
+.form-group textarea {
+    padding: 8px 10px;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    font-size: 0.9em;
+    background: white;
+    transition: all 0.2s ease;
+}
+
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+}
+
+.notes-group {
+    grid-column: 1 / -2;
+}
+
+.submit-group {
+    display: flex;
+    align-items: end;
+    justify-content: center;
+}
+
+.btn-save {
+    padding: 10px 20px;
+    font-weight: 500;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.btn-save:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,123,255,0.3);
+}
+
+.progressive-table {
+    font-size: 0.9em;
+}
+
+.progressive-table th,
+.progressive-table td {
+    padding: 8px 6px;
+    vertical-align: middle;
+}
+
+.inline-select {
+    padding: 4px 6px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    font-size: 0.85em;
+    background: white;
+}
+
+.inline-time {
+    padding: 4px 6px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    font-size: 0.85em;
+    width: 80px;
+}
+
+.completion-bar {
+    position: relative;
+    width: 60px;
+    height: 20px;
+    background: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.completion-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #dc3545 0%, #ffc107 50%, #28a745 100%);
+    transition: width 0.3s ease;
+}
+
+.completion-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.7em;
+    font-weight: 600;
+    color: #495057;
+    text-shadow: 0 0 2px white;
+}
+
+.record-row:hover {
+    background: #f8f9fa;
+}
+
+.inline-select:focus,
+.inline-time:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+}
+
+
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-save functionality for inline fields
+    let saveTimeout;
+    
+    function autoSave(employeeId, fieldName, fieldValue) {
+        clearTimeout(saveTimeout);
+        
+        saveTimeout = setTimeout(() => {
+            const formData = new FormData();
+            formData.append('employee_id', employeeId);
+            formData.append('field_name', fieldName);
+            formData.append('field_value', fieldValue);
+            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+            
+            fetch('{% url "progressive_entry" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update completion bar
+                    const row = document.querySelector(`[data-employee-id="${employeeId}"]`);
+                    const completionBar = row.querySelector('.completion-fill');
+                    const completionText = row.querySelector('.completion-text');
+                    
+                    if (completionBar && completionText) {
+                        completionBar.style.width = data.completion + '%';
+                        completionText.textContent = Math.round(data.completion) + '%';
+                    }
+                    
+                    // Show success indicator
+                    showSaveIndicator(row, true);
+                } else {
+                    showSaveIndicator(row, false);
+                }
+            })
+            .catch(error => {
+                console.error('Auto-save failed:', error);
+                showSaveIndicator(row, false);
+            });
+        }, 1000); // 1 second delay
+    }
+    
+    function showSaveIndicator(row, success) {
+        const indicator = document.createElement('div');
+        indicator.className = `save-indicator ${success ? 'success' : 'error'}`;
+        indicator.textContent = success ? '✓' : '✗';
+        indicator.style.cssText = `
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            background: ${success ? '#28a745' : '#dc3545'};
+            z-index: 10;
+        `;
+        
+        row.style.position = 'relative';
+        row.appendChild(indicator);
+        
+        setTimeout(() => {
+            indicator.remove();
+        }, 2000);
+    }
+    
+    // Add event listeners to inline fields
+    document.querySelectorAll('.inline-select, .inline-time').forEach(field => {
+        field.addEventListener('change', function() {
+            const employeeId = this.dataset.employeeId;
+            const fieldName = this.dataset.field;
+            const fieldValue = this.value;
+            
+            autoSave(employeeId, fieldName, fieldValue);
+        });
+    });
+});
+</script>
+{% endblock %} 
