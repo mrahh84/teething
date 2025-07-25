@@ -1,8 +1,9 @@
-<!DOCTYPE html> {# Basic HTML structure #}
+<!DOCTYPE html>
 <html>
 <head>
     <title>Clock-in Dashboard | Attendance System</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% block extra_css %}
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -16,11 +17,7 @@
             --dark-gray: #95a5a6;
             --text-color: #333;
         }
-
-        * {
-            box-sizing: border-box;
-        }
-
+        * { box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             line-height: 1.6;
@@ -29,7 +26,6 @@
             padding: 15px;
             background-color: #f9f9f9;
         }
-
         header {
             display: flex;
             justify-content: space-between;
@@ -38,19 +34,13 @@
             margin-bottom: 20px;
             border-bottom: 1px solid var(--med-gray);
         }
-
-        h1, h2 {
-            margin: 0;
-            padding: 0;
-        }
-
+        h1, h2 { margin: 0; padding: 0; }
         .dashboard-summary {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 15px;
             margin-bottom: 20px;
         }
-
         .stat-card {
             background: white;
             padding: 15px;
@@ -58,7 +48,6 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             text-align: center;
         }
-
         .stat-card h3 {
             margin-top: 0;
             color: var(--dark-gray);
@@ -66,25 +55,14 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-
         .stat-card .stat-value {
             font-size: 32px;
             font-weight: 600;
             margin: 10px 0;
         }
-
-        .stat-card.clocked-in .stat-value {
-            color: var(--success-color);
-        }
-
-        .stat-card.clocked-out .stat-value {
-            color: var(--danger-color);
-        }
-
-        .stat-card.total .stat-value {
-            color: var(--primary-color);
-        }
-
+        .stat-card.clocked-in .stat-value { color: var(--success-color); }
+        .stat-card.clocked-out .stat-value { color: var(--danger-color); }
+        .stat-card.total .stat-value { color: var(--primary-color); }
         .controls-wrapper {
             background: white;
             padding: 15px;
@@ -92,25 +70,20 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             margin-bottom: 20px;
         }
-
         .controls {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
             gap: 15px;
         }
-
         @media (max-width: 768px) {
-            .controls {
-                grid-template-columns: 1fr;
-            }
+            .controls { grid-template-columns: 1fr; }
         }
-
-        .search-box {
-            flex: 1;
-            display: flex;
-            align-items: center;
+        .filter-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            font-size: 14px;
         }
-
         input[type="text"], select {
             width: 100%;
             padding: 8px 12px;
@@ -118,20 +91,11 @@
             border-radius: 4px;
             font-size: 14px;
         }
-
         input[type="text"]:focus, select:focus {
             outline: none;
             border-color: var(--accent-color);
             box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.25);
         }
-
-        .filter-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 500;
-            font-size: 14px;
-        }
-
         table {
             width: 100%;
             border-collapse: collapse;
@@ -140,7 +104,6 @@
             border-radius: 8px;
             overflow: hidden;
         }
-
         th {
             background-color: var(--primary-color);
             color: white;
@@ -150,46 +113,18 @@
             position: relative;
             cursor: pointer;
         }
-
-        th:hover {
-            background-color: var(--secondary-color);
-        }
-
-        th.sorted:after {
-            content: " ▾";
-            font-size: 12px;
-        }
-
-        th.sorted.desc:after {
-            content: " ▴";
-        }
-
+        th:hover { background-color: var(--secondary-color); }
+        th.sorted:after { content: " ▾"; font-size: 12px; }
+        th.sorted.desc:after { content: " ▴"; }
         td {
             padding: 12px;
             border-bottom: 1px solid var(--med-gray);
         }
-
-        tr:last-child td {
-            border-bottom: none;
-        }
-
-        tr:nth-child(even) {
-            background-color: var(--light-gray);
-        }
-
-        tr:hover {
-            background-color: rgba(52, 152, 219, 0.1);
-        }
-
-        a {
-            color: var(--accent-color);
-            text-decoration: none;
-        }
-
-        a:hover {
-            text-decoration: underline;
-        }
-
+        tr:last-child td { border-bottom: none; }
+        tr:nth-child(even) { background-color: var(--light-gray); }
+        tr:hover { background-color: rgba(52, 152, 219, 0.1); }
+        a { color: var(--accent-color); text-decoration: none; }
+        a:hover { text-decoration: underline; }
         .btn {
             display: inline-block;
             padding: 8px 12px;
@@ -202,64 +137,17 @@
             text-align: center;
             text-decoration: none;
         }
-
-        .btn:hover {
-            background-color: #2980b9;
-            text-decoration: none;
-        }
-
-        .btn-success {
-            background-color: var(--success-color);
-        }
-
-        .btn-success:hover {
-            background-color: #27ae60;
-        }
-
-        .btn-danger {
-            background-color: var(--danger-color);
-        }
-
-        .btn-danger:hover {
-            background-color: #c0392b;
-        }
-
-        .message-list {
-            list-style: none;
-            padding: 0;
-            margin: 0 0 20px 0;
-        }
-
-        .message {
-            padding: 10px 15px;
-            border-radius: 4px;
-            margin-bottom: 10px;
-        }
-
-        .message.success {
-            background-color: #d4edda;
-            border: 1px solid #c3e6cb;
-            color: #155724;
-        }
-
-        .message.warning {
-            background-color: #fff3cd;
-            border: 1px solid #ffeeba;
-            color: #856404;
-        }
-
-        .message.error {
-            background-color: #f8d7da;
-            border: 1px solid #f5c6cb;
-            color: #721c24;
-        }
-
-        .message.info {
-            background-color: #d1ecf1;
-            border: 1px solid #bee5eb;
-            color: #0c5460;
-        }
-
+        .btn:hover { background-color: #2980b9; text-decoration: none; }
+        .btn-success { background-color: var(--success-color); }
+        .btn-success:hover { background-color: #27ae60; }
+        .btn-danger { background-color: var(--danger-color); }
+        .btn-danger:hover { background-color: #c0392b; }
+        .message-list { list-style: none; padding: 0; margin: 0 0 20px 0; }
+        .message { padding: 10px 15px; border-radius: 4px; margin-bottom: 10px; }
+        .message.success { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .message.warning { background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; }
+        .message.error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .message.info { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
         .status-badge {
             display: inline-block;
             padding: 4px 8px;
@@ -267,28 +155,10 @@
             font-size: 12px;
             font-weight: 500;
         }
-
-        .status-in {
-            background-color: #d4edda;
-            color: #155724;
-        }
-
-        .status-out {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-        
-        .status-processing {
-            background-color: #fff3cd;
-            color: #856404;
-            animation: pulse 1.5s ease-in-out infinite alternate;
-        }
-        
-        @keyframes pulse {
-            from { opacity: 0.6; }
-            to { opacity: 1; }
-        }
-        
+        .status-in { background-color: #d4edda; color: #155724; }
+        .status-out { background-color: #f8d7da; color: #721c24; }
+        .status-processing { background-color: #fff3cd; color: #856404; animation: pulse 1.5s ease-in-out infinite alternate; }
+        @keyframes pulse { from { opacity: 0.6; } to { opacity: 1; } }
         .pagination {
             display: flex;
             justify-content: space-between;
@@ -299,11 +169,7 @@
             border-radius: 8px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
-
-        .pagination-info {
-            font-size: 14px;
-        }
-
+        .pagination-info { font-size: 14px; }
         .pagination-controls a {
             display: inline-block;
             padding: 5px 10px;
@@ -311,44 +177,20 @@
             border-radius: 4px;
             background-color: var(--light-gray);
         }
-
         .pagination-controls a.active {
             background-color: var(--accent-color);
             color: white;
         }
-
-        .pagination-controls a:hover:not(.active) {
-            background-color: var(--med-gray);
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .employee-action {
-            white-space: nowrap;
-        }
-
-        .time-indicator {
-            display: block;
-            font-size: 11px;
-            color: var(--dark-gray);
-        }
-
-        .card-number {
-            font-family: monospace;
-            background: var(--light-gray);
-            padding: 2px 4px;
-            border-radius: 3px;
-        }
-
+        .pagination-controls a:hover:not(.active) { background-color: var(--med-gray); }
+        .employee-action { white-space: nowrap; }
+        .time-indicator { display: block; font-size: 11px; color: var(--dark-gray); }
+        .card-number { font-family: monospace; background: var(--light-gray); padding: 2px 4px; border-radius: 3px; }
         .alphabet-filter {
             display: flex;
             flex-wrap: wrap;
             gap: 5px;
             margin-top: 15px;
         }
-
         .alphabet-filter a {
             display: block;
             width: 30px;
@@ -359,34 +201,35 @@
             border-radius: 4px;
             font-size: 14px;
         }
-
         .alphabet-filter a.active,
         .alphabet-filter a:hover {
             background: var(--accent-color);
             color: white;
             text-decoration: none;
         }
-
-        .alphabet-filter a.all {
-            width: auto;
-            padding: 0 10px;
-        }
+        .alphabet-filter a.all { width: auto; padding: 0 10px; }
     </style>
+    {% endblock %}
 </head>
 <body>
     <header>
         <h1>Clock-in Dashboard</h1>
         {% if user.is_authenticated %}
-            <div>
-                Welcome, {{ user.username }}!
-                <a href="{% url 'reports_dashboard' %}" class="btn">Reports</a>
-                <a href="{% url 'logout' %}" class="btn btn-danger">Logout</a>
-            </div>
+            <nav style="display: flex; gap: 10px; align-items: center;">
+                <a href="{% url 'main_security' %}" class="btn">Clock-in/Out</a>
+                <a href="{% url 'attendance_list' %}" class="btn">Attendance</a>
+                <a href="{% url 'progressive_entry' %}" class="btn">📝 Progressive Entry</a>
+                <form action="{% url 'logout' %}" method="post" style="display:inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-danger">Logout</button>
+                </form>
+            </nav>
         {% else %}
             <a href="{% url 'login' %}" class="btn">Login</a>
         {% endif %}
     </header>
 
+    {% block content %}
     {% if messages %}
         <ul class="message-list">
             {% for message in messages %}
@@ -412,14 +255,17 @@
 
     <div class="controls-wrapper">
         <h2>Employee Status</h2>
-        <div class="controls">
+        <form method="get" class="controls" style="margin-bottom: 0;">
             <div class="filter-group">
                 <label for="search">Search:</label>
-                <input type="text" id="search" placeholder="Search by name or card..." oninput="filterEmployees()" value="{{ search_query }}">
+                <input type="text" id="search" name="search" placeholder="Search by name or card..." value="{{ search_query }}">
             </div>
+            {% if start_letter and start_letter != 'all' %}
+            <input type="hidden" name="letter" value="{{ start_letter }}">
+            {% endif %}
             <div class="filter-group">
                 <label for="status-filter">Status Filter:</label>
-                <select id="status-filter" onchange="filterEmployees()">
+                <select id="status-filter" name="status">
                     <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Employees</option>
                     <option value="in" {% if status_filter == 'in' %}selected{% endif %}>Clocked In</option>
                     <option value="out" {% if status_filter == 'out' %}selected{% endif %}>Clocked Out</option>
@@ -427,34 +273,32 @@
             </div>
             <div class="filter-group">
                 <label for="items-per-page">Rows per page:</label>
-                <select id="items-per-page" onchange="changeItemsPerPage()">
-                    <option value="10">10</option>
-                    <option value="25" selected>25</option>
-                    <option value="50">50</option>
-                    <option value="100">100</option>
+                <select id="items-per-page" name="items">
+                    <option value="25" {% if items_per_page == 25 %}selected{% endif %}>25</option>
+                    <option value="50" {% if items_per_page == 50 %}selected{% endif %}>50</option>
+                    <option value="100" {% if items_per_page == 100 %}selected{% endif %}>100</option>
+                    <option value="200" {% if items_per_page == 200 %}selected{% endif %}>200</option>
                 </select>
             </div>
-        </div>
-
+            <div style="grid-column: 1 / -1; text-align: right; margin-top: 10px;">
+                <button type="submit" class="btn">Apply Filters</button>
+                <a href="{% url 'main_security' %}" class="btn" style="margin-left: 10px;">Clear All Filters</a>
+            </div>
+        </form>
         <div class="alphabet-filter">
-            <a href="#" class="all active" data-letter="all">All</a>
+            <a href="?letter=all" class="all {% if not start_letter or start_letter == 'all' %}active{% endif %}" data-letter="all">All</a>
             {% for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ" %}
-                <a href="#" data-letter="{{ letter }}">{{ letter }}</a>
+                <a href="?letter={{ letter }}" class="{% if start_letter == letter %}active{% endif %}" data-letter="{{ letter }}">{{ letter }}</a>
             {% endfor %}
-        </div>
-
-        <div style="margin-top: 15px; display: flex; justify-content: flex-end;">
-            <button type="button" class="btn" onclick="applyServerFilters()">Apply Server Filters</button>
-            <a href="{% url 'main_security' %}" class="btn" style="margin-left: 10px;">Clear All Filters</a>
         </div>
     </div>
 
     <table id="employee-table">
         <thead>
             <tr>
-                <th onclick="sortTable(0)">Card</th>
-                <th onclick="sortTable(1)">Given Name</th>
-                <th onclick="sortTable(2)" class="sorted">Surname</th>
+                <th>Card</th>
+                <th>Given Name</th>
+                <th>Surname</th>
                 <th>Status</th>
                 <th>Action</th>
             </tr>
@@ -508,322 +352,25 @@
     </table>
 
     <div class="pagination">
-        <div class="pagination-info">
-            Showing <span id="start-item">1</span> to <span id="end-item">25</span> of <span id="total-items">{{ employees|length }}</span> employees
-        </div>
-        <div class="pagination-controls" id="pagination-controls">
-            <!-- Pagination links will be inserted here by JavaScript -->
-        </div>
+      <div class="pagination-info">
+        Showing {{ employees.start_index }} to {{ employees.end_index }} of {{ total_employees }} employees
+      </div>
+      <div class="pagination-controls">
+        {% if employees.has_previous %}
+          <a href="?page={{ employees.previous_page_number }}&items={{ items_per_page }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if sort_direction %}&direction={{ sort_direction }}{% endif %}{% if start_letter %}&letter={{ start_letter }}{% endif %}">« Prev</a>
+        {% endif %}
+        {% for num in employees.paginator.page_range %}
+          {% if num == current_page %}
+            <a href="?page={{ num }}&items={{ items_per_page }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if sort_direction %}&direction={{ sort_direction }}{% endif %}{% if start_letter %}&letter={{ start_letter }}{% endif %}" class="active">{{ num }}</a>
+          {% else %}
+            <a href="?page={{ num }}&items={{ items_per_page }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if sort_direction %}&direction={{ sort_direction }}{% endif %}{% if start_letter %}&letter={{ start_letter }}{% endif %}">{{ num }}</a>
+          {% endif %}
+        {% endfor %}
+        {% if employees.has_next %}
+          <a href="?page={{ employees.next_page_number }}&items={{ items_per_page }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if sort_direction %}&direction={{ sort_direction }}{% endif %}{% if start_letter %}&letter={{ start_letter }}{% endif %}">Next »</a>
+        {% endif %}
+      </div>
     </div>
-
-    <script>
-        // Current page and items per page
-        let currentPage = 1;
-        let itemsPerPage = 25;
-        // Handle sort column using server-provided variables
-        let sortColumn = 2; // Default to surname
-        if ("{{ sort_by }}" === "given_name") {
-            sortColumn = 1;
-        } else if ("{{ sort_by }}" === "card") {
-            sortColumn = 0;
-        }
-        let sortDirection = "{{ sort_direction }}";
-        let currentLetter = "{{ start_letter|default:'all' }}";
-
-        // Initialize on document load
-        document.addEventListener('DOMContentLoaded', function() {
-            setupTable();
-            setupAlphabetFilter();
-            setupClockButtons();
-        });
-
-        function setupTable() {
-            filterEmployees();
-            setupPagination();
-        }
-
-        function setupAlphabetFilter() {
-            const letters = document.querySelectorAll('.alphabet-filter a');
-            letters.forEach(letter => {
-                letter.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    // Remove active class from all letters
-                    letters.forEach(l => l.classList.remove('active'));
-                    // Add active class to clicked letter
-                    this.classList.add('active');
-                    // Set current letter
-                    currentLetter = this.getAttribute('data-letter');
-                    // Filter employees
-                    filterEmployees();
-                });
-            });
-        }
-
-        function updateDashboardCounts() {
-            // Dashboard counts are now set from server-side data
-            // This function is kept for compatibility
-        }
-
-        function filterEmployees() {
-            const searchText = document.getElementById('search').value.toLowerCase();
-            const statusFilter = document.getElementById('status-filter').value;
-            const rows = document.querySelectorAll('#employee-table tbody tr.employee-row');
-            let visibleCount = 0;
-
-            rows.forEach(row => {
-                const cardCell = row.cells[0].textContent.trim().toLowerCase();
-                const firstNameCell = row.cells[1].textContent.trim().toLowerCase();
-                const lastNameCell = row.cells[2].textContent.trim().toLowerCase();
-                const rowStatus = row.getAttribute('data-status');
-                const lastName = row.getAttribute('data-lastname');
-
-                const matchesSearch = cardCell.includes(searchText) ||
-                                     firstNameCell.includes(searchText) ||
-                                     lastNameCell.includes(searchText);
-
-                const matchesStatus = statusFilter === 'all' || rowStatus === statusFilter;
-
-                // Check if matches letter filter
-                let matchesLetter = true;
-                if (currentLetter !== 'all') {
-                    matchesLetter = lastName && lastName.toUpperCase().startsWith(currentLetter);
-                }
-
-                if (matchesSearch && matchesStatus && matchesLetter) {
-                    row.classList.remove('hidden');
-                    visibleCount++;
-                } else {
-                    row.classList.add('hidden');
-                }
-            });
-
-            document.getElementById('total-items').textContent = visibleCount;
-
-            // Reset to first page whenever filter changes
-            currentPage = 1;
-            applyPagination();
-        }
-
-        function applyServerFilters() {
-            const searchText = document.getElementById('search').value;
-            const statusFilter = document.getElementById('status-filter').value;
-            const itemsPerPage = document.getElementById('items-per-page').value;
-
-            // Build the URL with query parameters
-            let url = new URL(window.location.href);
-            url.searchParams.set('search', searchText);
-            url.searchParams.set('status', statusFilter);
-            url.searchParams.set('sort', getSortByFromColumnIndex(sortColumn));
-            url.searchParams.set('direction', sortDirection);
-            url.searchParams.set('items', itemsPerPage);
-
-            // Add letter filter if not "all"
-            if (currentLetter !== 'all') {
-                url.searchParams.set('letter', currentLetter);
-            } else {
-                url.searchParams.delete('letter');
-            }
-
-            // Navigate to the URL with the filters
-            window.location.href = url.toString();
-        }
-
-        function getSortByFromColumnIndex(columnIndex) {
-            switch(columnIndex) {
-                case 0: return 'card';
-                case 1: return 'given_name';
-                case 2: return 'surname';
-                default: return 'surname';
-            }
-        }
-
-        function sortTable(columnIndex) {
-            const table = document.getElementById('employee-table');
-            const header = table.querySelectorAll('th')[columnIndex];
-
-            // Update sort direction
-            if (sortColumn === columnIndex) {
-                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-            } else {
-                sortDirection = 'asc';
-
-                // Remove sorting indicator from previous column
-                const headers = table.querySelectorAll('th');
-                headers.forEach(h => h.classList.remove('sorted', 'desc'));
-            }
-
-            sortColumn = columnIndex;
-
-            // Add sorting indicator to current column
-            header.classList.add('sorted');
-            if (sortDirection === 'desc') {
-                header.classList.add('desc');
-            } else {
-                header.classList.remove('desc');
-            }
-
-            // Get all rows except header
-            const tbody = table.querySelector('tbody');
-            const rows = Array.from(tbody.querySelectorAll('tr.employee-row'));
-
-            // Sort rows
-            rows.sort((a, b) => {
-                let aValue = a.cells[columnIndex].textContent.trim();
-                let bValue = b.cells[columnIndex].textContent.trim();
-
-                // Handle special case for "N/A" values
-                if (aValue === 'N/A') aValue = '';
-                if (bValue === 'N/A') bValue = '';
-
-                const comparison = aValue.localeCompare(bValue, undefined, {sensitivity: 'base'});
-                return sortDirection === 'asc' ? comparison : -comparison;
-            });
-
-            // Reorder rows in the table
-            rows.forEach(row => tbody.appendChild(row));
-
-            // Re-apply pagination
-            applyPagination();
-        }
-
-        function setupPagination() {
-            applyPagination();
-        }
-
-        function applyPagination() {
-            const table = document.getElementById('employee-table');
-            const rows = table.querySelectorAll('tbody tr.employee-row:not(.hidden)');
-            const totalItems = rows.length;
-            const pageCount = Math.ceil(totalItems / itemsPerPage);
-
-            // Make sure currentPage is within bounds
-            if (currentPage > pageCount) {
-                currentPage = pageCount > 0 ? pageCount : 1;
-            }
-
-            // Show items for current page
-            rows.forEach((row, index) => {
-                const start = (currentPage - 1) * itemsPerPage;
-                const end = start + itemsPerPage;
-
-                if (index >= start && index < end) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-
-            // Update pagination info
-            const startItem = totalItems > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0;
-            const endItem = Math.min(startItem + itemsPerPage - 1, totalItems);
-
-            document.getElementById('start-item').textContent = startItem;
-            document.getElementById('end-item').textContent = endItem;
-
-            // Generate pagination controls
-            const paginationControls = document.getElementById('pagination-controls');
-            paginationControls.innerHTML = '';
-
-            if (pageCount <= 1) {
-                return; // No need for pagination controls
-            }
-
-            // Previous button
-            const prevLink = document.createElement('a');
-            prevLink.href = '#';
-            prevLink.textContent = '« Prev';
-            prevLink.addEventListener('click', function(e) {
-                e.preventDefault();
-                if (currentPage > 1) {
-                    currentPage--;
-                    applyPagination();
-                }
-            });
-            paginationControls.appendChild(prevLink);
-
-            // Page numbers (show up to 5 pages around current page)
-            const startPage = Math.max(1, currentPage - 2);
-            const endPage = Math.min(pageCount, startPage + 4);
-
-            for (let i = startPage; i <= endPage; i++) {
-                const pageLink = document.createElement('a');
-                pageLink.href = '#';
-                pageLink.textContent = i;
-                pageLink.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    currentPage = i;
-                    applyPagination();
-                });
-
-                if (i === currentPage) {
-                    pageLink.classList.add('active');
-                }
-
-                paginationControls.appendChild(pageLink);
-            }
-
-            // Next button
-            const nextLink = document.createElement('a');
-            nextLink.href = '#';
-            nextLink.textContent = 'Next »';
-            nextLink.addEventListener('click', function(e) {
-                e.preventDefault();
-                if (currentPage < pageCount) {
-                    currentPage++;
-                    applyPagination();
-                }
-            });
-            paginationControls.appendChild(nextLink);
-        }
-
-        function changeItemsPerPage() {
-            itemsPerPage = parseInt(document.getElementById('items-per-page').value);
-            currentPage = 1; // Reset to first page
-            applyPagination();
-        }
-        
-        // Clock button optimization for immediate feedback
-        function setupClockButtons() {
-            const clockButtons = document.querySelectorAll('.clock-btn');
-            
-            clockButtons.forEach(button => {
-                button.addEventListener('click', function(e) {
-                    // Provide immediate visual feedback
-                    const originalText = this.textContent.trim();
-                    const originalClass = this.className;
-                    
-                    // Disable button and show loading state
-                    this.style.pointerEvents = 'none';
-                    this.style.opacity = '0.7';
-                    this.textContent = 'Processing...';
-                    
-                    // Update the status badge immediately for better UX
-                    const row = this.closest('tr');
-                    const statusBadge = row.querySelector('.status-badge');
-                    const currentStatus = this.dataset.currentStatus;
-                    
-                    if (currentStatus === 'in') {
-                        // User is clocking out
-                        statusBadge.textContent = 'Clocking Out...';
-                        statusBadge.className = 'status-badge status-processing';
-                    } else {
-                        // User is clocking in
-                        statusBadge.textContent = 'Clocking In...';
-                        statusBadge.className = 'status-badge status-processing';
-                    }
-                    
-                    // Set a timeout to restore original state if request takes too long
-                    setTimeout(() => {
-                        if (this.textContent === 'Processing...') {
-                            this.textContent = originalText;
-                            this.className = originalClass;
-                            this.style.pointerEvents = '';
-                            this.style.opacity = '';
-                        }
-                    }, 10000); // 10 seconds timeout
-                });
-            });
-        }
-    </script>
+    {% endblock %}
 </body>
 </html>
