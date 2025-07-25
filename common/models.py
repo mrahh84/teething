@@ -9,7 +9,8 @@ from django.utils import timezone
 class Card(models.Model):
     """Represents a physical access card."""
 
-    designation = models.TextField(
+    designation = models.CharField(
+        max_length=255,
         null=False,
         unique=True,
         help_text="Unique identifier for the card (i.e., number printed on it).",
@@ -24,7 +25,8 @@ class Card(models.Model):
 class Location(models.Model):
     """Represents a physical location where events can occur."""
 
-    name = models.TextField(
+    name = models.CharField(
+        max_length=255,
         null=False,
         unique=True,
         help_text="Name of the location (e.g., 'Main Security', 'Repository and Conservation').",
@@ -38,7 +40,8 @@ class Location(models.Model):
 class EventType(models.Model):
     """Represents the type of an event (e.g., 'Clock In', 'Clock Out', etc)."""
 
-    name = models.TextField(
+    name = models.CharField(
+        max_length=255,
         null=False, unique=True, help_text="The name describing the event type."
     )
 
@@ -50,8 +53,8 @@ class EventType(models.Model):
 class Employee(models.Model):
     """Represents an employee who can be associated with events and cards."""
 
-    given_name = models.TextField(null=False)
-    surname = models.TextField(null=False)
+    given_name = models.CharField(max_length=255, null=False)
+    surname = models.CharField(max_length=255, null=False)
     assigned_locations = models.ManyToManyField(
         Location,
         blank=True,
@@ -64,11 +67,22 @@ class Employee(models.Model):
         on_delete=models.SET_NULL,
         help_text="The access card currently assigned to the employee.",
     )
-
-    # NOTE:
-    # Consider changing assigned_locations to required if applicable: null=False, blank=False
-    # Consider making card_number to required: null=False
-    # Consider including a unique field instead of just depending on the combination of given_name and surname
+    
+    # New fields for attendance tracking
+    assigned_lunch_time = models.TimeField(
+        null=True, 
+        blank=True, 
+        help_text="Employee's assigned lunch time"
+    )
+    assigned_departure_time = models.TimeField(
+        null=True, 
+        blank=True, 
+        help_text="Employee's assigned departure time"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Whether this employee is currently active"
+    )
 
     class Meta:
         unique_together = [["given_name", "surname"]]
@@ -151,6 +165,287 @@ class Employee(models.Model):
 
         return last_time
 
+    def get_attendance_records(self, start_date=None, end_date=None):
+        """Get attendance records for this employee within a date range"""
+        records = self.attendance_records.all()
+        if start_date:
+            records = records.filter(date__gte=start_date)
+        if end_date:
+            records = records.filter(date__lte=end_date)
+        return records.order_by('date')
+
+    def get_problematic_days(self, start_date=None, end_date=None):
+        """Get problematic attendance days for this employee"""
+        records = self.get_attendance_records(start_date, end_date)
+        return [record for record in records if record.is_problematic_day()]
+
+    def get_attendance_percentage(self, start_date=None, end_date=None):
+        """Calculate attendance percentage for this employee"""
+        records = self.get_attendance_records(start_date, end_date)
+        if not records:
+            return 0.0
+        
+        problematic_days = len(self.get_problematic_days(start_date, end_date))
+        total_days = len(records)
+        
+        if total_days == 0:
+            return 0.0
+        
+        return ((total_days - problematic_days) / total_days) * 100
+
+
+class AttendanceRecord(models.Model):
+    """Comprehensive attendance record replacing Excel data"""
+    
+    ATTENDANCE_CHOICES = [
+        ('YES', 'Yes'),
+        ('NO', 'No'),
+        ('ABSENT', 'Absent'),
+        ('LATE', 'Late'),
+        ('APPOINTMENT', 'Appointment'),
+    ]
+    
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='attendance_records')
+    date = models.DateField()
+    
+    # Lunch tracking
+    lunch_time = models.TimeField(null=True, blank=True, help_text="Time employee took lunch")
+    left_lunch_on_time = models.CharField(
+        max_length=11, 
+        choices=ATTENDANCE_CHOICES, 
+        null=True, 
+        blank=True,
+        help_text="Did employee leave for lunch at assigned time?"
+    )
+    returned_on_time_after_lunch = models.CharField(
+        max_length=11, 
+        choices=ATTENDANCE_CHOICES, 
+        null=True, 
+        blank=True,
+        help_text="Did employee return to workstation on time after lunch?"
+    )
+    returned_after_lunch = models.CharField(
+        max_length=11, 
+        choices=ATTENDANCE_CHOICES, 
+        null=True, 
+        blank=True,
+        help_text="Did employee return after lunch?"
+    )
+    
+    # Stand-up meeting
+    standup_attendance = models.CharField(
+        max_length=11, 
+        choices=ATTENDANCE_CHOICES, 
+        null=True, 
+        blank=True,
+        help_text="Did employee attend stand-up meeting?"
+    )
+    
+    # Departure - will be pulled from clock-in system
+    # departure_time = models.TimeField(null=True, blank=True, help_text="Time employee left work")
+    
+    # Metadata
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    notes = models.TextField(blank=True, help_text="Additional notes or comments")
+    
+    # Progressive entry tracking
+    STATUS_CHOICES = [
+        ('DRAFT', 'Draft - In Progress'),
+        ('PARTIAL', 'Partial - Some data entered'),
+        ('COMPLETE', 'Complete - All data entered'),
+        ('REVIEWED', 'Reviewed - Supervisor approved'),
+    ]
+    status = models.CharField(
+        max_length=10,
+        choices=STATUS_CHOICES,
+        default='DRAFT',
+        help_text="Current status of this attendance record"
+    )
+    last_updated_by = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='updated_attendance_records',
+        help_text="Last user who updated this record"
+    )
+
+    class Meta:
+        unique_together = ['employee', 'date']
+        ordering = ['-date', 'employee__surname', 'employee__given_name']
+        indexes = [
+            models.Index(fields=['date']),
+            models.Index(fields=['employee', 'date']),
+        ]
+
+    def __str__(self):
+        """Return a description of the attendance record."""
+        return f"{self.employee} - {self.date}"
+
+    def is_problematic_day(self):
+        """Check if this day had problematic attendance patterns (excluding absences)"""
+        # Only count actual attendance violations, not absences
+        # This logic is based on the Garbage/analyze_attendance.py valuemap
+        problematic_values = ['NO', 'LATE']  # Removed 'ABSENT' from problematic values
+        
+        issues = 0
+        if self.standup_attendance in problematic_values:
+            issues += 1
+        if self.left_lunch_on_time in problematic_values:
+            issues += 1
+        if self.returned_on_time_after_lunch in problematic_values:
+            issues += 1
+        if self.returned_after_lunch in problematic_values:
+            issues += 1
+        
+        return issues >= 2  # Multiple issues on same day
+
+    @property
+    def total_issues(self):
+        """Count total attendance issues for this day (excluding absences)"""
+        # Only count actual attendance violations, not absences
+        # This logic is based on the Garbage/analyze_attendance.py valuemap
+        problematic_values = ['NO', 'LATE']  # Removed 'ABSENT' from problematic values
+        issues = 0
+        
+        for field in ['standup_attendance', 'left_lunch_on_time', 
+                     'returned_on_time_after_lunch', 'returned_after_lunch']:
+            if getattr(self, field) in problematic_values:
+                issues += 1
+        
+        return issues
+
+    @property
+    def arrival_time(self):
+        """Get the arrival time from clock-in events"""
+        from datetime import datetime, time
+        # Use timezone-aware range queries to handle timezone issues
+        start_of_day = timezone.make_aware(datetime.combine(self.date, time.min))
+        end_of_day = timezone.make_aware(datetime.combine(self.date, time.max))
+        
+        clock_in_event = Event.objects.filter(
+            employee=self.employee,
+            event_type__name='Clock In',
+            timestamp__gte=start_of_day,
+            timestamp__lte=end_of_day
+        ).order_by('timestamp').last()  # Get the most recent clock-in
+        
+        return clock_in_event.timestamp.time() if clock_in_event else None
+
+    @property
+    def arrival_datetime(self):
+        """Get the arrival datetime from clock-in events"""
+        from datetime import datetime, time
+        # Use timezone-aware range queries to handle timezone issues
+        start_of_day = timezone.make_aware(datetime.combine(self.date, time.min))
+        end_of_day = timezone.make_aware(datetime.combine(self.date, time.max))
+        
+        clock_in_event = Event.objects.filter(
+            employee=self.employee,
+            event_type__name='Clock In',
+            timestamp__gte=start_of_day,
+            timestamp__lte=end_of_day
+        ).order_by('timestamp').last()  # Get the most recent clock-in
+        
+        return clock_in_event.timestamp if clock_in_event else None
+
+    @property
+    def departure_time(self):
+        """Get the departure time from clock-out events"""
+        from datetime import datetime, time
+        # Use timezone-aware range queries to handle timezone issues
+        start_of_day = timezone.make_aware(datetime.combine(self.date, time.min))
+        end_of_day = timezone.make_aware(datetime.combine(self.date, time.max))
+        
+        # First find the most recent clock-in event
+        latest_clock_in = Event.objects.filter(
+            employee=self.employee,
+            event_type__name='Clock In',
+            timestamp__gte=start_of_day,
+            timestamp__lte=end_of_day
+        ).order_by('timestamp').last()
+        
+        if not latest_clock_in:
+            return None
+        
+        # Then find the first clock-out event after the latest clock-in
+        clock_out_event = Event.objects.filter(
+            employee=self.employee,
+            event_type__name='Clock Out',
+            timestamp__gte=latest_clock_in.timestamp,
+            timestamp__lte=end_of_day
+        ).order_by('timestamp').first()
+        
+        return clock_out_event.timestamp.time() if clock_out_event else None
+
+    @property
+    def worked_hours(self):
+        """Calculate total hours worked for this day"""
+        if not self.arrival_datetime or not self.departure_time:
+            return None
+        
+        # Combine date with departure time
+        departure_datetime = timezone.make_aware(
+            datetime.combine(self.date, self.departure_time)
+        )
+        
+        # Calculate duration
+        duration = departure_datetime - self.arrival_datetime
+        return duration.total_seconds() / 3600  # Convert to hours
+
+    @property
+    def is_late_arrival(self):
+        """Check if employee arrived late (after 9:00 AM)"""
+        if not self.arrival_time:
+            return False
+        
+        from datetime import time
+        return self.arrival_time > time(9, 0)
+
+    @property
+    def is_early_departure(self):
+        """Check if employee left early (before 5:00 PM)"""
+        if not self.departure_time:
+            return False
+        
+        from datetime import time
+        return self.departure_time < time(17, 0)
+
+    @property
+    def completion_percentage(self):
+        """Calculate completion percentage of this attendance record"""
+        fields_to_check = [
+            'standup_attendance', 'left_lunch_on_time', 
+            'returned_on_time_after_lunch', 'returned_after_lunch'
+        ]
+        
+        completed_fields = 0
+        for field in fields_to_check:
+            if getattr(self, field):
+                completed_fields += 1
+        
+        return (completed_fields / len(fields_to_check)) * 100
+
+    def auto_update_status(self):
+        """Automatically update status based on completion"""
+        completion = self.completion_percentage
+        
+        if completion == 0:
+            self.status = 'DRAFT'
+        elif completion < 100:
+            self.status = 'PARTIAL'
+        else:
+            self.status = 'COMPLETE'
+        
+        self.save()
+
+    def save(self, *args, **kwargs):
+        """Override save to auto-update status"""
+        super().save(*args, **kwargs)
+        self.auto_update_status()
+
 
 class Event(models.Model):
     """Represents an event recorded in the system (e.g., clock in/out, access)."""
@@ -184,7 +479,24 @@ class Event(models.Model):
 
     def save(self, *args, **kwargs):
         """Override save to invalidate employee cache when events are created."""
+        # Check if this is a new clock event
+        is_new_clock_in = (
+            self.pk is None and  # New record
+            self.event_type.name == "Clock In"  # Clock In event
+        )
+        is_new_clock_out = (
+            self.pk is None and  # New record
+            self.event_type.name == "Clock Out"  # Clock Out event
+        )
+        
         super().save(*args, **kwargs)
+        
+        # If this is a new clock-in event, automatically create attendance record
+        if is_new_clock_in:
+            self._create_attendance_record()
+        elif is_new_clock_out:
+            self._update_attendance_record()
+        
         # Invalidate cache for this employee when a new event is created
         try:
             from common.cache_utils import invalidate_employee_cache, invalidate_main_security_cache
@@ -192,6 +504,61 @@ class Event(models.Model):
             invalidate_main_security_cache()  # Also invalidate main security page cache
         except ImportError:
             pass  # Ignore if cache utils not available
+    
+    def _create_attendance_record(self):
+        """Automatically create attendance record when employee clocks in"""
+        from django.contrib.auth.models import User
+        
+        # Get the date of the clock-in event
+        event_date = self.timestamp.date()
+        
+        # Check if attendance record already exists for this employee and date
+        existing_record = AttendanceRecord.objects.filter(
+            employee=self.employee,
+            date=event_date
+        ).first()
+        
+        if existing_record:
+            # Update existing record with arrival time
+            existing_record.notes = f"Updated arrival time: {self.timestamp.time()}"
+            existing_record.save()
+            return
+        
+        # Create new attendance record
+        admin_user = User.objects.filter(is_superuser=True).first()
+        
+        attendance_record = AttendanceRecord.objects.create(
+            employee=self.employee,
+            date=event_date,
+            lunch_time=self.employee.assigned_lunch_time,
+            created_by=admin_user,
+            status='DRAFT',
+            notes=f"Auto-created from clock-in at {self.timestamp.time()}"
+        )
+    
+    def _update_attendance_record(self):
+        """Update attendance record when employee clocks out"""
+        # Get the date of the clock-out event
+        event_date = self.timestamp.date()
+        
+        # Find existing attendance record for this employee and date
+        existing_record = AttendanceRecord.objects.filter(
+            employee=self.employee,
+            date=event_date
+        ).first()
+        
+        if existing_record:
+            # Update the record with departure time info
+            current_notes = existing_record.notes or ""
+            departure_note = f"Clock-out at {self.timestamp.time()}"
+            
+            if current_notes:
+                updated_notes = f"{current_notes}; {departure_note}"
+            else:
+                updated_notes = departure_note
+            
+            existing_record.notes = updated_notes
+            existing_record.save()
 
 
 # NOTE:
