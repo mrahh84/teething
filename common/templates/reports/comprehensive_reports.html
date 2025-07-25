@@ -522,16 +522,27 @@ function loadAnalyticsContent() {
     const startDate = url.searchParams.get('start_date') || '{{ start_date }}';
     const endDate = url.searchParams.get('end_date') || '{{ end_date }}';
     
+    console.log('Loading analytics with dates:', startDate, endDate);
+    
     // Make AJAX request to load analytics
     fetch(`{% url 'attendance_analytics' %}?start_date=${startDate}&end_date=${endDate}`)
-        .then(response => response.text())
+        .then(response => {
+            console.log('Analytics response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.text();
+        })
         .then(html => {
+            console.log('Analytics HTML length:', html.length);
+            
             // Extract the content from the analytics page
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
             
             // Look for the analytics container content
             const analyticsContainer = doc.querySelector('.analytics-container');
+            console.log('Found analytics container:', !!analyticsContainer);
             
             if (analyticsContainer) {
                 // Remove the header and navigation, keep only the content
@@ -544,13 +555,15 @@ function loadAnalyticsContent() {
                 if (filterSection) filterSection.remove();
                 
                 analyticsContent.innerHTML = analyticsContainer.innerHTML;
+                console.log('Analytics content loaded successfully');
             } else {
-                analyticsContent.innerHTML = '<div class="error">Failed to load analytics content</div>';
+                console.error('Analytics container not found in HTML');
+                analyticsContent.innerHTML = '<div class="error">Failed to load analytics content - container not found</div>';
             }
         })
         .catch(error => {
             console.error('Error loading analytics:', error);
-            analyticsContent.innerHTML = '<div class="error">Error loading analytics content</div>';
+            analyticsContent.innerHTML = '<div class="error">Error loading analytics content: ' + error.message + '</div>';
         });
 }
 
