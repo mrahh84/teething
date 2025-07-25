@@ -180,6 +180,11 @@ def attendance_analytics(request):
         'employees': employees,
     }
     
+    # Check if this is an AJAX request
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        # Return just the analytics content for AJAX requests
+        return render(request, 'attendance/analytics_content.html', context)
+    
     return render(request, 'attendance/analytics.html', context)
 
 

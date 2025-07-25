@@ -1,0 +1,153 @@
+<!-- Summary Statistics -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-number">{{ total_records }}</div>
+        <div class="stat-label">Total Records</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ total_employees }}</div>
+        <div class="stat-label">Total Employees</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ problematic_records }}</div>
+        <div class="stat-label">Problematic Records</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ attendance_percentage }}%</div>
+        <div class="stat-label">Attendance Rate</div>
+    </div>
+</div>
+
+<!-- Top Problematic Employees -->
+{% if top_problematic %}
+<div class="section">
+    <h2>Top Problematic Employees</h2>
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Employee Name</th>
+                    <th>Total Issues</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for employee, issues in top_problematic %}
+                <tr>
+                    <td>{{ employee }}</td>
+                    <td>{{ issues }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Daily Statistics Table -->
+{% if daily_stats %}
+<div class="section">
+    <h2>Daily Attendance Summary</h2>
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Total Records</th>
+                    <th>Problematic Records</th>
+                    <th>Attendance Rate</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for date, stats in daily_stats.items %}
+                <tr>
+                    <td>{{ date }}</td>
+                    <td>{{ stats.total }}</td>
+                    <td>{{ stats.problematic }}</td>
+                    <td>{% widthratio stats.total|add:"-"|add:stats.problematic stats.total 100 %}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<style>
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-align: center;
+    border-left: 4px solid #007bff;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #007bff;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.section {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.section h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #495057;
+    font-size: 1.5rem;
+}
+
+.table-container {
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+}
+
+.table th,
+.table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+}
+
+.table tr:hover {
+    background: #f8f9fa;
+}
+
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+</style> 

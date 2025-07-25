@@ -525,7 +525,11 @@ function loadAnalyticsContent() {
     console.log('Loading analytics with dates:', startDate, endDate);
     
     // Make AJAX request to load analytics
-    fetch(`{% url 'attendance_analytics' %}?start_date=${startDate}&end_date=${endDate}`)
+    fetch(`{% url 'attendance_analytics' %}?start_date=${startDate}&end_date=${endDate}`, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
         .then(response => {
             console.log('Analytics response status:', response.status);
             if (!response.ok) {
@@ -536,30 +540,9 @@ function loadAnalyticsContent() {
         .then(html => {
             console.log('Analytics HTML length:', html.length);
             
-            // Extract the content from the analytics page
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            
-            // Look for the analytics container content
-            const analyticsContainer = doc.querySelector('.analytics-container');
-            console.log('Found analytics container:', !!analyticsContainer);
-            
-            if (analyticsContainer) {
-                // Remove the header and navigation, keep only the content
-                const header = analyticsContainer.querySelector('.analytics-header');
-                const navigation = analyticsContainer.querySelector('.navigation');
-                const filterSection = analyticsContainer.querySelector('.filter-section');
-                
-                if (header) header.remove();
-                if (navigation) navigation.remove();
-                if (filterSection) filterSection.remove();
-                
-                analyticsContent.innerHTML = analyticsContainer.innerHTML;
-                console.log('Analytics content loaded successfully');
-            } else {
-                console.error('Analytics container not found in HTML');
-                analyticsContent.innerHTML = '<div class="error">Failed to load analytics content - container not found</div>';
-            }
+            // The response should now be just the analytics content
+            analyticsContent.innerHTML = html;
+            console.log('Analytics content loaded successfully');
         })
         .catch(error => {
             console.error('Error loading analytics:', error);
