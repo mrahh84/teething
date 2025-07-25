@@ -22,6 +22,7 @@ import traceback
 import csv
 
 from .models import Employee, Event, EventType, Location, AttendanceRecord
+from .forms import AttendanceRecordForm, BulkHistoricalUpdateForm
 from .serializers import (
     EmployeeSerializer,
     EventSerializer,
@@ -2472,3 +2473,102 @@ def late_early_report_csv(request):
     )
     response["Content-Disposition"] = 'attachment; filename="late_early_report.csv"'
     return response
+
+
+@login_required
+def attendance_entry(request):
+    """Single day attendance entry form"""
+    if request.method == 'POST':
+        form = AttendanceRecordForm(request.POST)
+        if form.is_valid():
+            record = form.save(commit=False)
+            record.created_by = request.user
+            record.save()
+            messages.success(request, f"Attendance record saved for {record.employee} on {record.date}")
+            return redirect('attendance_list')
+    else:
+        form = AttendanceRecordForm()
+    
+    return render(request, 'attendance/entry_form.html', {'form': form})
+
+
+@login_required
+def attendance_edit(request, record_id):
+    """Edit existing attendance record"""
+    record = get_object_or_404(AttendanceRecord, id=record_id)
+    
+    if request.method == 'POST':
+        form = AttendanceRecordForm(request.POST, instance=record)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Attendance record updated for {record.employee} on {record.date}")
+            return redirect('attendance_list')
+    else:
+        form = AttendanceRecordForm(instance=record)
+    
+    return render(request, 'attendance/edit_form.html', {'form': form, 'record': record})
+
+
+@login_required
+def attendance_delete(request, record_id):
+    """Delete attendance record"""
+    record = get_object_or_404(AttendanceRecord, id=record_id)
+    
+    if request.method == 'POST':
+        employee_name = str(record.employee)
+        date_str = record.date.strftime('%Y-%m-%d')
+        record.delete()
+        messages.success(request, f"Attendance record deleted for {employee_name} on {date_str}")
+        return redirect('attendance_list')
+    
+    return render(request, 'attendance/delete_confirm.html', {'record': record})
+
+
+@login_required
+def bulk_historical_update(request):
+    """Bulk update historical attendance records"""
+    
+    if request.method == 'POST':
+        form = BulkHistoricalUpdateForm(request.POST)
+        if form.is_valid():
+            field_to_update = form.cleaned_data['field_to_update']
+            new_value = form.cleaned_data['new_value']
+            
+            # Get the records to update from session or request
+            record_ids = request.POST.getlist('record_ids')
+            
+            if not record_ids:
+                messages.error(request, 'No records selected for update')
+                return redirect('historical_progressive_entry')
+            
+            # Convert lunch time if needed
+            if field_to_update == 'lunch_time' and new_value:
+                try:
+                    new_value = datetime.strptime(new_value, "%H:%M").time()
+                except Exception:
+                    new_value = None
+            
+            # Update the records
+            updated_count = 0
+            for record_id in record_ids:
+                try:
+                    record = AttendanceRecord.objects.get(id=record_id)
+                    if hasattr(record, field_to_update):
+                        setattr(record, field_to_update, new_value)
+                        record.last_updated_by = request.user
+                        record.save()
+                        updated_count += 1
+                except AttendanceRecord.DoesNotExist:
+                    continue
+            
+            messages.success(request, f'Successfully updated {updated_count} records')
+            return redirect('historical_progressive_entry')
+    else:
+        form = BulkHistoricalUpdateForm()
+    
+    context = {
+        'form': form,
+        'page_title': 'Bulk Historical Update',
+    }
+    
+    return render(request, 'attendance/bulk_historical_update.html', context)

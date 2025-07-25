@@ -36,6 +36,10 @@ attendance_urls = [
     path("attendance/historical_progressive_entry/", views.historical_progressive_entry, name="historical_progressive_entry"),
     path("attendance/historical_progressive_results/", views.historical_progressive_results, name="historical_progressive_results"),
     path("attendance/export_csv/", views.attendance_export_csv, name="attendance_export_csv"),
+    path("attendance/entry/", views.attendance_entry, name="attendance_entry"),
+    path("attendance/edit/<int:record_id>/", views.attendance_edit, name="attendance_edit"),
+    path("attendance/delete/<int:record_id>/", views.attendance_delete, name="attendance_delete"),
+    path("attendance/bulk_historical_update/", views.bulk_historical_update, name="bulk_historical_update"),
 ]
 
 # Reports section
