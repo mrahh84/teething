@@ -1,0 +1,498 @@
+{% extends "attendance/base.html" %}
+
+{% block title %}Comprehensive Reports{% endblock %}
+
+{% block content %}
+<div class="comprehensive-reports-container">
+    <div class="reports-header">
+        <h1>Comprehensive Reports Dashboard</h1>
+        <p>Interactive reports and analytics for attendance management</p>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="tab-navigation">
+        <button class="tab-button {% if active_tab == 'analytics' %}active{% endif %}" 
+                onclick="switchTab('analytics')">
+            📊 Django Analytics
+        </button>
+        <button class="tab-button {% if active_tab == 'attendance_summary' %}active{% endif %}" 
+                onclick="switchTab('attendance_summary')">
+            📈 Attendance Summary
+        </button>
+        <button class="tab-button {% if active_tab == 'daily_dashboard' %}active{% endif %}" 
+                onclick="switchTab('daily_dashboard')">
+            📅 Daily Dashboard
+        </button>
+        <button class="tab-button {% if active_tab == 'employee_history' %}active{% endif %}" 
+                onclick="switchTab('employee_history')">
+            👤 Employee History
+        </button>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+        <!-- Django Analytics Tab -->
+        <div id="analytics-tab" class="tab-pane {% if active_tab == 'analytics' %}active{% endif %}">
+            <div class="tab-header">
+                <h2>Django Analytics</h2>
+                <p>Comprehensive attendance analytics with filtering</p>
+            </div>
+            
+            <!-- Filter Form -->
+            <div class="filter-section">
+                <form method="get" class="filter-form">
+                    <input type="hidden" name="tab" value="analytics">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="start_date">Start Date:</label>
+                            <input type="date" id="start_date" name="start_date" 
+                                   value="{{ start_date }}" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="end_date">End Date:</label>
+                            <input type="date" id="end_date" name="end_date" 
+                                   value="{{ end_date }}" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary">Apply Filter</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Analytics Content -->
+            <div id="analytics-content">
+                <div class="loading">Loading analytics...</div>
+            </div>
+        </div>
+
+        <!-- Attendance Summary Tab -->
+        <div id="attendance_summary-tab" class="tab-pane {% if active_tab == 'attendance_summary' %}active{% endif %}">
+            <div class="tab-header">
+                <h2>Attendance Summary by Period</h2>
+                <p>Interactive attendance summaries with period filtering</p>
+            </div>
+            
+            <!-- Filter Form -->
+            <div class="filter-section">
+                <form method="get" class="filter-form">
+                    <input type="hidden" name="tab" value="attendance_summary">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="period">Period:</label>
+                            <select id="period" name="period" class="form-control">
+                                <option value="day" {% if selected_period == 'day' %}selected{% endif %}>Daily</option>
+                                <option value="week" {% if selected_period == 'week' %}selected{% endif %}>Weekly</option>
+                                <option value="month" {% if selected_period == 'month' %}selected{% endif %}>Monthly</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="summary_start_date">Start Date:</label>
+                            <input type="date" id="summary_start_date" name="start_date" 
+                                   value="{{ start_date }}" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="start_time">Start Time:</label>
+                            <input type="time" id="start_time" name="start_time" 
+                                   value="{{ start_time }}" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="end_time">End Time:</label>
+                            <input type="time" id="end_time" name="end_time" 
+                                   value="{{ end_time }}" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary">Apply Filter</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Marimo Report -->
+            {% if marimo_available %}
+            <div class="marimo-container">
+                <iframe src="{% url 'generate_marimo_report' 'attendance_summary_by_period' %}?period={{ selected_period }}&start_date={{ start_date }}&start_time={{ start_time }}&end_time={{ end_time }}" 
+                        width="100%" height="800" frameborder="0"></iframe>
+            </div>
+            {% else %}
+            <div class="marimo-unavailable">
+                <p>Marimo is not available. Please install marimo to view interactive reports.</p>
+                <code>pip install marimo</code>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Daily Dashboard Tab -->
+        <div id="daily_dashboard-tab" class="tab-pane {% if active_tab == 'daily_dashboard' %}active{% endif %}">
+            <div class="tab-header">
+                <h2>Daily Attendance Dashboard</h2>
+                <p>Real-time daily attendance status</p>
+            </div>
+            
+            <!-- Filter Form -->
+            <div class="filter-section">
+                <form method="get" class="filter-form">
+                    <input type="hidden" name="tab" value="daily_dashboard">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="dashboard_date">Date:</label>
+                            <input type="date" id="dashboard_date" name="start_date" 
+                                   value="{{ start_date }}" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary">Apply Filter</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Marimo Report -->
+            {% if marimo_available %}
+            <div class="marimo-container">
+                <iframe src="{% url 'generate_marimo_report' 'daily_attendance_dashboard' %}?start_date={{ start_date }}" 
+                        width="100%" height="600" frameborder="0"></iframe>
+            </div>
+            {% else %}
+            <div class="marimo-unavailable">
+                <p>Marimo is not available. Please install marimo to view interactive reports.</p>
+                <code>pip install marimo</code>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Employee History Tab -->
+        <div id="employee_history-tab" class="tab-pane {% if active_tab == 'employee_history' %}active{% endif %}">
+            <div class="tab-header">
+                <h2>Employee Attendance History</h2>
+                <p>Individual employee attendance tracking</p>
+            </div>
+            
+            <!-- Filter Form -->
+            <div class="filter-section">
+                <form method="get" class="filter-form">
+                    <input type="hidden" name="tab" value="employee_history">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="employee_id">Employee:</label>
+                            <select id="employee_id" name="employee_id" class="form-control">
+                                {% for employee in employees %}
+                                <option value="{{ employee.id }}" 
+                                        {% if selected_employee_id == employee.id %}selected{% endif %}>
+                                    {{ employee.surname }}, {{ employee.given_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="history_start_date">Start Date:</label>
+                            <input type="date" id="history_start_date" name="start_date" 
+                                   value="{{ start_date }}" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="history_end_date">End Date:</label>
+                            <input type="date" id="history_end_date" name="end_date" 
+                                   value="{{ end_date }}" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary">Apply Filter</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Marimo Report -->
+            {% if marimo_available %}
+            <div class="marimo-container">
+                <iframe src="{% url 'generate_marimo_report' 'employee_attendance_history' %}?employee_id={{ selected_employee_id }}&start_date={{ start_date }}&end_date={{ end_date }}" 
+                        width="100%" height="700" frameborder="0"></iframe>
+            </div>
+            {% else %}
+            <div class="marimo-unavailable">
+                <p>Marimo is not available. Please install marimo to view interactive reports.</p>
+                <code>pip install marimo</code>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.comprehensive-reports-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.reports-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.reports-header h1 {
+    margin-bottom: 10px;
+    color: #495057;
+}
+
+.reports-header p {
+    color: #6c757d;
+    margin: 0;
+}
+
+.tab-navigation {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 30px;
+    border-bottom: 2px solid #e9ecef;
+    overflow-x: auto;
+}
+
+.tab-button {
+    padding: 12px 20px;
+    background: #f8f9fa;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: #495057;
+    white-space: nowrap;
+    transition: all 0.3s ease;
+}
+
+.tab-button:hover {
+    background: #e9ecef;
+    color: #007bff;
+}
+
+.tab-button.active {
+    background: #007bff;
+    color: white;
+    border-bottom-color: #0056b3;
+}
+
+.tab-content {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.tab-pane {
+    display: none;
+    padding: 30px;
+}
+
+.tab-pane.active {
+    display: block;
+}
+
+.tab-header {
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.tab-header h2 {
+    margin: 0 0 5px 0;
+    color: #495057;
+}
+
+.tab-header p {
+    margin: 0;
+    color: #6c757d;
+}
+
+.filter-section {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 25px;
+}
+
+.filter-form {
+    display: flex;
+    gap: 15px;
+    align-items: end;
+    flex-wrap: wrap;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    min-width: 150px;
+}
+
+.form-group label {
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #495057;
+    font-size: 14px;
+}
+
+.form-control {
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.btn {
+    display: inline-block;
+    padding: 8px 16px;
+    background-color: #007bff;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+}
+
+.btn:hover {
+    background-color: #0056b3;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background-color: #007bff;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.marimo-container {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    overflow: hidden;
+    background: white;
+}
+
+.marimo-unavailable {
+    background: #f8f9fa;
+    padding: 40px;
+    text-align: center;
+    border-radius: 8px;
+    border: 2px dashed #dee2e6;
+}
+
+.marimo-unavailable p {
+    margin-bottom: 15px;
+    color: #6c757d;
+}
+
+.marimo-unavailable code {
+    background: #e9ecef;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-family: monospace;
+    color: #495057;
+}
+
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: #6c757d;
+    font-style: italic;
+}
+
+@media (max-width: 768px) {
+    .tab-navigation {
+        flex-direction: column;
+        gap: 2px;
+    }
+    
+    .tab-button {
+        border-radius: 4px;
+        border-bottom: none;
+        border-left: 3px solid transparent;
+    }
+    
+    .tab-button.active {
+        border-left-color: #0056b3;
+    }
+    
+    .filter-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .form-group {
+        min-width: auto;
+    }
+}
+</style>
+
+<script>
+function switchTab(tabName) {
+    // Hide all tab panes
+    const tabPanes = document.querySelectorAll('.tab-pane');
+    tabPanes.forEach(pane => pane.classList.remove('active'));
+    
+    // Remove active class from all tab buttons
+    const tabButtons = document.querySelectorAll('.tab-button');
+    tabButtons.forEach(button => button.classList.remove('active'));
+    
+    // Show selected tab pane
+    const selectedPane = document.getElementById(tabName + '-tab');
+    if (selectedPane) {
+        selectedPane.classList.add('active');
+    }
+    
+    // Add active class to clicked button
+    const clickedButton = event.target;
+    clickedButton.classList.add('active');
+    
+    // Update URL without page reload
+    const url = new URL(window.location);
+    url.searchParams.set('tab', tabName);
+    window.history.pushState({}, '', url);
+    
+    // Load analytics content if switching to analytics tab
+    if (tabName === 'analytics') {
+        loadAnalyticsContent();
+    }
+}
+
+function loadAnalyticsContent() {
+    const analyticsContent = document.getElementById('analytics-content');
+    const loading = analyticsContent.querySelector('.loading');
+    
+    if (!loading) {
+        analyticsContent.innerHTML = '<div class="loading">Loading analytics...</div>';
+    }
+    
+    // Get current filter parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const startDate = urlParams.get('start_date') || '{{ start_date }}';
+    const endDate = urlParams.get('end_date') || '{{ end_date }}';
+    
+    // Load analytics via AJAX
+    fetch(`{% url 'attendance_analytics' %}?start_date=${startDate}&end_date=${endDate}`)
+        .then(response => response.text())
+        .then(html => {
+            analyticsContent.innerHTML = html;
+        })
+        .catch(error => {
+            analyticsContent.innerHTML = '<div class="error">Error loading analytics</div>';
+            console.error('Error:', error);
+        });
+}
+
+// Load analytics content on page load if analytics tab is active
+document.addEventListener('DOMContentLoaded', function() {
+    if (document.querySelector('#analytics-tab.active')) {
+        loadAnalyticsContent();
+    }
+});
+</script>
+{% endblock %} 

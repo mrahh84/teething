@@ -28,9 +28,20 @@ clock_in_urls = [
     ),
 ]
 
+# Attendance section
+attendance_urls = [
+    path("attendance/", views.attendance_list, name="attendance_list"),
+    path("attendance/analytics/", views.attendance_analytics, name="attendance_analytics"),
+    path("attendance/progressive_entry/", views.progressive_entry, name="progressive_entry"),
+    path("attendance/historical_progressive_entry/", views.historical_progressive_entry, name="historical_progressive_entry"),
+    path("attendance/historical_progressive_results/", views.historical_progressive_results, name="historical_progressive_results"),
+    path("attendance/export_csv/", views.attendance_export_csv, name="attendance_export_csv"),
+]
+
 # Reports section
 report_urls = [
     path("reports/", views.reports_dashboard, name="reports_dashboard"),
+    path("reports/comprehensive/", views.comprehensive_reports, name="comprehensive_reports"),
     path("reports/daily_dashboard/", views.daily_dashboard_report, name="daily_dashboard_report"),
     path("reports/employee_history/", views.employee_history_report, name="employee_history_report"),
     path("reports/employee_history/csv/", views.employee_history_report_csv, name="employee_history_report_csv"),
@@ -76,4 +87,4 @@ system_urls = [
 ]
 
 # Combine all URL patterns
-urlpatterns = clock_in_urls + report_urls + api_urls + system_urls
+urlpatterns = clock_in_urls + attendance_urls + report_urls + api_urls + system_urls
