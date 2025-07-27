@@ -797,7 +797,7 @@ def main_security(request):
         )
         
         cache_key = get_main_security_cache_key(
-            int(page_number), sort_by, sort_direction, status_filter, search_query
+            int(page_number), sort_by, sort_direction, status_filter, search_query, start_letter
         )
         cached_data = get_cached_main_security_data(cache_key)
         
@@ -811,10 +811,6 @@ def main_security(request):
 
     # Count stats for the dashboard before applying filters
     total_employees = employees_query.count()
-
-    # Apply letter filter if provided
-    if start_letter and len(start_letter) == 1:
-        employees_query = employees_query.filter(surname__istartswith=start_letter)
 
     # Apply search if provided
     if search_query:
@@ -874,6 +870,13 @@ def main_security(request):
             key=lambda emp: emp.card_number.designation if emp.card_number else "",
             reverse=reverse,
         )
+    
+    # Apply letter filter if provided (after all other filtering)
+    if start_letter and start_letter != 'all' and len(start_letter) == 1:
+        all_employees = [
+            employee for employee in all_employees 
+            if employee.surname.upper().startswith(start_letter.upper())
+        ]
 
     # Server-side pagination
     paginator = Paginator(all_employees, server_items_per_page)
@@ -893,7 +896,7 @@ def main_security(request):
         "status_filter": status_filter,
         "sort_by": sort_by,
         "sort_direction": sort_direction,
-        "total_employees": total_employees,
+        "total_employees": len(all_employees),  # Use filtered count
         "clocked_in_count": clocked_in_count,
         "clocked_out_count": clocked_out_count,
         "start_letter": start_letter,

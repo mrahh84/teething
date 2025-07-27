@@ -147,9 +147,9 @@ def bulk_cache_employee_statuses(employee_ids: list):
             cache_employee_status(emp_id, False, None)
 
 
-def get_main_security_cache_key(page: int, sort_by: str, sort_direction: str, status_filter: str, search: str) -> str:
+def get_main_security_cache_key(page: int, sort_by: str, sort_direction: str, status_filter: str, search: str, start_letter: str = "") -> str:
     """Get cache key for main security page data."""
-    return get_cache_key("main_security", page, sort_by, sort_direction, status_filter, search)
+    return get_cache_key("main_security", page, sort_by, sort_direction, status_filter, search, start_letter)
 
 
 def cache_main_security_data(key: str, data: Dict[str, Any]):

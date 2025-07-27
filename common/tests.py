@@ -336,6 +336,91 @@ class PerformanceMonitoringTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
 
 
+class LetterFilteringTestCase(TestCase):
+    """Test cases for letter filtering functionality in main_security view."""
+    
+    def setUp(self):
+        """Set up test data for letter filtering tests."""
+        # Create test user
+        self.user = User.objects.create_user(
+            username='testuser',
+            password='testpass123'
+        )
+        
+        # Create test employees with different surnames
+        self.employees = []
+        surnames = ['Adams', 'Brown', 'Clark', 'Davis', 'Evans', 'Fisher', 'Garcia', 'Harris']
+        
+        for i, surname in enumerate(surnames):
+            employee = Employee.objects.create(
+                given_name=f'Test{i}',
+                surname=surname,
+                is_active=True
+            )
+            self.employees.append(employee)
+    
+    def test_letter_filtering_works(self):
+        """Test that letter filtering correctly filters employees by surname."""
+        client = Client()
+        client.force_login(self.user)
+        
+        # Test filtering by letter 'A'
+        response = client.get(reverse('main_security') + '?letter=A')
+        self.assertEqual(response.status_code, 200)
+        
+        # Should only show employees with surnames starting with 'A'
+        self.assertContains(response, 'Adams')
+        self.assertNotContains(response, 'Brown')
+        self.assertNotContains(response, 'Clark')
+        
+        # Test filtering by letter 'B'
+        response = client.get(reverse('main_security') + '?letter=B')
+        self.assertEqual(response.status_code, 200)
+        
+        # Should only show employees with surnames starting with 'B'
+        self.assertContains(response, 'Brown')
+        self.assertNotContains(response, 'Adams')
+        self.assertNotContains(response, 'Clark')
+        
+        # Test 'all' filter
+        response = client.get(reverse('main_security') + '?letter=all')
+        self.assertEqual(response.status_code, 200)
+        
+        # Should show all employees
+        for employee in self.employees:
+            self.assertContains(response, employee.surname)
+    
+    def test_letter_filtering_case_insensitive(self):
+        """Test that letter filtering is case insensitive."""
+        client = Client()
+        client.force_login(self.user)
+        
+        # Test lowercase letter
+        response = client.get(reverse('main_security') + '?letter=a')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Adams')
+        
+        # Test uppercase letter
+        response = client.get(reverse('main_security') + '?letter=A')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Adams')
+    
+    def test_letter_filtering_with_other_filters(self):
+        """Test that letter filtering works with other filters."""
+        client = Client()
+        client.force_login(self.user)
+        
+        # Test letter filtering with search
+        response = client.get(reverse('main_security') + '?letter=A&search=Test')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Adams')
+        
+        # Test letter filtering with status filter
+        response = client.get(reverse('main_security') + '?letter=A&status=all')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Adams')
+
+
 if __name__ == '__main__':
     # Run performance tests
     import unittest
