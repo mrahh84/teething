@@ -80,10 +80,12 @@ def load_attendance_data(Employee, Event, date_input, pd, timezone):
     # Convert to pandas DataFrame
     event_data = []
     for event in clock_events:
+        # Convert to local timezone for display
+        local_timestamp = timezone.localtime(event.timestamp)
         event_data.append({
             'employee_id': event.employee.id,
             'employee_name': f"{event.employee.given_name} {event.employee.surname}",
-            'timestamp': event.timestamp,
+            'timestamp': local_timestamp,
             'event_type': event.event_type.name
         })
     

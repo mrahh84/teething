@@ -46,6 +46,7 @@ attendance_urls = [
 report_urls = [
     path("reports/", views.reports_dashboard, name="reports_dashboard"),
     path("reports/comprehensive/", views.comprehensive_reports, name="comprehensive_reports"),
+    path("reports/comprehensive-attendance/", views.comprehensive_attendance_report, name="comprehensive_attendance_report"),
     path("reports/daily_dashboard/", views.daily_dashboard_report, name="daily_dashboard_report"),
     path("reports/employee_history/", views.employee_history_report, name="employee_history_report"),
     path("reports/employee_history/csv/", views.employee_history_report_csv, name="employee_history_report_csv"),

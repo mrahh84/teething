@@ -87,6 +87,10 @@ class Employee(models.Model):
     class Meta:
         unique_together = [["given_name", "surname"]]
         ordering = ["surname", "given_name"]
+        indexes = [
+            models.Index(fields=['is_active', 'surname', 'given_name']),
+            models.Index(fields=['card_number', 'is_active']),
+        ]
 
     def __str__(self):
         """Return the employee's full name."""
@@ -278,6 +282,8 @@ class AttendanceRecord(models.Model):
         indexes = [
             models.Index(fields=['date']),
             models.Index(fields=['employee', 'date']),
+            models.Index(fields=['status', 'date']),
+            models.Index(fields=['employee', 'status']),
         ]
 
     def __str__(self):
@@ -319,7 +325,7 @@ class AttendanceRecord(models.Model):
 
     @property
     def arrival_time(self):
-        """Get the arrival time from clock-in events"""
+        """Get the arrival time from clock-in events (in local timezone)"""
         from datetime import datetime, time
         # Use timezone-aware range queries to handle timezone issues
         start_of_day = timezone.make_aware(datetime.combine(self.date, time.min))
@@ -332,7 +338,11 @@ class AttendanceRecord(models.Model):
             timestamp__lte=end_of_day
         ).order_by('timestamp').last()  # Get the most recent clock-in
         
-        return clock_in_event.timestamp.time() if clock_in_event else None
+        if clock_in_event:
+            # Convert to local timezone before extracting time
+            local_timestamp = timezone.localtime(clock_in_event.timestamp)
+            return local_timestamp.time()
+        return None
 
     @property
     def arrival_datetime(self):
@@ -353,7 +363,7 @@ class AttendanceRecord(models.Model):
 
     @property
     def departure_time(self):
-        """Get the departure time from clock-out events"""
+        """Get the departure time from clock-out events (in local timezone)"""
         from datetime import datetime, time
         # Use timezone-aware range queries to handle timezone issues
         start_of_day = timezone.make_aware(datetime.combine(self.date, time.min))
@@ -378,7 +388,11 @@ class AttendanceRecord(models.Model):
             timestamp__lte=end_of_day
         ).order_by('timestamp').first()
         
-        return clock_out_event.timestamp.time() if clock_out_event else None
+        if clock_out_event:
+            # Convert to local timezone before extracting time
+            local_timestamp = timezone.localtime(clock_out_event.timestamp)
+            return local_timestamp.time()
+        return None
 
     @property
     def worked_hours(self):
@@ -478,6 +492,11 @@ class Event(models.Model):
 
     class Meta:
         ordering = ["-timestamp"]  # Show newest events first by default
+        indexes = [
+            models.Index(fields=['employee', '-timestamp'], name='idx_emp_events_emp_time'),
+            models.Index(fields=['event_type', 'timestamp'], name='idx_event_type_time'),
+            models.Index(fields=['location', 'timestamp'], name='idx_location_time'),
+        ]
 
     def __str__(self):
         """Return a description of the event."""
@@ -525,13 +544,17 @@ class Event(models.Model):
         ).first()
         
         if existing_record:
-            # Update existing record with arrival time
-            existing_record.notes = f"Updated arrival time: {self.timestamp.time()}"
+            # Update existing record with arrival time (in local timezone)
+            local_time = timezone.localtime(self.timestamp).time()
+            existing_record.notes = f"Updated arrival time: {local_time}"
             existing_record.save()
             return
         
         # Create new attendance record
         admin_user = User.objects.filter(is_superuser=True).first()
+        
+        # Get local time for the note
+        local_time = timezone.localtime(self.timestamp).time()
         
         attendance_record = AttendanceRecord.objects.create(
             employee=self.employee,
@@ -539,7 +562,7 @@ class Event(models.Model):
             lunch_time=self.employee.assigned_lunch_time,
             created_by=admin_user,
             status='DRAFT',
-            notes=f"Auto-created from clock-in at {self.timestamp.time()}"
+            notes=f"Auto-created from clock-in at {local_time}"
         )
     
     def _update_attendance_record(self):
@@ -554,9 +577,10 @@ class Event(models.Model):
         ).first()
         
         if existing_record:
-            # Update the record with departure time info
+            # Update the record with departure time info (in local timezone)
             current_notes = existing_record.notes or ""
-            departure_note = f"Clock-out at {self.timestamp.time()}"
+            local_time = timezone.localtime(self.timestamp).time()
+            departure_note = f"Clock-out at {local_time}"
             
             if current_notes:
                 updated_notes = f"{current_notes}; {departure_note}"

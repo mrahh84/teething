@@ -114,9 +114,11 @@ def load_attendance_data(Event, employee_dropdown, date_range, pd, timezone):
     # Convert to pandas DataFrame
     event_data = []
     for event in events:
+        # Convert to local timezone for display
+        local_timestamp = timezone.localtime(event.timestamp)
         event_data.append({
-            'date': event.timestamp.date(),
-            'timestamp': event.timestamp,
+            'date': local_timestamp.date(),
+            'timestamp': local_timestamp,
             'event_type': event.event_type.name,
             'location': event.location.name
         })

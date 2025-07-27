@@ -330,6 +330,7 @@ def progressive_entry(request):
     start_of_day = timezone.make_aware(datetime.combine(today, time.min))
     end_of_day = timezone.make_aware(datetime.combine(today, time.max))
     
+    # Single query to get all clocked-in employee IDs
     clocked_in_employee_ids = set(
         Event.objects.filter(
             event_type__name='Clock In',
@@ -337,7 +338,12 @@ def progressive_entry(request):
             timestamp__lte=end_of_day
         ).values_list('employee_id', flat=True)
     )
-    employees = Employee.objects.filter(id__in=clocked_in_employee_ids, is_active=True).order_by('surname', 'given_name')
+    
+    # Get employees with optimized queries and prefetch related data
+    employees = Employee.objects.filter(
+        id__in=clocked_in_employee_ids, 
+        is_active=True
+    ).select_related('card_number').order_by('surname', 'given_name')
     
     # Apply department filter if provided
     department_filter = request.GET.get('department', 'Digitization Tech')  # Default to Digitization Tech
@@ -356,16 +362,19 @@ def progressive_entry(request):
             | Q(card_number__designation__icontains=search_query)
         )
     
-    # Get today's attendance records for these employees
+    # BULK PREFETCH: Get all today's records in one query with optimized prefetch
     today_records = AttendanceRecord.objects.filter(
         date=today,
         employee__in=employees
-    ).select_related('employee')
+    ).select_related('employee', 'employee__card_number')
     
-    # Create a list of employees with their attendance status
+    # Create lookup dictionary for O(1) access
+    records_by_employee = {record.employee_id: record for record in today_records}
+    
+    # Create employee attendance list with O(1) lookups
     employee_attendance = []
     for employee in employees:
-        record = today_records.filter(employee=employee).first()
+        record = records_by_employee.get(employee.id)
         is_clocked_in = employee.id in clocked_in_employee_ids
         
         employee_attendance.append({
@@ -415,15 +424,15 @@ def attendance_list(request):
     except ValueError:
         target_date = timezone.now().date()
     
-    # Get all active employees
-    all_employees = Employee.objects.filter(is_active=True).order_by('surname', 'given_name')
+    # Get all active employees with optimized prefetch
+    all_employees = Employee.objects.filter(is_active=True).select_related('card_number').order_by('surname', 'given_name')
     
     # Apply department filter to employees
     if department_filter:
         all_employees = filter_employees_by_department(all_employees, department_filter)
     
-    # Get attendance records for the target date
-    records = AttendanceRecord.objects.filter(date=target_date).select_related('employee')
+    # Get attendance records for the target date with optimized prefetch
+    records = AttendanceRecord.objects.filter(date=target_date).select_related('employee', 'employee__card_number')
     
     # Filter by employee if specified
     if employee_filter:
@@ -433,16 +442,19 @@ def attendance_list(request):
     if status_filter:
         records = records.filter(status=status_filter)
     
-    # Identify absent employees (those who didn't clock in)
+    # Identify absent employees (those who didn't clock in) - OPTIMIZED
     from datetime import time
     start_of_day = timezone.make_aware(datetime.combine(target_date, time.min))
     end_of_day = timezone.make_aware(datetime.combine(target_date, time.max))
     
-    clocked_in_employees = Event.objects.filter(
-        event_type__name='Clock In',
-        timestamp__gte=start_of_day,
-        timestamp__lte=end_of_day
-    ).values_list('employee_id', flat=True).distinct()
+    # Single optimized query to get all clocked-in employee IDs
+    clocked_in_employees = set(
+        Event.objects.filter(
+            event_type__name='Clock In',
+            timestamp__gte=start_of_day,
+            timestamp__lte=end_of_day
+        ).values_list('employee_id', flat=True)
+    )
     
     absentees = [emp for emp in all_employees if emp.id not in clocked_in_employees]
     
