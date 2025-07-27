@@ -166,15 +166,15 @@ def attendance_analytics(request):
     
     top_problematic = sorted(employee_issues.items(), key=lambda x: x[1], reverse=True)[:10]
     
-    # Get daily statistics
-    daily_stats = {}
-    for record in records:
-        date_str = record.date.isoformat()
-        if date_str not in daily_stats:
-            daily_stats[date_str] = {'total': 0, 'problematic': 0}
-        daily_stats[date_str]['total'] += 1
-        if record.is_problematic_day():
-            daily_stats[date_str]['problematic'] += 1
+    # Get period summary statistics (instead of daily breakdown)
+    period_summary = {
+        'total_records': total_records,
+        'problematic_records': problematic_records,
+        'attendance_percentage': round(attendance_percentage, 2),
+        'avg_records_per_day': round(total_records / max(1, (end_date - start_date).days + 1), 2),
+        'avg_problematic_per_day': round(problematic_records / max(1, (end_date - start_date).days + 1), 2),
+        'period_days': (end_date - start_date).days + 1,
+    }
     
     # Get available departments for filter
     available_departments = get_available_departments()
@@ -189,7 +189,7 @@ def attendance_analytics(request):
         'problematic_records': problematic_records,
         'attendance_percentage': round(attendance_percentage, 2),
         'top_problematic': top_problematic,
-        'daily_stats': daily_stats,
+        'period_summary': period_summary,
         'employees': employees,
     }
     
