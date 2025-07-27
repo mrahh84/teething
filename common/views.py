@@ -13,16 +13,18 @@ from drf_spectacular.utils import extend_schema
 from rest_framework import generics
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
-from django.db.models import Q, Count, Prefetch
+from django.db.models import Q, Count, Prefetch, Avg
 from datetime import datetime, timedelta, date
 from django.urls import reverse
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 import json
 import traceback
 import csv
+import re
+from typing import Optional
 
-from .models import Employee, Event, EventType, Location, AttendanceRecord
-from .forms import AttendanceRecordForm, BulkHistoricalUpdateForm, ProgressiveEntryForm
+from .models import Employee, Event, EventType, Location, AttendanceRecord, Card
+from .forms import AttendanceRecordForm, BulkHistoricalUpdateForm, ProgressiveEntryForm, HistoricalProgressiveEntryForm, AttendanceFilterForm
 from .serializers import (
     EmployeeSerializer,
     EventSerializer,
@@ -113,6 +115,7 @@ def attendance_analytics(request):
     # Get filter parameters
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
+    department_filter = request.GET.get('department', 'Digitization Tech')  # Default to Digitization Tech
     
     # Default to last 30 days if no dates provided
     if not start_date:
@@ -130,10 +133,15 @@ def attendance_analytics(request):
     # Get all employees
     employees = Employee.objects.filter(is_active=True).order_by('surname', 'given_name')
     
+    # Apply department filter
+    if department_filter:
+        employees = filter_employees_by_department(employees, department_filter)
+    
     # Get attendance records for the date range
     records = AttendanceRecord.objects.filter(
         date__gte=start_date,
-        date__lte=end_date
+        date__lte=end_date,
+        employee__in=employees
     ).select_related('employee')
     
     # Calculate statistics
@@ -168,9 +176,14 @@ def attendance_analytics(request):
         if record.is_problematic_day():
             daily_stats[date_str]['problematic'] += 1
     
+    # Get available departments for filter
+    available_departments = get_available_departments()
+    
     context = {
         'start_date': start_date,
         'end_date': end_date,
+        'department_filter': department_filter,
+        'available_departments': available_departments,
         'total_records': total_records,
         'total_employees': total_employees,
         'problematic_records': problematic_records,
@@ -204,6 +217,7 @@ def comprehensive_reports(request):
     
     start_date = request.GET.get('start_date', (timezone.now() - timedelta(days=30)).date().isoformat())
     end_date = request.GET.get('end_date', timezone.now().date().isoformat())
+    department_filter = request.GET.get('department', 'Digitization Tech')  # Default to Digitization Tech
     
     employee_id = request.GET.get("employee_id")
     period = request.GET.get("period", "day")
@@ -215,12 +229,17 @@ def comprehensive_reports(request):
     if not employee_id and employees.exists():
         employee_id = employees.first().id
 
+    # Get available departments for filter
+    available_departments = get_available_departments()
+
     context = {
         "user": request.user,
         "marimo_available": marimo_available,
         "active_tab": active_tab,
         "start_date": start_date,
         "end_date": end_date,
+        "department_filter": department_filter,
+        "available_departments": available_departments,
         "employees": employees,
         "selected_employee_id": employee_id,
         "selected_period": period,
@@ -320,6 +339,11 @@ def progressive_entry(request):
     )
     employees = Employee.objects.filter(id__in=clocked_in_employee_ids, is_active=True).order_by('surname', 'given_name')
     
+    # Apply department filter if provided
+    department_filter = request.GET.get('department', 'Digitization Tech')  # Default to Digitization Tech
+    if department_filter:
+        employees = filter_employees_by_department(employees, department_filter)
+    
     # Apply letter filter if provided
     if start_letter and start_letter != 'all' and len(start_letter) == 1:
         employees = employees.filter(surname__istartswith=start_letter)
@@ -352,6 +376,9 @@ def progressive_entry(request):
             'departure_time': record.departure_time if record else None,
         })
     
+    # Get available departments for filter
+    available_departments = get_available_departments()
+    
     context = {
         'today': today,
         'today_records': today_records,
@@ -360,6 +387,8 @@ def progressive_entry(request):
         'form': form,
         'start_letter': start_letter,
         'search_query': search_query,
+        'department_filter': department_filter,
+        'available_departments': available_departments,
     }
     
     return render(request, 'attendance/progressive_entry.html', context)
@@ -375,6 +404,7 @@ def attendance_list(request):
     date_filter = request.GET.get('date')
     employee_filter = request.GET.get('employee')
     status_filter = request.GET.get('status')
+    department_filter = request.GET.get('department', 'Digitization Tech')  # Default to Digitization Tech
     
     # Default to today if no date specified
     if not date_filter:
@@ -387,6 +417,10 @@ def attendance_list(request):
     
     # Get all active employees
     all_employees = Employee.objects.filter(is_active=True).order_by('surname', 'given_name')
+    
+    # Apply department filter to employees
+    if department_filter:
+        all_employees = filter_employees_by_department(all_employees, department_filter)
     
     # Get attendance records for the target date
     records = AttendanceRecord.objects.filter(date=target_date).select_related('employee')
@@ -463,10 +497,15 @@ def attendance_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
+    # Get available departments for filter
+    available_departments = get_available_departments()
+    
     context = {
         'date_filter': target_date,
         'employee_filter': employee_filter,
         'status_filter': status_filter,
+        'department_filter': department_filter,
+        'available_departments': available_departments,
         'page_obj': page_obj,
         'employees': all_employees,
         'total_records': len(display_records),
@@ -483,38 +522,63 @@ def historical_progressive_entry(request):
     """
     Historical progressive entry for past dates.
     """
-    # Get date parameter
-    target_date = request.GET.get('date')
-    if target_date:
-        try:
-            target_date = datetime.strptime(target_date, '%Y-%m-%d').date()
-        except ValueError:
-            target_date = timezone.now().date()
+    from .forms import HistoricalProgressiveEntryForm
+    
+    if request.method == 'POST':
+        form = HistoricalProgressiveEntryForm(request.POST)
+        if form.is_valid():
+            # Redirect to results page with search parameters
+            date_from = form.cleaned_data['date_from']
+            date_to = form.cleaned_data['date_to']
+            employee = form.cleaned_data['employee']
+            
+            # Build redirect URL
+            redirect_url = reverse('historical_progressive_results')
+            params = {
+                'date_from': date_from.isoformat(),
+                'date_to': date_to.isoformat(),
+            }
+            if employee:
+                params['employee'] = employee.id
+            
+            return redirect(f"{redirect_url}?{'&'.join([f'{k}={v}' for k, v in params.items()])}")
     else:
-        target_date = timezone.now().date()
-    
-    # Get all active employees
-    employees = Employee.objects.filter(is_active=True).order_by('surname', 'given_name')
-    
-    # Get attendance records for the target date
-    records = AttendanceRecord.objects.filter(date=target_date).select_related('employee')
-    
-    # Create a list of employees with their attendance status
-    employee_attendance = []
-    for employee in employees:
-        record = records.filter(employee=employee).first()
+        # Handle GET parameters for quick actions
+        date_from_param = request.GET.get('date_from')
+        date_to_param = request.GET.get('date_to')
         
-        employee_attendance.append({
-            'employee': employee,
-            'record': record,
-            'arrival_time': record.arrival_time if record else None,
-            'departure_time': record.departure_time if record else None,
-        })
+        if date_from_param and date_to_param:
+            # Handle relative date parameters (e.g., -7, -14, -30)
+            try:
+                if date_from_param.startswith('-') and date_to_param.startswith('-'):
+                    days_from = int(date_from_param)
+                    days_to = int(date_to_param)
+                    today = timezone.now().date()
+                    date_from = today + timedelta(days=days_from)
+                    date_to = today + timedelta(days=days_to)
+                else:
+                    date_from = datetime.strptime(date_from_param, '%Y-%m-%d').date()
+                    date_to = datetime.strptime(date_to_param, '%Y-%m-%d').date()
+                
+                # Redirect to results page
+                redirect_url = reverse('historical_progressive_results')
+                params = {
+                    'date_from': date_from.isoformat(),
+                    'date_to': date_to.isoformat(),
+                }
+                employee_id = request.GET.get('employee')
+                if employee_id:
+                    params['employee'] = employee_id
+                
+                return redirect(f"{redirect_url}?{'&'.join([f'{k}={v}' for k, v in params.items()])}")
+            except (ValueError, TypeError):
+                pass
+        
+        # Initialize form with default values
+        form = HistoricalProgressiveEntryForm()
     
     context = {
-        'target_date': target_date,
-        'employee_attendance': employee_attendance,
-        'employees': employees,
+        'form': form,
     }
     
     return render(request, 'attendance/historical_progressive_entry.html', context)
@@ -526,29 +590,83 @@ def historical_progressive_results(request):
     """
     Results page for historical progressive entry.
     """
-    target_date = request.GET.get('date')
-    if not target_date:
+    from django.core.paginator import Paginator
+    
+    # Get search parameters
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    employee_id = request.GET.get('employee')
+    department_filter = request.GET.get('department', 'Digitization Tech')  # Default to Digitization Tech
+    days_per_page = int(request.GET.get('days_per_page', 7))
+    page_number = request.GET.get('page', 1)
+    
+    if not date_from or not date_to:
         return redirect('historical_progressive_entry')
     
     try:
-        target_date = datetime.strptime(target_date, '%Y-%m-%d').date()
-    except ValueError:
+        date_from = datetime.strptime(date_from, '%Y-%m-%d').date()
+        date_to = datetime.strptime(date_to, '%Y-%m-%d').date()
+        page_number = int(page_number)
+    except (ValueError, TypeError):
         return redirect('historical_progressive_entry')
     
-    # Get attendance records for the target date
-    records = AttendanceRecord.objects.filter(date=target_date).select_related('employee')
+    # Get employee if specified
+    employee = None
+    if employee_id:
+        try:
+            employee = Employee.objects.get(id=employee_id, is_active=True)
+        except Employee.DoesNotExist:
+            return redirect('historical_progressive_entry')
+    
+    # Apply department filter to employee if specified
+    if department_filter and not employee_id:
+        all_employees = Employee.objects.filter(is_active=True)
+        filtered_employees = filter_employees_by_department(all_employees, department_filter)
+        if filtered_employees:
+            employee = filtered_employees[0]  # Use first employee from filtered department
+    
+    # Get all dates in the range
+    date_range = []
+    current_date = date_from
+    while current_date <= date_to:
+        date_range.append(current_date)
+        current_date += timedelta(days=1)
+    
+    # Paginate the dates
+    date_paginator = Paginator(date_range, days_per_page)
+    date_page = date_paginator.get_page(page_number)
+    
+    # Get records for the current page of dates
+    records_by_date = {}
+    for date_key in date_page:
+        # Build query for this date
+        date_query = AttendanceRecord.objects.filter(date=date_key).select_related('employee')
+        
+        if employee:
+            date_query = date_query.filter(employee=employee)
+        
+        records = date_query.order_by('employee__surname', 'employee__given_name')
+        if records.exists():
+            records_by_date[date_key] = records
     
     # Calculate statistics
-    total_records = records.count()
-    problematic_records = sum(1 for record in records if record.is_problematic_day())
-    attendance_percentage = ((total_records - problematic_records) / total_records * 100) if total_records > 0 else 0
+    total_days = len(date_range)
+    total_records = sum(len(records) for records in records_by_date.values())
+    
+    # Get available departments for filter
+    available_departments = get_available_departments()
     
     context = {
-        'target_date': target_date,
-        'records': records,
+        'date_from': date_from,
+        'date_to': date_to,
+        'employee': employee,
+        'department_filter': department_filter,
+        'available_departments': available_departments,
+        'date_page': date_page,
+        'records_by_date': records_by_date,
+        'total_days': total_days,
         'total_records': total_records,
-        'problematic_records': problematic_records,
-        'attendance_percentage': round(attendance_percentage, 2),
+        'days_per_page': days_per_page,
     }
     
     return render(request, 'attendance/historical_progressive_results.html', context)
@@ -2675,6 +2793,7 @@ def comprehensive_attendance_report(request):
     # Get date range parameters
     start_date = request.GET.get('start_date', (today - timedelta(days=30)).isoformat())
     end_date = request.GET.get('end_date', today.isoformat())
+    department_filter = request.GET.get('department', 'Digitization Tech')  # Default to Digitization Tech
     
     try:
         start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
@@ -2685,6 +2804,10 @@ def comprehensive_attendance_report(request):
     
     # Get all employees
     employees = Employee.objects.filter(is_active=True).order_by('surname', 'given_name')
+    
+    # Apply department filter
+    if department_filter:
+        employees = filter_employees_by_department(employees, department_filter)
     
     # Calculate comprehensive attendance data for each employee
     employee_data = []
@@ -2753,10 +2876,15 @@ def comprehensive_attendance_report(request):
     # Check if this is being loaded in an iframe
     is_iframe = request.GET.get('iframe', False) or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
     
+    # Get available departments for filter
+    available_departments = get_available_departments()
+    
     context = {
         'employee_data': employee_data,
         'start_date': start_date,
         'end_date': end_date,
+        'department_filter': department_filter,
+        'available_departments': available_departments,
         'total_employees': total_employees,
         'avg_problematic_percentage': round(avg_problematic_percentage, 2),
         'total_issues': total_issues,
@@ -2768,3 +2896,71 @@ def comprehensive_attendance_report(request):
         return render(request, 'reports/comprehensive_attendance_report_iframe.html', context)
     else:
         return render(request, 'reports/comprehensive_attendance_report.html', context)
+
+
+def get_department_from_designation(designation):
+    """
+    Extract and normalize department from card designation.
+    Returns the normalized department name or None if not found.
+    """
+    if not designation:
+        return None
+    
+    # Extract department from designation (e.g., "Digitization Tech.1" -> "Digitization Tech")
+    match = re.match(r'^([^.]+)', designation.strip())
+    if match:
+        raw_dept = match.group(1).strip()
+        
+        # Normalize department names to main departments
+        dept = raw_dept.lower()
+        
+        # Map to main departments
+        if 'digitization' in dept and 'tech' in dept:
+            return 'Digitization Tech'
+        elif 'digitization' in dept:
+            return 'Digitization Tech'
+        elif 'tech' in dept and 'compute' in dept:
+            return 'Tech Compute'
+        elif 'tech' in dept or 'tch' in dept:
+            return 'Tech Compute'
+        elif 'con' in dept:
+            return 'Con'
+        elif 'custodian' in dept:
+            return 'Custodian'
+        elif 'material' in dept and 'retriever' in dept:
+            return 'Material Retriever'
+        elif 'material' in dept and 'retriver' in dept:
+            return 'Material Retriever'
+        elif 'admin' in dept:
+            return 'Con'  # Map Admin to Con as specified
+        else:
+            # Return original if no match found
+            return raw_dept
+    return None
+
+def get_available_departments():
+    """
+    Get list of all available departments from card designations.
+    """
+    departments = set()
+    for card in Card.objects.all():
+        dept = get_department_from_designation(card.designation)
+        if dept:
+            departments.add(dept)
+    return sorted(list(departments))
+
+def filter_employees_by_department(employees, department):
+    """
+    Filter employees by department using their card designation.
+    """
+    if not department:
+        return employees
+    
+    filtered_employees = []
+    for employee in employees:
+        if employee.card_number:
+            emp_dept = get_department_from_designation(employee.card_number.designation)
+            if emp_dept == department:
+                filtered_employees.append(employee)
+    
+    return filtered_employees

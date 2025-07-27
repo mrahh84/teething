@@ -78,6 +78,41 @@
             </form>
         </div>
 
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <h3>🔍 Filter Records</h3>
+            <form method="get" class="filter-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="department">Department:</label>
+                        <select id="department" name="department" class="form-control">
+                            <option value="">All Departments</option>
+                            {% for dept in available_departments %}
+                            <option value="{{ dept }}" {% if department_filter == dept %}selected{% endif %}>{{ dept }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="start_letter">Filter by Letter:</label>
+                        <select id="start_letter" name="start_letter" class="form-control">
+                            <option value="all" {% if start_letter == 'all' %}selected{% endif %}>All Letters</option>
+                            {% for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ" %}
+                            <option value="{{ letter }}" {% if start_letter == letter %}selected{% endif %}>{{ letter }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="search_query">Search:</label>
+                        <input type="text" id="search_query" name="search_query" value="{{ search_query }}" placeholder="Search by name or designation" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary">Apply Filter</button>
+                        <a href="{% url 'progressive_entry' %}" class="btn btn-secondary">Clear</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+
         <!-- Today's Records Table -->
         <div class="today-records-section">
             <h3>📋 Today's Attendance Records</h3>

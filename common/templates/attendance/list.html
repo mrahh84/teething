@@ -29,6 +29,15 @@
                     <label for="{{ filter_form.has_issues.id_for_label }}">{{ filter_form.has_issues.label }}</label>
                     {{ filter_form.has_issues }}
                 </div>
+                <div class="filter-group">
+                    <label for="department">Department:</label>
+                    <select id="department" name="department" class="form-control">
+                        <option value="">All Departments</option>
+                        {% for dept in available_departments %}
+                        <option value="{{ dept }}" {% if department_filter == dept %}selected{% endif %}>{{ dept }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
             </div>
             <div style="text-align: right; margin-top: 15px;">
                 <button type="submit" class="btn">Apply Filters</button>
