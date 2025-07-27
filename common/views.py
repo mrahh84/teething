@@ -146,7 +146,7 @@ def attendance_analytics(request):
     
     # Calculate statistics
     total_records = records.count()
-    total_employees = employees.count()
+    total_employees = len(employees)  # Use len() since employees is now a list
     
     # Count problematic records (excluding absences - based on Garbage logic)
     problematic_records = sum(1 for record in records if record.is_problematic_day())
