@@ -12,7 +12,7 @@
                 <h4>ℹ️ How to use Historical Progressive Entry</h4>
                 <ul style="margin-bottom: 0;">
                     <li><strong>Select a date range</strong> - Choose the period you want to modify (max 31 days)</li>
-                    <li><strong>Optional employee filter</strong> - Leave blank to modify all employees</li>
+                    <li><strong>Select department</strong> - Choose which department's records to modify (defaults to Digitization Tech)</li>
                     <li><strong>Inline editing</strong> - Click on any field to edit it directly</li>
                     <li><strong>Bulk updates</strong> - Use the bulk update form to modify multiple records at once</li>
                     <li><strong>Auto-save</strong> - Changes are saved automatically as you type</li>
@@ -48,13 +48,13 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="{{ form.employee.id_for_label }}">{{ form.employee.label }}</label>
-                        {{ form.employee }}
-                        {% if form.employee.help_text %}
-                            <small class="form-text text-muted">{{ form.employee.help_text }}</small>
+                        <label for="{{ form.department.id_for_label }}">{{ form.department.label }}</label>
+                        {{ form.department }}
+                        {% if form.department.help_text %}
+                            <small class="form-text text-muted">{{ form.department.help_text }}</small>
                         {% endif %}
-                        {% if form.employee.errors %}
-                            <div class="alert alert-danger">{{ form.employee.errors }}</div>
+                        {% if form.department.errors %}
+                            <div class="alert alert-danger">{{ form.department.errors }}</div>
                         {% endif %}
                     </div>
                 </div>

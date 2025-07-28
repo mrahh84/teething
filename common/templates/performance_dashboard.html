@@ -1,0 +1,282 @@
+{% extends "attendance/base.html" %}
+{% load attendance_extras %}
+
+{% block attendance_content %}
+<div class="attendance-card">
+    <div class="card-header">
+        <h2>🚀 Performance Dashboard</h2>
+        <p style="margin: 0; color: #6c757d;">Monitor system performance and optimization metrics</p>
+    </div>
+    <div class="card-body">
+        <!-- Overall Performance Stats -->
+        <div class="row">
+            <div class="col-md-6">
+                <h3>📊 Overall Performance</h3>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">{{ total_calls }}</div>
+                        <div class="stat-label">Total Function Calls</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ avg_time|floatformat:2 }}ms</div>
+                        <div class="stat-label">Average Response Time</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ avg_queries|floatformat:1 }}</div>
+                        <div class="stat-label">Average Queries per Call</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ total_queries }}</div>
+                        <div class="stat-label">Total Database Queries</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <h3>⚡ Performance Alerts</h3>
+                <div class="alerts-section">
+                    {% if avg_time > 1000 %}
+                        <div class="alert alert-warning">
+                            ⚠️ High average response time: {{ avg_time|floatformat:2 }}ms
+                        </div>
+                    {% endif %}
+                    {% if avg_queries > 10 %}
+                        <div class="alert alert-danger">
+                            🚨 High query count: {{ avg_queries|floatformat:1 }} queries per call
+                        </div>
+                    {% endif %}
+                    {% if avg_time <= 500 and avg_queries <= 5 %}
+                        <div class="alert alert-success">
+                            ✅ Excellent performance! System is running optimally
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Function Performance Details -->
+        <h3>🔍 Function Performance Details</h3>
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Function</th>
+                        <th>Calls</th>
+                        <th>Avg Time</th>
+                        <th>Max Time</th>
+                        <th>Min Time</th>
+                        <th>Slow Calls</th>
+                        <th>Avg Queries</th>
+                        <th>Max Queries</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for func_name, metric in metrics.items %}
+                    <tr>
+                        <td><strong>{{ func_name|title }}</strong></td>
+                        <td>{{ metric.count|default:0 }}</td>
+                        <td>{{ metric.avg_time|default:0|floatformat:2 }}ms</td>
+                        <td>{{ metric.max_time|default:0|floatformat:2 }}ms</td>
+                        <td>{{ metric.min_time|default:0|floatformat:2 }}ms</td>
+                        <td>{{ metric.slow_count|default:0 }}/{{ metric.count|default:0 }}</td>
+                        <td>{{ query_metrics|get_item:func_name|get_item:"avg_queries"|default:0|floatformat:1 }}</td>
+                        <td>{{ query_metrics|get_item:func_name|get_item:"max_queries"|default:0 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Performance Recommendations -->
+        <h3>💡 Optimization Recommendations</h3>
+        <div class="recommendations">
+            {% if avg_time > 1000 %}
+                <div class="recommendation-item">
+                    <h4>🐌 Slow Response Times</h4>
+                    <ul>
+                        <li>Consider implementing Redis caching for frequently accessed data</li>
+                        <li>Optimize database queries with better indexing</li>
+                        <li>Implement database connection pooling</li>
+                        <li>Consider using Django Debug Toolbar to identify bottlenecks</li>
+                    </ul>
+                </div>
+            {% endif %}
+            
+            {% if avg_queries > 10 %}
+                <div class="recommendation-item">
+                    <h4>🔍 High Query Count</h4>
+                    <ul>
+                        <li>Use <code>select_related()</code> and <code>prefetch_related()</code> to reduce N+1 queries</li>
+                        <li>Implement bulk operations for multiple updates</li>
+                        <li>Cache expensive database operations</li>
+                        <li>Consider using database views for complex queries</li>
+                    </ul>
+                </div>
+            {% endif %}
+            
+            {% if avg_time <= 500 and avg_queries <= 5 %}
+                <div class="recommendation-item">
+                    <h4>✅ Excellent Performance</h4>
+                    <ul>
+                        <li>System is performing well! Keep monitoring for any regressions</li>
+                        <li>Consider implementing more advanced caching strategies</li>
+                        <li>Monitor for any new performance issues as the system scales</li>
+                    </ul>
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Cache Performance -->
+        <h3>💾 Cache Performance</h3>
+        <div class="cache-stats">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-number">95%</div>
+                        <div class="stat-label">Target Cache Hit Rate</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-number">60s</div>
+                        <div class="stat-label">Employee Status Cache TTL</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-number">5min</div>
+                        <div class="stat-label">Page Cache TTL</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    border-left: 4px solid #007bff;
+}
+
+.stat-number {
+    font-size: 1.8em;
+    font-weight: 600;
+    color: #007bff;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    font-size: 0.9em;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.alerts-section {
+    margin-bottom: 20px;
+}
+
+.alert {
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    border-left: 4px solid;
+}
+
+.alert-success {
+    background: #d4edda;
+    color: #155724;
+    border-left-color: #28a745;
+}
+
+.alert-warning {
+    background: #fff3cd;
+    color: #856404;
+    border-left-color: #ffc107;
+}
+
+.alert-danger {
+    background: #f8d7da;
+    color: #721c24;
+    border-left-color: #dc3545;
+}
+
+.recommendations {
+    margin-top: 20px;
+}
+
+.recommendation-item {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border-left: 4px solid #17a2b8;
+}
+
+.recommendation-item h4 {
+    margin: 0 0 10px 0;
+    color: #495057;
+}
+
+.recommendation-item ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.recommendation-item li {
+    margin-bottom: 5px;
+    color: #6c757d;
+}
+
+.cache-stats {
+    margin-top: 20px;
+}
+
+.table-container {
+    margin: 20px 0;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.table th,
+.table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.table th {
+    background: #007bff;
+    color: white;
+    font-weight: 600;
+}
+
+.table tr:hover {
+    background: #f8f9fa;
+}
+
+code {
+    background: #e9ecef;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+}
+</style>
+{% endblock %} 

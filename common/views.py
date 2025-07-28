@@ -31,6 +31,7 @@ from .serializers import (
     LocationSerializer,
     SingleEventSerializer,
 )
+from .utils import performance_monitor, query_count_monitor
 
 # --- API Views ---
 # Apply authentication and permissions to all API views
@@ -253,16 +254,65 @@ def comprehensive_reports(request):
 @login_required
 @extend_schema(exclude=True)
 def progressive_entry(request):
-    """Progressive attendance entry - save partial data throughout the day"""
+    """Progressive attendance entry - optimized with bulk prefetch"""
     today = timezone.now().date()
     
     # Get request parameters for filtering
     start_letter = request.GET.get("start_letter", "")
     search_query = request.GET.get("search", "")
+    department_filter = request.GET.get('department', 'Digitization Tech')
     
     if request.method == 'POST':
-        # Handle AJAX save requests
+        # Handle AJAX save requests (existing code)
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            # Handle batch updates
+            if request.POST.get('batch_update') == 'true':
+                changes = request.POST.getlist('changes')
+                completions = {}
+                
+                for change in changes:
+                    try:
+                        # Parse change data (format: changes[employee_id][field_name] = value)
+                        if change.startswith('changes['):
+                            # Extract employee_id and field_name from the key
+                            parts = change.split('[')
+                            if len(parts) >= 3:
+                                employee_id = parts[1].rstrip(']')
+                                field_name = parts[2].rstrip(']')
+                                field_value = request.POST.get(change)
+                                
+                                if employee_id and field_name and field_value is not None:
+                                    employee = Employee.objects.get(id=employee_id)
+                                    record, created = AttendanceRecord.objects.get_or_create(
+                                        employee=employee,
+                                        date=today,
+                                        defaults={'created_by': request.user}
+                                    )
+                                    
+                                    # Convert lunch_time string to time object
+                                    if field_name == 'lunch_time' and field_value:
+                                        try:
+                                            field_value = datetime.strptime(field_value, "%H:%M").time()
+                                        except Exception:
+                                            field_value = None
+                                    
+                                    # Update the specific field
+                                    if hasattr(record, field_name):
+                                        setattr(record, field_name, field_value)
+                                        record.last_updated_by = request.user
+                                        record.save()
+                                        
+                                        completions[employee_id] = record.completion_percentage
+                    except (Employee.DoesNotExist, ValueError) as e:
+                        return JsonResponse({'success': False, 'error': f'Error processing batch update: {str(e)}'})
+                
+                return JsonResponse({
+                    'success': True,
+                    'completions': completions,
+                    'message': f'Batch update completed for {len(completions)} records'
+                })
+            
+            # Handle single field updates (existing code)
             employee_id = request.POST.get('employee_id')
             field_name = request.POST.get('field_name')
             field_value = request.POST.get('field_value')
@@ -324,8 +374,12 @@ def progressive_entry(request):
     else:
         form = ProgressiveEntryForm()
     
-    # Get all employees who have clocked in today
-    # Use timezone-aware datetime range to handle timezone issues
+    # Get all active employees - OPTIMIZED
+    employees = Employee.objects.filter(
+        is_active=True
+    ).select_related('card_number').order_by('surname', 'given_name')
+    
+    # Get all employees who have clocked in today for status tracking
     from datetime import time
     start_of_day = timezone.make_aware(datetime.combine(today, time.min))
     end_of_day = timezone.make_aware(datetime.combine(today, time.max))
@@ -339,22 +393,15 @@ def progressive_entry(request):
         ).values_list('employee_id', flat=True)
     )
     
-    # Get employees with optimized queries and prefetch related data
-    employees = Employee.objects.filter(
-        id__in=clocked_in_employee_ids, 
-        is_active=True
-    ).select_related('card_number').order_by('surname', 'given_name')
-    
-    # Apply department filter if provided
-    department_filter = request.GET.get('department', 'Digitization Tech')  # Default to Digitization Tech
+    # Apply department filter
     if department_filter:
         employees = filter_employees_by_department(employees, department_filter)
     
-    # Apply letter filter if provided
+    # Apply letter filter
     if start_letter and start_letter != 'all' and len(start_letter) == 1:
         employees = employees.filter(surname__istartswith=start_letter)
     
-    # Apply search filter if provided
+    # Apply search filter
     if search_query:
         employees = employees.filter(
             Q(given_name__icontains=search_query)
@@ -362,7 +409,7 @@ def progressive_entry(request):
             | Q(card_number__designation__icontains=search_query)
         )
     
-    # BULK PREFETCH: Get all today's records in one query with optimized prefetch
+    # BULK PREFETCH: Get all today's records in one query
     today_records = AttendanceRecord.objects.filter(
         date=today,
         employee__in=employees
@@ -433,6 +480,17 @@ def attendance_list(request):
     
     # Get attendance records for the target date with optimized prefetch
     records = AttendanceRecord.objects.filter(date=target_date).select_related('employee', 'employee__card_number')
+    
+    # Apply department filter to records using the same logic
+    if department_filter:
+        # Filter records by department using the same logic as employees
+        filtered_records = []
+        for record in records:
+            if record.employee.card_number:
+                emp_dept = get_department_from_designation(record.employee.card_number.designation)
+                if emp_dept == department_filter:
+                    filtered_records.append(record)
+        records = filtered_records
     
     # Filter by employee if specified
     if employee_filter:
@@ -542,16 +600,15 @@ def historical_progressive_entry(request):
             # Redirect to results page with search parameters
             date_from = form.cleaned_data['date_from']
             date_to = form.cleaned_data['date_to']
-            employee = form.cleaned_data['employee']
+            department = form.cleaned_data['department']
             
             # Build redirect URL
             redirect_url = reverse('historical_progressive_results')
             params = {
                 'date_from': date_from.isoformat(),
                 'date_to': date_to.isoformat(),
+                'department': department,
             }
-            if employee:
-                params['employee'] = employee.id
             
             return redirect(f"{redirect_url}?{'&'.join([f'{k}={v}' for k, v in params.items()])}")
     else:
@@ -578,9 +635,8 @@ def historical_progressive_entry(request):
                     'date_from': date_from.isoformat(),
                     'date_to': date_to.isoformat(),
                 }
-                employee_id = request.GET.get('employee')
-                if employee_id:
-                    params['employee'] = employee_id
+                department = request.GET.get('department', 'Digitization Tech')
+                params['department'] = department
                 
                 return redirect(f"{redirect_url}?{'&'.join([f'{k}={v}' for k, v in params.items()])}")
             except (ValueError, TypeError):
@@ -604,10 +660,70 @@ def historical_progressive_results(request):
     """
     from django.core.paginator import Paginator
     
+    # Handle POST requests for saving historical records
+    if request.method == 'POST':
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            # Handle AJAX save requests
+            employee_id = request.POST.get('employee_id')
+            field_name = request.POST.get('field_name')
+            field_value = request.POST.get('field_value')
+            record_date = request.POST.get('record_date')
+            
+            try:
+                # Convert employee_id to integer if it's a string
+                if isinstance(employee_id, str):
+                    employee_id = int(employee_id)
+                employee = Employee.objects.get(id=employee_id, is_active=True)
+                record_date = datetime.strptime(record_date, '%Y-%m-%d').date()
+                
+                # Check if record exists
+                try:
+                    record = AttendanceRecord.objects.get(employee=employee, date=record_date)
+                    created = False
+                except AttendanceRecord.DoesNotExist:
+                    # Create new record for missing employee
+                    record = AttendanceRecord.objects.create(
+                        employee=employee,
+                        date=record_date,
+                        created_by=request.user,
+                        status='DRAFT'
+                    )
+                    created = True
+                
+                # Convert lunch_time string to time object
+                if field_name == 'lunch_time' and field_value:
+                    try:
+                        field_value = datetime.strptime(field_value, "%H:%M").time()
+                    except Exception:
+                        field_value = None
+                
+                # Update the specific field
+                if hasattr(record, field_name):
+                    setattr(record, field_name, field_value)
+                    record.last_updated_by = request.user
+                    record.save()
+                    
+                    response_data = {
+                        'success': True,
+                        'status': record.status,
+                        'completion': record.completion_percentage,
+                        'message': f'{field_name} updated successfully'
+                    }
+                    
+                    # If this was a new record, include the record ID
+                    if created:
+                        response_data['record_id'] = record.id
+                    
+                    return JsonResponse(response_data)
+                else:
+                    return JsonResponse({'success': False, 'error': 'Invalid field'})
+                    
+            except (Employee.DoesNotExist, ValueError) as e:
+                return JsonResponse({'success': False, 'error': f'Error: {str(e)}'})
+    
     # Get search parameters
     date_from = request.GET.get('date_from')
     date_to = request.GET.get('date_to')
-    employee_id = request.GET.get('employee')
     department_filter = request.GET.get('department', 'Digitization Tech')  # Default to Digitization Tech
     days_per_page = int(request.GET.get('days_per_page', 7))
     page_number = request.GET.get('page', 1)
@@ -622,20 +738,12 @@ def historical_progressive_results(request):
     except (ValueError, TypeError):
         return redirect('historical_progressive_entry')
     
-    # Get employee if specified
-    employee = None
-    if employee_id:
-        try:
-            employee = Employee.objects.get(id=employee_id, is_active=True)
-        except Employee.DoesNotExist:
-            return redirect('historical_progressive_entry')
-    
-    # Apply department filter to employee if specified
-    if department_filter and not employee_id:
-        all_employees = Employee.objects.filter(is_active=True)
+    # Get employees by department filter
+    all_employees = Employee.objects.filter(is_active=True)
+    if department_filter and department_filter != 'All Departments':
         filtered_employees = filter_employees_by_department(all_employees, department_filter)
-        if filtered_employees:
-            employee = filtered_employees[0]  # Use first employee from filtered department
+    else:
+        filtered_employees = all_employees
     
     # Get all dates in the range
     date_range = []
@@ -651,15 +759,58 @@ def historical_progressive_results(request):
     # Get records for the current page of dates
     records_by_date = {}
     for date_key in date_page:
-        # Build query for this date
-        date_query = AttendanceRecord.objects.filter(date=date_key).select_related('employee')
+        # Get employees who were actually present (had clock-in events) on this date
+        from common.models import Event
+        present_employees = Event.objects.filter(
+            timestamp__date=date_key,
+            event_type__name='Clock In'
+        ).values_list('employee', flat=True).distinct()
         
-        if employee:
-            date_query = date_query.filter(employee=employee)
+        # Filter by department if specified
+        if department_filter and department_filter != 'All Departments':
+            present_employees = present_employees.filter(employee__in=filtered_employees)
         
-        records = date_query.order_by('employee__surname', 'employee__given_name')
-        if records.exists():
-            records_by_date[date_key] = records
+        # Get the actual employee objects for present employees
+        present_employee_objects = Employee.objects.filter(
+            id__in=present_employees,
+            is_active=True
+        ).order_by('surname', 'given_name')
+        
+        # Get existing attendance records for present employees on this date
+        existing_records = AttendanceRecord.objects.filter(
+            date=date_key,
+            employee__in=present_employee_objects
+        ).select_related('employee').order_by('employee__surname', 'employee__given_name')
+        
+        # Create a list of present employees with their records (or create new records if needed)
+        employee_records = []
+        for emp in present_employee_objects:
+            # Find existing record for this employee on this date
+            existing_record = existing_records.filter(employee=emp).first()
+            if existing_record:
+                employee_records.append(existing_record)
+            else:
+                # Create a dummy record object for present employees without attendance records
+                # This allows the template to show present employees and create records on demand
+                dummy_record = type('DummyRecord', (), {
+                    'id': None,
+                    'employee': emp,
+                    'date': date_key,
+                    'lunch_time': None,
+                    'left_lunch_on_time': None,
+                    'returned_on_time_after_lunch': None,
+                    'returned_after_lunch': None,
+                    'standup_attendance': None,
+                    'status': 'DRAFT',
+                    'completion_percentage': 0,
+                    'last_updated_by': None,
+                    'updated_at': None,
+                    'notes': '',
+                })()
+                employee_records.append(dummy_record)
+        
+        if employee_records:
+            records_by_date[date_key] = employee_records
     
     # Calculate statistics
     total_days = len(date_range)
@@ -671,7 +822,6 @@ def historical_progressive_results(request):
     context = {
         'date_from': date_from,
         'date_to': date_to,
-        'employee': employee,
         'department_filter': department_filter,
         'available_departments': available_departments,
         'date_page': date_page,
@@ -923,6 +1073,16 @@ def main_security_clocked_in_status_flip(request, id):
     Includes a basic debounce mechanism.
     Optimized with caching for better performance.
     """
+    # Check if we need to clear cache (for testing purposes)
+    if request.GET.get('clear_cache') == 'true':
+        try:
+            from django.core.cache import cache
+            cache.delete(f"employee_status_{id}")
+            cache.delete(f"employee_last_event_{id}")
+            messages.info(request, "Employee cache cleared for testing.")
+        except Exception:
+            pass
+    
     employee = get_object_or_404(Employee, id=id)
 
     # Determine the *opposite* action to take
@@ -932,19 +1092,40 @@ def main_security_clocked_in_status_flip(request, id):
     # Basic Debounce: Prevent accidental double-clicks/rapid toggling
     # Check the time of the *very last* clock event for this user
     last_event_time = employee.last_clockinout_time
-    debounce_seconds = 5  # Adjust as needed
-    if (
-        last_event_time
-        and (timezone.now() - last_event_time).total_seconds() < debounce_seconds
-    ):
-        # NOTE: include a message for the user
-        messages.warning(
-            request, f"Please wait {debounce_seconds} seconds before clocking again."
-        )
-        print(
-            f"Clock action for {employee} blocked by debounce ({debounce_seconds}s)"
-        )  # Log for debugging
-        return redirect("main_security")  # Redirect without making changes
+    debounce_seconds = 2  # Reduced from 5 to 2 seconds for better UX
+    
+    # More robust debounce check - also check recent events directly from database
+    recent_events = Event.objects.filter(
+        employee=employee,
+        event_type__name__in=['Clock In', 'Clock Out']
+    ).order_by('-timestamp')[:1]
+    
+    if recent_events.exists():
+        most_recent_event = recent_events.first()
+        # Ensure both timestamps are timezone-aware for proper comparison
+        current_time = timezone.now()
+        event_time = most_recent_event.timestamp
+        
+        # Convert both to UTC for consistent comparison
+        if current_time.tzinfo is None:
+            current_time = timezone.make_aware(current_time)
+        if event_time.tzinfo is None:
+            event_time = timezone.make_aware(event_time)
+            
+        time_since_last_event = (current_time - event_time).total_seconds()
+        
+        # Safety check: if event is in the future or more than 1 hour ago, skip debounce
+        if time_since_last_event < -3600 or time_since_last_event > 3600:
+            # Skip debounce for invalid timestamps
+            pass
+        elif time_since_last_event < debounce_seconds:
+            messages.warning(
+                request, f"Please wait {debounce_seconds} seconds before clocking again."
+            )
+            print(
+                f"Clock action for {employee} blocked by debounce ({debounce_seconds}s) - last event was {time_since_last_event:.1f}s ago"
+            )  # Log for debugging
+            return redirect("main_security")  # Redirect without making changes
 
     try:
         # Try to get cached event types and locations first for better performance
@@ -955,6 +1136,8 @@ def main_security_clocked_in_status_flip(request, id):
             
             event_type = event_types.get(target_event_type_name)
             location = locations.get("Main Security")
+            
+
             
             if not event_type:
                 raise EventType.DoesNotExist(f"Event type '{target_event_type_name}' not found in cache")
@@ -1265,35 +1448,7 @@ def period_summary_report(request):
     return render(request, "reports/period_summary_report.html", context)
 
 
-@login_required
-@extend_schema(exclude=True)
-def late_early_report(request):
-    """
-    Display the late arrival and early departure report using Marimo.
-    """
-    # Get filter parameters
-    start_date = request.GET.get(
-        "start_date", (timezone.now() - timedelta(days=30)).date().isoformat()
-    )
-    end_date = request.GET.get("end_date", timezone.now().date().isoformat())
-    late_threshold = request.GET.get("late_threshold", "15")
-    early_threshold = request.GET.get("early_threshold", "15")
-    start_time = request.GET.get("start_time", "09:00")
-    end_time = request.GET.get("end_time", "17:00")
 
-    context = {
-        "user": request.user,
-        "start_date": start_date,
-        "end_date": end_date,
-        "late_threshold": late_threshold,
-        "early_threshold": early_threshold,
-        "start_time": start_time,
-        "end_time": end_time,
-        "report_url": f"{reverse('generate_marimo_report', args=['late_early'])}?start={start_date}&end={end_date}&late_threshold={late_threshold}&early_threshold={early_threshold}&start_time={start_time}&end_time={end_time}",
-        "report_title": "Late Arrival and Early Departure Report",
-        "report_description": "Track employee punctuality with customizable thresholds for lateness and early departures.",
-    }
-    return render(request, "reports/late_early_report.html", context)
 
 
 @login_required
@@ -1360,21 +1515,7 @@ def generate_marimo_report(request, report_type):
                 request, period, start_date, end_date_with_day, start_time, end_time
             )
 
-        elif report_type == "late_early":
-            late_threshold = int(request.GET.get("late_threshold", "15"))
-            early_threshold = int(request.GET.get("early_threshold", "15"))
-            start_time = request.GET.get("start_time", "09:00")
-            end_time = request.GET.get("end_time", "17:00")
 
-            return generate_late_early_html(
-                request,
-                start_date,
-                end_date_with_day,
-                late_threshold,
-                early_threshold,
-                start_time,
-                end_time,
-            )
 
         else:
             return HttpResponse(f"Unknown report type: {report_type}", status=400)
@@ -2128,15 +2269,7 @@ def generate_period_summary_html(
         )
 
 
-def generate_late_early_html(
-    request,
-    start_date,
-    end_date,
-    late_threshold,
-    early_threshold,
-    start_time_str,
-    end_time_str,
-):
+
     """Generate HTML report for late arrivals and early departures"""
     try:
         # Convert time strings to time objects
@@ -2621,82 +2754,7 @@ def period_summary_report_csv(request):
     return response
 
 
-def late_early_report_csv(request):
-    """Download late/early report as CSV"""
-    start_date = request.GET.get(
-        "start_date", (timezone.now() - timedelta(days=30)).date().isoformat()
-    )
-    end_date = request.GET.get("end_date", timezone.now().date().isoformat())
-    late_threshold = int(request.GET.get("late_threshold", "15"))
-    early_threshold = int(request.GET.get("early_threshold", "15"))
-    start_time = request.GET.get("start_time", "09:00")
-    end_time = request.GET.get("end_time", "17:00")
-    try:
-        start_date = datetime.fromisoformat(start_date).date()
-        end_date = datetime.fromisoformat(end_date).date()
-    except ValueError:
-        return HttpResponseBadRequest("Invalid date format")
-    start_datetime = timezone.make_aware(
-        datetime.combine(start_date, datetime.min.time())
-    )
-    end_datetime = timezone.make_aware(datetime.combine(end_date, datetime.min.time()))
-    events = Event.objects.filter(
-        timestamp__range=(start_datetime, end_datetime),
-        event_type__name__in=["Clock In", "Clock Out"],
-    ).select_related("employee", "event_type")
-    late_arrivals = []
-    early_departures = []
-    for event in events:
-        local_timestamp = timezone.localtime(event.timestamp)
-        event_time = local_timestamp.time()
-        employee_name = f"{event.employee.given_name} {event.employee.surname}"
-        if event.event_type.name == "Clock In":
-            if event_time > datetime.strptime(start_time, "%H:%M").time():
-                minutes_late = (
-                    datetime.combine(date.min, event_time)
-                    - datetime.combine(
-                        date.min, datetime.strptime(start_time, "%H:%M").time()
-                    )
-                ).total_seconds() / 60
-                if minutes_late >= late_threshold:
-                    late_arrivals.append(
-                        [
-                            employee_name,
-                            local_timestamp.date(),
-                            event_time.strftime("%H:%M"),
-                            int(minutes_late),
-                        ]
-                    )
-        elif event.event_type.name == "Clock Out":
-            if event_time < datetime.strptime(end_time, "%H:%M").time():
-                minutes_early = (
-                    datetime.combine(
-                        date.min, datetime.strptime(end_time, "%H:%M").time()
-                    )
-                    - datetime.combine(date.min, event_time)
-                ).total_seconds() / 60
-                if minutes_early >= early_threshold:
-                    early_departures.append(
-                        [
-                            employee_name,
-                            local_timestamp.date(),
-                            event_time.strftime("%H:%M"),
-                            int(minutes_early),
-                        ]
-                    )
 
-    def row_gen():
-        yield ["Type", "Employee", "Date", "Time", "Minutes"]
-        for row in late_arrivals:
-            yield ["Late Arrival"] + row
-        for row in early_departures:
-            yield ["Early Departure"] + row
-
-    response = StreamingHttpResponse(
-        (",".join(map(str, row)) + "\n" for row in row_gen()), content_type="text/csv"
-    )
-    response["Content-Disposition"] = 'attachment; filename="late_early_report.csv"'
-    return response
 
 
 @login_required
@@ -2979,3 +3037,45 @@ def filter_employees_by_department(employees, department):
                 filtered_employees.append(employee)
     
     return filtered_employees
+
+
+@login_required
+@extend_schema(exclude=True)
+def performance_dashboard(request):
+    """Performance monitoring dashboard."""
+    from .utils import get_performance_metrics, get_query_metrics, get_cache_metrics
+    
+    # Get performance metrics for key functions
+    metrics = {
+        'main_security': get_performance_metrics('main_security'),
+        'progressive_entry': get_performance_metrics('progressive_entry'),
+        'attendance_list': get_performance_metrics('attendance_list'),
+    }
+    
+    # Get query metrics
+    query_metrics = {
+        'main_security': get_query_metrics('main_security'),
+        'progressive_entry': get_query_metrics('progressive_entry'),
+        'attendance_list': get_query_metrics('attendance_list'),
+    }
+    
+    # Calculate overall performance stats
+    total_calls = sum(m.get('count', 0) for m in metrics.values())
+    total_time = sum(m.get('total_time', 0) for m in metrics.values())
+    avg_time = total_time / total_calls if total_calls > 0 else 0
+    
+    # Calculate overall query stats
+    total_queries = sum(qm.get('total_queries', 0) for qm in query_metrics.values())
+    avg_queries = total_queries / total_calls if total_calls > 0 else 0
+    
+    context = {
+        'metrics': metrics,
+        'query_metrics': query_metrics,
+        'total_calls': total_calls,
+        'total_time': total_time,
+        'avg_time': avg_time,
+        'total_queries': total_queries,
+        'avg_queries': avg_queries,
+    }
+    
+    return render(request, 'performance_dashboard.html', context)

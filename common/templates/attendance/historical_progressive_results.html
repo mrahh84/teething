@@ -5,11 +5,7 @@
     <div class="card-header">
         <h2>📝 Historical Progressive Entry Results</h2>
         <p style="margin: 0; color: #6c757d;">
-            {% if employee %}
-                Editing records for {{ employee }} from {{ date_from|date:"M d, Y" }} to {{ date_to|date:"M d, Y" }}
-            {% else %}
-                Editing records from {{ date_from|date:"M d, Y" }} to {{ date_to|date:"M d, Y" }}
-            {% endif %}
+            Editing records for {{ department_filter }} department employees who were present (clocked in) from {{ date_from|date:"M d, Y" }} to {{ date_to|date:"M d, Y" }}
         </p>
     </div>
     <div class="card-body">
@@ -23,38 +19,17 @@
                 </div>
             </div>
             <div class="stat-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ total_records }}</div>
+                    <div class="stat-label">Total Records</div>
+                </div>
+            </div>
+            <div class="stat-card">
                 <div class="stat-icon">📄</div>
                 <div class="stat-content">
                     <div class="stat-value">{{ date_page.number }}</div>
                     <div class="stat-label">Page {{ date_page.number }} of {{ date_page.paginator.num_pages }}</div>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">👥</div>
-                <div class="stat-content">
-                    <div class="stat-value">
-                        {% if employee %}1{% else %}
-                            {% if records_by_date %}
-                                {% for date_key, records in records_by_date.items %}
-                                    {% if forloop.first %}
-                                        {{ records|length }}
-                                    {% endif %}
-                                {% empty %}
-                                    0
-                                {% endfor %}
-                            {% else %}
-                                0
-                            {% endif %}
-                        {% endif %}
-                    </div>
-                    <div class="stat-label">Employees</div>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">📊</div>
-                <div class="stat-content">
-                    <div class="stat-value">{{ total_records }}</div>
-                    <div class="stat-label">Total Records</div>
                 </div>
             </div>
         </div>
@@ -68,9 +43,7 @@
                 <form method="get" class="pagination-form">
                     <input type="hidden" name="date_from" value="{{ date_from|date:'Y-m-d' }}">
                     <input type="hidden" name="date_to" value="{{ date_to|date:'Y-m-d' }}">
-                    {% if employee %}
-                        <input type="hidden" name="employee" value="{{ employee.id }}">
-                    {% endif %}
+                    <input type="hidden" name="department" value="{{ department_filter }}">
                     <label for="days_per_page">Days per page:</label>
                     <select name="days_per_page" id="days_per_page" onchange="this.form.submit()">
                         <option value="3" {% if days_per_page == 3 %}selected{% endif %}>3 days</option>
@@ -101,6 +74,9 @@
                         <button class="btn btn-sm btn-outline-danger bulk-action-btn" data-action="mark-all-absent">
                             🚫 Mark All Absent
                         </button>
+                        <button class="btn btn-sm btn-outline-success bulk-action-btn" data-action="clear-all">
+                            🗑️ Clear All
+                        </button>
                     </div>
                 </div>
                 
@@ -130,91 +106,125 @@
         </div>
         {% endif %}
 
-        <!-- Compact Employee Grid by Date -->
+        <!-- Efficient Table Interface by Date -->
         {% for date_key, records in records_by_date.items %}
         <div class="date-section">
             <div class="date-header">
                 <h3>📅 {{ date_key|date:"l, F d, Y" }}</h3>
                 <div class="date-actions">
-                    <span class="date-count">{{ records|length }} employees</span>
+                    <span class="date-count">{{ records|length }} present employees in {{ department_filter }}</span>
                     <button class="btn btn-sm btn-outline-primary date-bulk-edit" data-date="{{ date_key|date:'Y-m-d' }}">
                         ✏️ Edit All
+                    </button>
+                    <button class="btn btn-sm btn-outline-success date-save-all" data-date="{{ date_key|date:'Y-m-d' }}">
+                        💾 Save All
                     </button>
                 </div>
             </div>
             
-            <!-- Employee Grid -->
-            <div class="employee-grid">
-                {% for record in records %}
-                <div class="employee-card" data-record-id="{{ record.id }}" data-date="{{ date_key|date:'Y-m-d' }}">
-                    <div class="employee-header">
-                        <h4>{{ record.employee }}</h4>
-                        <span class="status-badge status-{{ record.status|lower }}">
-                            {{ record.get_status_display }}
-                        </span>
-                    </div>
-                    
-                    <div class="employee-fields">
-                        <!-- Stand-up -->
-                        <div class="field-group">
-                            <label>Stand-up</label>
-                            <select class="inline-select compact" data-field="standup_attendance" data-record-id="{{ record.id }}">
-                                <option value="">-</option>
-                                <option value="YES" {% if record.standup_attendance == 'YES' %}selected{% endif %}>✅</option>
-                                <option value="NO" {% if record.standup_attendance == 'NO' %}selected{% endif %}>❌</option>
-                                <option value="LATE" {% if record.standup_attendance == 'LATE' %}selected{% endif %}>⏰</option>
-                                <option value="ABSENT" {% if record.standup_attendance == 'ABSENT' %}selected{% endif %}>🚫</option>
-                            </select>
-                        </div>
-                        
-                        <!-- Lunch Time -->
-                        <div class="field-group">
-                            <label>Lunch</label>
-                            <select class="inline-select compact" data-field="lunch_time" data-record-id="{{ record.id }}">
-                                <option value="">-</option>
-                                <option value="12:00" {% if record.lunch_time and record.lunch_time|time:'H:i' == '12:00' %}selected{% endif %}>12:00</option>
-                                <option value="12:30" {% if record.lunch_time and record.lunch_time|time:'H:i' == '12:30' %}selected{% endif %}>12:30</option>
-                                <option value="13:00" {% if record.lunch_time and record.lunch_time|time:'H:i' == '13:00' %}selected{% endif %}>13:00</option>
-                            </select>
-                        </div>
-                        
-                        <!-- Left On Time -->
-                        <div class="field-group">
-                            <label>Left</label>
-                            <select class="inline-select compact" data-field="left_lunch_on_time" data-record-id="{{ record.id }}">
-                                <option value="">-</option>
-                                <option value="YES" {% if record.left_lunch_on_time == 'YES' %}selected{% endif %}>✅</option>
-                                <option value="NO" {% if record.left_lunch_on_time == 'NO' %}selected{% endif %}>❌</option>
-                                <option value="LATE" {% if record.left_lunch_on_time == 'LATE' %}selected{% endif %}>⏰</option>
-                                <option value="ABSENT" {% if record.left_lunch_on_time == 'ABSENT' %}selected{% endif %}>🚫</option>
-                            </select>
-                        </div>
-                        
-                        <!-- Returned On Time -->
-                        <div class="field-group">
-                            <label>Returned</label>
-                            <select class="inline-select compact" data-field="returned_on_time_after_lunch" data-record-id="{{ record.id }}">
-                                <option value="">-</option>
-                                <option value="YES" {% if record.returned_on_time_after_lunch == 'YES' %}selected{% endif %}>✅</option>
-                                <option value="NO" {% if record.returned_on_time_after_lunch == 'NO' %}selected{% endif %}>❌</option>
-                                <option value="LATE" {% if record.returned_on_time_after_lunch == 'LATE' %}selected{% endif %}>⏰</option>
-                                <option value="ABSENT" {% if record.returned_on_time_after_lunch == 'ABSENT' %}selected{% endif %}>🚫</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="employee-footer">
-                        <div class="completion-indicator">
-                            <span class="completion-text">{{ record.completion_percentage|floatformat:0 }}%</span>
-                        </div>
-                        {% if record.last_updated_by %}
-                        <small class="last-updated">
-                            {{ record.last_updated_by.username }} at {{ record.updated_at|time:"H:i" }}
-                        </small>
-                        {% endif %}
-                    </div>
-                </div>
-                {% endfor %}
+            <!-- Efficient Table Layout -->
+            <div class="table-container">
+                <table class="attendance-table">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Stand-up</th>
+                            <th>Lunch Time</th>
+                            <th>Left On Time</th>
+                            <th>Returned On Time</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in records %}
+                        <tr class="employee-row {% if not record.id %}new-record{% endif %}" data-record-id="{{ record.id|default:'new' }}" data-date="{{ date_key|date:'Y-m-d' }}" data-employee-id="{{ record.employee.id }}">
+                            <td class="employee-name">
+                                <strong>{{ record.employee }}</strong>
+                                {% if record.id and record.last_updated_by %}
+                                <br><small class="last-updated">
+                                    {{ record.last_updated_by.username }} at {{ record.updated_at|time:"H:i" }}
+                                </small>
+                                {% elif not record.id %}
+                                <br><small class="new-record-indicator">📝 New Record</small>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Stand-up -->
+                            <td>
+                                <select class="inline-select" data-field="standup_attendance" data-record-id="{{ record.id|default:'new' }}">
+                                    <option value="">-</option>
+                                    <option value="YES" {% if record.standup_attendance == 'YES' %}selected{% endif %}>✅ Yes</option>
+                                    <option value="NO" {% if record.standup_attendance == 'NO' %}selected{% endif %}>❌ No</option>
+                                    <option value="LATE" {% if record.standup_attendance == 'LATE' %}selected{% endif %}>⏰ Late</option>
+                                    <option value="ABSENT" {% if record.standup_attendance == 'ABSENT' %}selected{% endif %}>🚫 Absent</option>
+                                </select>
+                            </td>
+                            
+                            <!-- Lunch Time -->
+                            <td>
+                                <select class="inline-select" data-field="lunch_time" data-record-id="{{ record.id|default:'new' }}">
+                                    <option value="">-</option>
+                                    <option value="12:00" {% if record.lunch_time and record.lunch_time|time:'H:i' == '12:00' %}selected{% endif %}>12:00</option>
+                                    <option value="12:30" {% if record.lunch_time and record.lunch_time|time:'H:i' == '12:30' %}selected{% endif %}>12:30</option>
+                                    <option value="13:00" {% if record.lunch_time and record.lunch_time|time:'H:i' == '13:00' %}selected{% endif %}>13:00</option>
+                                </select>
+                            </td>
+                            
+                            <!-- Left On Time -->
+                            <td>
+                                <select class="inline-select" data-field="left_lunch_on_time" data-record-id="{{ record.id|default:'new' }}">
+                                    <option value="">-</option>
+                                    <option value="YES" {% if record.left_lunch_on_time == 'YES' %}selected{% endif %}>✅ Yes</option>
+                                    <option value="NO" {% if record.left_lunch_on_time == 'NO' %}selected{% endif %}>❌ No</option>
+                                    <option value="LATE" {% if record.left_lunch_on_time == 'LATE' %}selected{% endif %}>⏰ Late</option>
+                                    <option value="ABSENT" {% if record.left_lunch_on_time == 'ABSENT' %}selected{% endif %}>🚫 Absent</option>
+                                </select>
+                            </td>
+                            
+                            <!-- Returned On Time -->
+                            <td>
+                                <select class="inline-select" data-field="returned_on_time_after_lunch" data-record-id="{{ record.id|default:'new' }}">
+                                    <option value="">-</option>
+                                    <option value="YES" {% if record.returned_on_time_after_lunch == 'YES' %}selected{% endif %}>✅ Yes</option>
+                                    <option value="NO" {% if record.returned_on_time_after_lunch == 'NO' %}selected{% endif %}>❌ No</option>
+                                    <option value="LATE" {% if record.returned_on_time_after_lunch == 'LATE' %}selected{% endif %}>⏰ Late</option>
+                                    <option value="ABSENT" {% if record.returned_on_time_after_lunch == 'ABSENT' %}selected{% endif %}>🚫 Absent</option>
+                                </select>
+                            </td>
+                            
+                            <!-- Status -->
+                            <td>
+                                {% if record.id %}
+                                    <span class="status-badge status-{{ record.status|lower }}">
+                                        {{ record.get_status_display }}
+                                    </span>
+                                    <div class="completion-indicator">
+                                        <span class="completion-text">{{ record.completion_percentage|floatformat:0 }}%</span>
+                                    </div>
+                                {% else %}
+                                    <span class="status-badge status-draft">
+                                        DRAFT
+                                    </span>
+                                    <div class="completion-indicator">
+                                        <span class="completion-text">0%</span>
+                                    </div>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Actions -->
+                            <td>
+                                <button class="btn btn-sm btn-primary save-row" data-record-id="{{ record.id|default:'new' }}">
+                                    💾 Save
+                                </button>
+                                <button class="btn btn-sm btn-secondary reset-row" data-record-id="{{ record.id|default:'new' }}">
+                                    🔄 Reset
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
         {% empty %}
@@ -235,10 +245,10 @@
             
             <div class="pagination-links">
                 {% if date_page.has_previous %}
-                    <a href="?date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}{% if employee %}&employee={{ employee.id }}{% endif %}&days_per_page={{ days_per_page }}&page=1" class="btn btn-sm btn-outline-secondary">
+                    <a href="?date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}&department={{ department_filter }}&days_per_page={{ days_per_page }}&page=1" class="btn btn-sm btn-outline-secondary">
                         ⏮️ First
                     </a>
-                    <a href="?date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}{% if employee %}&employee={{ employee.id }}{% endif %}&days_per_page={{ days_per_page }}&page={{ date_page.previous_page_number }}" class="btn btn-sm btn-outline-secondary">
+                    <a href="?date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}&department={{ department_filter }}&days_per_page={{ days_per_page }}&page={{ date_page.previous_page_number }}" class="btn btn-sm btn-outline-secondary">
                         ◀️ Previous
                     </a>
                 {% endif %}
@@ -247,113 +257,147 @@
                     {% if page_num == date_page.number %}
                         <span class="btn btn-sm btn-primary">{{ page_num }}</span>
                     {% elif page_num > date_page.number|add:'-3' and page_num < date_page.number|add:'3' %}
-                        <a href="?date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}{% if employee %}&employee={{ employee.id }}{% endif %}&days_per_page={{ days_per_page }}&page={{ page_num }}" class="btn btn-sm btn-outline-secondary">
+                        <a href="?date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}&department={{ department_filter }}&days_per_page={{ days_per_page }}&page={{ page_num }}" class="btn btn-sm btn-outline-secondary">
                             {{ page_num }}
                         </a>
                     {% endif %}
                 {% endfor %}
                 
                 {% if date_page.has_next %}
-                    <a href="?date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}{% if employee %}&employee={{ employee.id }}{% endif %}&days_per_page={{ days_per_page }}&page={{ date_page.next_page_number }}" class="btn btn-sm btn-outline-secondary">
+                    <a href="?date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}&department={{ department_filter }}&days_per_page={{ days_per_page }}&page={{ date_page.next_page_number }}" class="btn btn-sm btn-outline-secondary">
                         Next ▶️
                     </a>
-                    <a href="?date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}{% if employee %}&employee={{ employee.id }}{% endif %}&days_per_page={{ days_per_page }}&page={{ date_page.paginator.num_pages }}" class="btn btn-sm btn-outline-secondary">
+                    <a href="?date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}&department={{ department_filter }}&days_per_page={{ days_per_page }}&page={{ date_page.paginator.num_pages }}" class="btn btn-sm btn-outline-secondary">
                         Last ⏭️
                     </a>
                 {% endif %}
             </div>
         </div>
         {% endif %}
+    </div>
+</div>
 
-        <!-- Navigation -->
-        <div class="navigation-section">
-            <a href="{% url 'historical_progressive_entry' %}" class="btn btn-secondary">
-                🔍 New Search
-            </a>
-            <a href="{% url 'progressive_entry' %}" class="btn btn-primary">
-                📝 Today's Progressive Entry
-            </a>
+<!-- User Feedback Modal -->
+<div id="feedback-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="feedback-title">Processing...</h3>
+        </div>
+        <div class="modal-body">
+            <div id="feedback-message">Please wait while we process your changes...</div>
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button id="feedback-close" class="btn btn-secondary">Close</button>
         </div>
     </div>
 </div>
 
 <style>
-/* Summary Stats */
+/* Summary Statistics */
 .summary-stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 15px;
-    margin-bottom: 25px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+/* New Record Styling */
+.new-record {
+    background-color: #fff3cd;
+    border-left: 4px solid #ffc107;
+}
+
+.new-record-indicator {
+    color: #856404;
+    font-style: italic;
+    font-size: 12px;
 }
 
 .stat-card {
     background: white;
-    padding: 15px;
+    padding: 20px;
     border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     display: flex;
     align-items: center;
     gap: 15px;
 }
 
 .stat-icon {
-    font-size: 1.5em;
+    font-size: 2rem;
+}
+
+.stat-content {
+    flex: 1;
 }
 
 .stat-value {
-    font-size: 1.5em;
-    font-weight: 600;
+    font-size: 1.8rem;
+    font-weight: bold;
     color: #007bff;
+    margin-bottom: 5px;
 }
 
 .stat-label {
-    font-size: 0.9em;
     color: #6c757d;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Pagination Controls */
+.pagination-controls {
+    background: white;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.pagination-form {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 /* Bulk Update Section */
 .bulk-update-section {
-    background: #fff3cd;
-    border: 1px solid #ffeaa7;
-    border-radius: 8px;
+    background: white;
     padding: 20px;
-    margin-bottom: 25px;
-}
-
-.bulk-update-section h3 {
-    margin-top: 0;
-    color: #856404;
-    margin-bottom: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
 }
 
 .bulk-tools-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 20px;
 }
 
 .bulk-tool-card {
-    background: white;
+    background: #f8f9fa;
     padding: 15px;
     border-radius: 6px;
-    border: 1px solid #dee2e6;
+    border-left: 4px solid #007bff;
 }
 
 .bulk-tool-card h4 {
-    margin: 0 0 10px 0;
-    font-size: 1em;
+    margin-top: 0;
+    margin-bottom: 15px;
     color: #495057;
 }
 
 .quick-actions {
     display: flex;
-    gap: 8px;
     flex-wrap: wrap;
-}
-
-.bulk-action-btn {
-    font-size: 0.8em;
-    padding: 4px 8px;
+    gap: 8px;
 }
 
 .bulk-form-grid {
@@ -363,33 +407,18 @@
     align-items: end;
 }
 
-.bulk-form-grid .form-group {
-    margin: 0;
-}
-
-.bulk-form-grid label {
-    font-size: 0.8em;
-    margin-bottom: 3px;
-}
-
-.bulk-form-grid select,
-.bulk-form-grid input {
-    font-size: 0.9em;
-    padding: 6px 8px;
-}
-
 /* Date Section */
 .date-section {
     background: white;
     border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    margin-bottom: 25px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
     overflow: hidden;
 }
 
 .date-header {
     background: #f8f9fa;
-    padding: 12px 20px;
+    padding: 15px 20px;
     border-bottom: 1px solid #dee2e6;
     display: flex;
     justify-content: space-between;
@@ -398,7 +427,6 @@
 
 .date-header h3 {
     margin: 0;
-    font-size: 1.1em;
     color: #495057;
 }
 
@@ -409,202 +437,171 @@
 }
 
 .date-count {
-    font-size: 0.9em;
     color: #6c757d;
+    font-size: 0.9rem;
 }
 
-/* Employee Grid */
-.employee-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 15px;
-    padding: 20px;
+/* Table Styles */
+.table-container {
+    overflow-x: auto;
 }
 
-.employee-card {
-    background: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 6px;
-    padding: 15px;
-    transition: all 0.2s ease;
+.attendance-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
 }
 
-.employee-card:hover {
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    transform: translateY(-1px);
-}
-
-.employee-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-    padding-bottom: 8px;
+.attendance-table th,
+.attendance-table td {
+    padding: 12px;
+    text-align: left;
     border-bottom: 1px solid #dee2e6;
 }
 
-.employee-header h4 {
-    margin: 0;
-    font-size: 1em;
-    color: #495057;
-}
-
-.employee-fields {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 12px;
-}
-
-.field-group {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.field-group label {
-    font-size: 0.75em;
-    color: #6c757d;
-    font-weight: 500;
-}
-
-.inline-select.compact {
-    font-size: 0.8em;
-    padding: 4px 6px;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
-    background: white;
-}
-
-.employee-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 8px;
-    border-top: 1px solid #dee2e6;
-}
-
-.completion-indicator {
-    font-size: 0.8em;
+.attendance-table th {
+    background: #f8f9fa;
     font-weight: 600;
+    color: #495057;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
-.completion-text {
-    color: #007bff;
+.attendance-table tr:hover {
+    background: #f8f9fa;
+}
+
+.employee-name {
+    min-width: 150px;
 }
 
 .last-updated {
-    font-size: 0.7em;
     color: #6c757d;
+    font-size: 0.8rem;
 }
 
-/* Status Badges */
+/* Inline Selects */
+.inline-select {
+    padding: 6px 8px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    background: white;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.inline-select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.inline-select.changed {
+    border-color: #ffc107;
+    background: #fff3cd;
+}
+
+.inline-select.saving {
+    border-color: #28a745;
+    background: #d4edda;
+}
+
+.inline-select.error {
+    border-color: #dc3545;
+    background: #f8d7da;
+}
+
+/* Status Badge */
 .status-badge {
     display: inline-block;
-    padding: 2px 6px;
-    border-radius: 10px;
-    font-size: 10px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
     font-weight: 500;
 }
 
-.status-yes { background: #d4edda; color: #155724; }
-.status-no { background: #f8d7da; color: #721c24; }
-.status-absent { background: #fff3cd; color: #856404; }
-.status-late { background: #d1ecf1; color: #0c5460; }
-.status-appointment { background: #e2e3e5; color: #383d41; }
+.status-draft { background: #fff3cd; color: #856404; }
+.status-partial { background: #d1ecf1; color: #0c5460; }
+.status-complete { background: #d4edda; color: #155724; }
+.status-reviewed { background: #e2e3e5; color: #383d41; }
 
-/* No Records */
-.no-records {
-    text-align: center;
-    padding: 40px 20px;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+/* Completion Indicator */
+.completion-indicator {
+    margin-top: 5px;
 }
 
-.no-records-icon {
-    font-size: 3em;
-    margin-bottom: 15px;
-}
-
-/* Pagination Controls */
-.pagination-controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: white;
-    padding: 15px 20px;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    margin-bottom: 20px;
-}
-
-.pagination-info {
-    font-size: 0.9em;
+.completion-text {
+    font-size: 0.8rem;
     color: #6c757d;
 }
 
-.pagination-settings {
+/* Modal Styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
     display: flex;
     align-items: center;
-    gap: 10px;
-}
-
-.pagination-form {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.pagination-form label {
-    font-size: 0.9em;
-    color: #495057;
-    margin: 0;
-}
-
-.pagination-form select {
-    padding: 4px 8px;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
-    font-size: 0.9em;
-}
-
-/* Pagination Navigation */
-.pagination-navigation {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: white;
-    padding: 15px 20px;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    margin: 20px 0;
-}
-
-.pagination-links {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-.pagination-links .btn {
-    min-width: 40px;
-    text-align: center;
-}
-
-/* Navigation */
-.navigation-section {
-    display: flex;
-    gap: 15px;
     justify-content: center;
-    margin-top: 30px;
-    padding-top: 20px;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    max-width: 500px;
+    width: 90%;
+}
+
+.modal-header {
+    padding: 20px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #495057;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-footer {
+    padding: 20px;
     border-top: 1px solid #dee2e6;
+    text-align: right;
+}
+
+/* Progress Bar */
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 15px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: #007bff;
+    width: 0%;
+    transition: width 0.3s ease;
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
+    .summary-stats {
+        grid-template-columns: 1fr;
+    }
+    
     .bulk-tools-grid {
         grid-template-columns: 1fr;
     }
@@ -613,191 +610,339 @@
         grid-template-columns: 1fr;
     }
     
-    .employee-grid {
-        grid-template-columns: 1fr;
-    }
-    
     .date-header {
         flex-direction: column;
-        gap: 10px;
         align-items: flex-start;
+        gap: 10px;
     }
     
-    .employee-fields {
-        grid-template-columns: 1fr;
+    .attendance-table {
+        font-size: 0.9rem;
     }
     
-    .pagination-controls {
-        flex-direction: column;
-        gap: 15px;
-        align-items: stretch;
-    }
-    
-    .pagination-navigation {
-        flex-direction: column;
-        gap: 15px;
-        align-items: center;
-    }
-    
-    .pagination-links {
-        justify-content: center;
-    }
-    
-    .summary-stats {
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    .attendance-table th,
+    .attendance-table td {
+        padding: 8px 6px;
     }
 }
 </style>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Auto-save functionality for inline selects
-    const selects = document.querySelectorAll('.inline-select');
-    selects.forEach(select => {
-        select.addEventListener('change', function() {
-            const recordId = this.dataset.recordId;
-            const fieldName = this.dataset.field;
-            const fieldValue = this.value;
+(function() {
+    'use strict';
+    
+    // Track changes for each record
+    const changes = new Map();
+    let isProcessing = false;
+    
+    // Debounce utility
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+    
+    // Show feedback modal
+    function showFeedback(title, message, progress = 0) {
+        const modal = document.getElementById('feedback-modal');
+        const titleEl = document.getElementById('feedback-title');
+        const messageEl = document.getElementById('feedback-message');
+        const progressFill = document.querySelector('.progress-fill');
+        
+        titleEl.textContent = title;
+        messageEl.textContent = message;
+        progressFill.style.width = progress + '%';
+        modal.style.display = 'flex';
+    }
+    
+    // Hide feedback modal
+    function hideFeedback() {
+        document.getElementById('feedback-modal').style.display = 'none';
+    }
+    
+    // Mark field as changed
+    function markFieldChanged(field) {
+        field.classList.add('changed');
+        field.classList.remove('saving', 'error');
+    }
+    
+    // Mark field as saving
+    function markFieldSaving(field) {
+        field.classList.remove('changed', 'error');
+        field.classList.add('saving');
+    }
+    
+    // Mark field as saved
+    function markFieldSaved(field) {
+        field.classList.remove('changed', 'saving', 'error');
+    }
+    
+    // Mark field as error
+    function markFieldError(field) {
+        field.classList.remove('changed', 'saving');
+        field.classList.add('error');
+    }
+    
+    // Save individual field
+    async function saveField(recordId, fieldName, fieldValue) {
+        const field = document.querySelector(`[data-record-id="${recordId}"][data-field="${fieldName}"]`);
+        const row = field.closest('.employee-row');
+        const employeeId = row.dataset.employeeId;
+        const recordDate = row.dataset.date;
+        
+
+        
+        try {
+            markFieldSaving(field);
             
-            // Show loading state
-            this.style.opacity = '0.6';
+            // Prepare the request body
+            let requestBody;
+            if (recordId === 'new') {
+                // Creating a new record
+                requestBody = `employee_id=${employeeId}&record_date=${recordDate}&field_name=${fieldName}&field_value=${fieldValue}`;
+            } else {
+                // Updating existing record
+                requestBody = `record_id=${recordId}&field_name=${fieldName}&field_value=${fieldValue}`;
+            }
             
-            fetch('', {
+            const response = await fetch('{% url "historical_progressive_results" %}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'X-Requested-With': 'XMLHttpRequest',
                     'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
                 },
-                body: `record_id=${recordId}&field_name=${fieldName}&field_value=${fieldValue}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Show success indicator
-                    this.style.borderColor = '#28a745';
-                    setTimeout(() => {
-                        this.style.borderColor = '#ced4da';
-                    }, 1000);
-                } else {
-                    // Show error indicator
-                    this.style.borderColor = '#dc3545';
-                    setTimeout(() => {
-                        this.style.borderColor = '#ced4da';
-                    }, 2000);
+                body: requestBody
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                markFieldSaved(field);
+                
+                // If this was a new record, update the row with the new record ID
+                if (recordId === 'new' && data.record_id) {
+                    row.dataset.recordId = data.record_id;
+                    row.classList.remove('new-record');
+                    // Update all fields in this row to use the new record ID
+                    row.querySelectorAll('.inline-select').forEach(field => {
+                        field.dataset.recordId = data.record_id;
+                    });
+                    // Update the save button
+                    const saveBtn = row.querySelector('.save-row');
+                    if (saveBtn) {
+                        saveBtn.dataset.recordId = data.record_id;
+                    }
+                    // Remove the "New Record" indicator
+                    const indicator = row.querySelector('.new-record-indicator');
+                    if (indicator) {
+                        indicator.remove();
+                    }
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                this.style.borderColor = '#dc3545';
-                setTimeout(() => {
-                    this.style.borderColor = '#ced4da';
-                }, 2000);
-            })
-            .finally(() => {
-                this.style.opacity = '1';
+                
+                showFeedback('Success', `Updated ${fieldName} successfully`, 100);
+                setTimeout(hideFeedback, 2000);
+            } else {
+                markFieldError(field);
+                showFeedback('Error', data.error || 'Failed to save field', 0);
+            }
+        } catch (error) {
+            markFieldError(field);
+            showFeedback('Error', 'Network error while saving', 0);
+        }
+    }
+    
+    // Save all changes for a date
+    async function saveAllForDate(date) {
+        const rows = document.querySelectorAll(`[data-date="${date}"]`);
+        const changesForDate = [];
+        
+        rows.forEach(row => {
+            const recordId = row.dataset.recordId;
+            const fields = row.querySelectorAll('.inline-select.changed');
+            
+            fields.forEach(field => {
+                changesForDate.push({
+                    recordId: recordId,
+                    fieldName: field.dataset.field,
+                    fieldValue: field.value
+                });
             });
         });
-    });
-    
-    // Bulk action buttons
-    const bulkActionBtns = document.querySelectorAll('.bulk-action-btn');
-    bulkActionBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const action = this.dataset.action;
+        
+        if (changesForDate.length === 0) {
+            showFeedback('No Changes', 'No changes to save', 100);
+            setTimeout(hideFeedback, 2000);
+            return;
+        }
+        
+        showFeedback('Saving Changes', `Saving ${changesForDate.length} changes...`, 0);
+        
+        try {
+            const response = await fetch('{% url "historical_progressive_results" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: `bulk_save=true&changes=${JSON.stringify(changesForDate)}`
+            });
             
-            // Show confirmation dialog
-            const actionText = action.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-            if (confirm(`Are you sure you want to ${actionText} for all employees in the selected date range?`)) {
-                // Get all dates in the current view
-                const dates = Array.from(document.querySelectorAll('.date-section')).map(section => {
-                    return section.querySelector('.date-bulk-edit').dataset.date;
+            const data = await response.json();
+            
+            if (data.success) {
+                showFeedback('Success', `Saved ${data.saved_count} changes successfully`, 100);
+                // Mark all fields as saved
+                rows.forEach(row => {
+                    const fields = row.querySelectorAll('.inline-select.changed');
+                    fields.forEach(field => markFieldSaved(field));
                 });
+            } else {
+                showFeedback('Error', data.error || 'Failed to save changes', 0);
+            }
+        } catch (error) {
+            showFeedback('Error', 'Network error while saving', 0);
+        }
+    }
+    
+    // Bulk actions
+    async function performBulkAction(action, date) {
+        const rows = document.querySelectorAll(`[data-date="${date}"]`);
+        const updates = [];
+        
+        rows.forEach(row => {
+            const recordId = row.dataset.recordId;
+            const fields = row.querySelectorAll('.inline-select');
+            
+            fields.forEach(field => {
+                let newValue = '';
                 
-                // Update all dates
-                let totalUpdated = 0;
-                const promises = dates.map(date => {
-                    return fetch('', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                        },
-                        body: `action_type=bulk_action&action=${action}&target_date=${date}`
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            totalUpdated += data.updated_count;
-                            // Refresh the page to show updated data
-                            setTimeout(() => {
-                                window.location.reload();
-                            }, 1000);
-                        } else {
-                            console.error('Bulk action failed:', data.error);
+                switch (action) {
+                    case 'mark-all-present':
+                        if (field.dataset.field !== 'lunch_time') {
+                            newValue = 'YES';
                         }
+                        break;
+                    case 'mark-all-late':
+                        if (field.dataset.field !== 'lunch_time') {
+                            newValue = 'LATE';
+                        }
+                        break;
+                    case 'mark-all-absent':
+                        if (field.dataset.field !== 'lunch_time') {
+                            newValue = 'ABSENT';
+                        }
+                        break;
+                    case 'clear-all':
+                        newValue = '';
+                        break;
+                }
+                
+                if (newValue !== field.value) {
+                    updates.push({
+                        recordId: recordId,
+                        fieldName: field.dataset.field,
+                        fieldValue: newValue
                     });
+                    field.value = newValue;
+                    markFieldChanged(field);
+                }
+            });
+        });
+        
+        if (updates.length > 0) {
+            showFeedback('Applying Changes', `Applying ${updates.length} changes...`, 0);
+            
+            try {
+                const response = await fetch('{% url "historical_progressive_results" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: `bulk_action=${action}&updates=${JSON.stringify(updates)}`
                 });
                 
-                Promise.all(promises).then(() => {
-                    if (totalUpdated > 0) {
-                        alert(`Successfully updated ${totalUpdated} records across all dates!`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    showFeedback('Success', `Applied ${data.applied_count} changes successfully`, 100);
+                } else {
+                    showFeedback('Error', data.error || 'Failed to apply changes', 0);
+                }
+            } catch (error) {
+                showFeedback('Error', 'Network error while applying changes', 0);
+            }
+        }
+    }
+    
+    // Event listeners
+    document.addEventListener('DOMContentLoaded', function() {
+        // Field change events
+        document.addEventListener('change', debounce(function(e) {
+            if (e.target.matches('.inline-select')) {
+                const recordId = e.target.dataset.recordId;
+                const fieldName = e.target.dataset.field;
+                const fieldValue = e.target.value;
+                
+                markFieldChanged(e.target);
+                
+                // Auto-save after 2 seconds
+                setTimeout(() => {
+                    if (e.target.classList.contains('changed')) {
+                        saveField(recordId, fieldName, fieldValue);
                     }
+                }, 2000);
+            }
+        }, 300));
+        
+        // Save row button
+        document.addEventListener('click', function(e) {
+            if (e.target.matches('.save-row')) {
+                const recordId = e.target.dataset.recordId;
+                const row = e.target.closest('.employee-row');
+                const fields = row.querySelectorAll('.inline-select.changed');
+                
+                if (fields.length === 0) {
+                    showFeedback('No Changes', 'No changes to save for this row', 100);
+                    setTimeout(hideFeedback, 2000);
+                    return;
+                }
+                
+                fields.forEach(field => {
+                    saveField(recordId, field.dataset.field, field.value);
                 });
             }
         });
-    });
-    
-    // Date bulk edit buttons
-    const dateBulkEditBtns = document.querySelectorAll('.date-bulk-edit');
-    dateBulkEditBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const date = this.dataset.date;
-            
-            // Create a modal or dropdown for date-specific actions
-            const action = prompt(`Choose action for ${date}:\n1. Mark all present\n2. Mark all late\n3. Mark all absent\n\nEnter 1, 2, or 3:`);
-            
-            if (action) {
-                let actionName = '';
-                switch(action.trim()) {
-                    case '1':
-                        actionName = 'mark-all-present';
-                        break;
-                    case '2':
-                        actionName = 'mark-all-late';
-                        break;
-                    case '3':
-                        actionName = 'mark-all-absent';
-                        break;
-                    default:
-                        alert('Invalid action selected');
-                        return;
-                }
-                
-                if (confirm(`Are you sure you want to mark all employees as ${actionName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} for ${date}?`)) {
-                    fetch('', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                        },
-                        body: `action_type=bulk_action&action=${actionName}&target_date=${date}`
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            alert(`Successfully updated ${data.updated_count} records for ${date}!`);
-                            window.location.reload();
-                        } else {
-                            alert('Error: ' + data.error);
-                        }
-                    });
-                }
+        
+        // Save all for date
+        document.addEventListener('click', function(e) {
+            if (e.target.matches('.date-save-all')) {
+                const date = e.target.dataset.date;
+                saveAllForDate(date);
             }
         });
+        
+        // Bulk actions
+        document.addEventListener('click', function(e) {
+            if (e.target.matches('.bulk-action-btn')) {
+                const action = e.target.dataset.action;
+                const activeDate = document.querySelector('.date-section').querySelector('[data-date]').dataset.date;
+                performBulkAction(action, activeDate);
+            }
+        });
+        
+        // Modal close
+        document.getElementById('feedback-close').addEventListener('click', hideFeedback);
     });
-});
+})();
 </script>
 {% endblock %} 

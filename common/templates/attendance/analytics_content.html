@@ -1,3 +1,4 @@
+{% load cache %}
 <!-- Summary Statistics - Cache for 2 minutes -->
 {% cache 120 'analytics_stats' request.user.id %}
 <div class="stats-grid">

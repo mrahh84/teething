@@ -327,20 +327,28 @@ class AttendanceRecord(models.Model):
     def arrival_time(self):
         """Get the arrival time from clock-in events (in local timezone)"""
         from datetime import datetime, time
-        # Use timezone-aware range queries to handle timezone issues
-        start_of_day = timezone.make_aware(datetime.combine(self.date, time.min))
-        end_of_day = timezone.make_aware(datetime.combine(self.date, time.max))
         
-        clock_in_event = Event.objects.filter(
+        # Use timezone-aware range queries to handle timezone boundaries
+        # Create range for the entire day in local timezone
+        start_of_day_local = datetime.combine(self.date, time.min)
+        end_of_day_local = datetime.combine(self.date, time.max)
+        
+        # Convert to UTC for database query
+        start_of_day_utc = timezone.make_aware(start_of_day_local)
+        end_of_day_utc = timezone.make_aware(end_of_day_local)
+        
+        # Query for events within the UTC range
+        clock_in_events = Event.objects.filter(
             employee=self.employee,
             event_type__name='Clock In',
-            timestamp__gte=start_of_day,
-            timestamp__lte=end_of_day
-        ).order_by('timestamp').last()  # Get the most recent clock-in
+            timestamp__gte=start_of_day_utc,
+            timestamp__lte=end_of_day_utc
+        ).order_by('timestamp')
         
-        if clock_in_event:
-            # Convert to local timezone before extracting time
-            local_timestamp = timezone.localtime(clock_in_event.timestamp)
+        if clock_in_events.exists():
+            # Get the earliest clock-in event (first arrival of the day)
+            earliest_event = clock_in_events.first()
+            local_timestamp = timezone.localtime(earliest_event.timestamp)
             return local_timestamp.time()
         return None
 
@@ -348,49 +356,56 @@ class AttendanceRecord(models.Model):
     def arrival_datetime(self):
         """Get the arrival datetime from clock-in events"""
         from datetime import datetime, time
-        # Use timezone-aware range queries to handle timezone issues
-        start_of_day = timezone.make_aware(datetime.combine(self.date, time.min))
-        end_of_day = timezone.make_aware(datetime.combine(self.date, time.max))
         
-        clock_in_event = Event.objects.filter(
+        # Use timezone-aware range queries to handle timezone boundaries
+        # Create range for the entire day in local timezone
+        start_of_day_local = datetime.combine(self.date, time.min)
+        end_of_day_local = datetime.combine(self.date, time.max)
+        
+        # Convert to UTC for database query
+        start_of_day_utc = timezone.make_aware(start_of_day_local)
+        end_of_day_utc = timezone.make_aware(end_of_day_local)
+        
+        # Query for events within the UTC range
+        clock_in_events = Event.objects.filter(
             employee=self.employee,
             event_type__name='Clock In',
-            timestamp__gte=start_of_day,
-            timestamp__lte=end_of_day
-        ).order_by('timestamp').last()  # Get the most recent clock-in
+            timestamp__gte=start_of_day_utc,
+            timestamp__lte=end_of_day_utc
+        ).order_by('timestamp')
         
-        return clock_in_event.timestamp if clock_in_event else None
+        if clock_in_events.exists():
+            # Get the earliest clock-in event (first arrival of the day)
+            earliest_event = clock_in_events.first()
+            return earliest_event.timestamp
+        return None
 
     @property
     def departure_time(self):
         """Get the departure time from clock-out events (in local timezone)"""
         from datetime import datetime, time
-        # Use timezone-aware range queries to handle timezone issues
-        start_of_day = timezone.make_aware(datetime.combine(self.date, time.min))
-        end_of_day = timezone.make_aware(datetime.combine(self.date, time.max))
         
-        # First find the most recent clock-in event
-        latest_clock_in = Event.objects.filter(
-            employee=self.employee,
-            event_type__name='Clock In',
-            timestamp__gte=start_of_day,
-            timestamp__lte=end_of_day
-        ).order_by('timestamp').last()
+        # Use timezone-aware range queries to handle timezone boundaries
+        # Create range for the entire day in local timezone
+        start_of_day_local = datetime.combine(self.date, time.min)
+        end_of_day_local = datetime.combine(self.date, time.max)
         
-        if not latest_clock_in:
-            return None
+        # Convert to UTC for database query
+        start_of_day_utc = timezone.make_aware(start_of_day_local)
+        end_of_day_utc = timezone.make_aware(end_of_day_local)
         
-        # Then find the first clock-out event after the latest clock-in
-        clock_out_event = Event.objects.filter(
+        # Query for events within the UTC range
+        clock_out_events = Event.objects.filter(
             employee=self.employee,
             event_type__name='Clock Out',
-            timestamp__gte=latest_clock_in.timestamp,
-            timestamp__lte=end_of_day
-        ).order_by('timestamp').first()
+            timestamp__gte=start_of_day_utc,
+            timestamp__lte=end_of_day_utc
+        ).order_by('timestamp')
         
-        if clock_out_event:
-            # Convert to local timezone before extracting time
-            local_timestamp = timezone.localtime(clock_out_event.timestamp)
+        if clock_out_events.exists():
+            # Get the most recent clock-out event
+            latest_event = clock_out_events.last()
+            local_timestamp = timezone.localtime(latest_event.timestamp)
             return local_timestamp.time()
         return None
 
@@ -528,14 +543,19 @@ class Event(models.Model):
             invalidate_employee_cache(self.employee_id)
             invalidate_main_security_cache()  # Also invalidate main security page cache
         except ImportError:
+            # Fallback: clear Django's default cache for this employee
+            from django.core.cache import cache
+            cache.delete(f"employee_status_{self.employee_id}")
+            cache.delete(f"employee_last_event_{self.employee_id}")
             pass  # Ignore if cache utils not available
     
     def _create_attendance_record(self):
         """Automatically create attendance record when employee clocks in"""
         from django.contrib.auth.models import User
         
-        # Get the date of the clock-in event
-        event_date = self.timestamp.date()
+        # Get the local date of the clock-in event (not UTC date)
+        event_local_time = timezone.localtime(self.timestamp)
+        event_date = event_local_time.date()
         
         # Check if attendance record already exists for this employee and date
         existing_record = AttendanceRecord.objects.filter(
@@ -545,7 +565,7 @@ class Event(models.Model):
         
         if existing_record:
             # Update existing record with arrival time (in local timezone)
-            local_time = timezone.localtime(self.timestamp).time()
+            local_time = event_local_time.time()
             existing_record.notes = f"Updated arrival time: {local_time}"
             existing_record.save()
             return
@@ -554,7 +574,7 @@ class Event(models.Model):
         admin_user = User.objects.filter(is_superuser=True).first()
         
         # Get local time for the note
-        local_time = timezone.localtime(self.timestamp).time()
+        local_time = event_local_time.time()
         
         attendance_record = AttendanceRecord.objects.create(
             employee=self.employee,
@@ -567,8 +587,9 @@ class Event(models.Model):
     
     def _update_attendance_record(self):
         """Update attendance record when employee clocks out"""
-        # Get the date of the clock-out event
-        event_date = self.timestamp.date()
+        # Get the local date of the clock-out event (not UTC date)
+        event_local_time = timezone.localtime(self.timestamp)
+        event_date = event_local_time.date()
         
         # Find existing attendance record for this employee and date
         existing_record = AttendanceRecord.objects.filter(
@@ -579,7 +600,7 @@ class Event(models.Model):
         if existing_record:
             # Update the record with departure time info (in local timezone)
             current_notes = existing_record.notes or ""
-            local_time = timezone.localtime(self.timestamp).time()
+            local_time = event_local_time.time()
             departure_note = f"Clock-out at {local_time}"
             
             if current_notes:

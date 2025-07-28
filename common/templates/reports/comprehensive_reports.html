@@ -29,10 +29,7 @@
                     onclick="switchTab('period_summary')">
                 📅 Period Summary
             </button>
-            <button class="tab-button {% if active_tab == 'late_early' %}active{% endif %}" 
-                    onclick="switchTab('late_early')">
-                ⏰ Late & Early Report
-            </button>
+
         </div>
 
         <!-- Tab Content -->
@@ -265,56 +262,7 @@
             </div>
 
             <!-- Late & Early Report Tab -->
-            <div id="late_early-tab" class="tab-pane {% if active_tab == 'late_early' %}active{% endif %}">
-                <div class="tab-header">
-                    <h3>⏰ Late Arrival & Early Departure Report</h3>
-                    <p>Track employee punctuality with customizable thresholds for lateness and early departures</p>
-                </div>
-                
-                <!-- Date Range and Threshold Filter -->
-                <form method="get" class="filter-form">
-                    <input type="hidden" name="tab" value="late_early">
-                    <div class="field-group">
-                        <div>
-                            <label for="start_date">Start Date</label>
-                            <input type="date" name="start_date" value="{{ start_date }}" class="form-control">
-                        </div>
-                        <div>
-                            <label for="end_date">End Date</label>
-                            <input type="date" name="end_date" value="{{ end_date }}" class="form-control">
-                        </div>
-                        <div>
-                            <label for="late_threshold">Late Threshold (minutes)</label>
-                            <input type="number" name="late_threshold" value="15" min="0" max="120" class="form-control">
-                        </div>
-                        <div>
-                            <label for="early_threshold">Early Threshold (minutes)</label>
-                            <input type="number" name="early_threshold" value="30" min="0" max="120" class="form-control">
-                        </div>
-                        <div>
-                            <button type="submit" class="btn btn-primary">🔄 Update Report</button>
-                        </div>
-                    </div>
-                </form>
 
-                <!-- Marimo report iframe -->
-                {% if marimo_available %}
-                <div class="marimo-container">
-                    <iframe 
-                        src="{% url 'generate_marimo_report' 'late_early' %}?start_date={{ start_date }}&end_date={{ end_date }}&late_threshold=15&early_threshold=30"
-                        width="100%" 
-                        height="800px" 
-                        frameborder="0"
-                        title="Late Arrival & Early Departure Report">
-                    </iframe>
-                </div>
-                {% else %}
-                <div class="marimo-unavailable">
-                    <p>⚠️ Marimo is not available. Please install marimo to view interactive reports.</p>
-                    <p>Install with: <code>pip install marimo</code></p>
-                </div>
-                {% endif %}
-            </div>
         </div>
     </div>
 </div>

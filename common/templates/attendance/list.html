@@ -12,7 +12,7 @@
     </div>
     <div class="card-body">
         <!-- Filter Form - Cache for 5 minutes -->
-        {% cache 300 'attendance_filters' request.user.id %}
+        {% cache 300 'attendance_filters' request.user.id request.GET.department %}
         <form method="get" class="controls-wrapper" style="margin-bottom: 20px;">
             <div class="controls">
                 <div class="filter-group">
@@ -33,7 +33,7 @@
                 </div>
                 <div class="filter-group">
                     <label for="department">Department:</label>
-                    <select id="department" name="department" class="form-control">
+                    <select id="department" name="department" class="form-control" onchange="this.form.submit()">
                         <option value="">All Departments</option>
                         {% for dept in available_departments %}
                         <option value="{{ dept }}" {% if department_filter == dept %}selected{% endif %}>{{ dept }}</option>
@@ -49,7 +49,7 @@
         {% endcache %}
 
         <!-- Records Table - Cache for 2 minutes -->
-        {% cache 120 'attendance_table' request.user.id page_obj.number %}
+        {% cache 120 'attendance_table' request.user.id page_obj.number request.GET.department %}
         {% if page_obj %}
             <table class="attendance-table">
                 <thead>
@@ -178,7 +178,7 @@
 
         <!-- Pagination - Cache for 5 minutes -->
         {% if page_obj and page_obj.has_other_pages %}
-        {% cache 300 'attendance_pagination' page_obj.number %}
+        {% cache 300 'attendance_pagination' page_obj.number request.GET.department %}
             <div class="pagination">
                 <div class="pagination-info">
                     Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} records

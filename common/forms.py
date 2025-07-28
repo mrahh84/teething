@@ -214,13 +214,18 @@ class HistoricalProgressiveEntryForm(forms.Form):
         help_text="End date for the period you want to modify"
     )
     
-    employee = forms.ModelChoiceField(
-        queryset=Employee.objects.filter(is_active=True),
-        required=False,
-        empty_label="All Employees",
+    department = forms.ChoiceField(
+        choices=[
+            ('Digitization Tech', 'Digitization Tech'),
+            ('Material Retriever', 'Material Retriever'),
+            ('Custodian', 'Custodian'),
+            ('Con', 'Con'),
+            ('All Departments', 'All Departments'),
+        ],
+        initial='Digitization Tech',
         widget=forms.Select(attrs={'class': 'form-select'}),
-        label="Employee (Optional)",
-        help_text="Leave blank to modify all employees for the selected period"
+        label="Department",
+        help_text="Select department to modify attendance records for employees in that department"
     )
     
     def clean(self):

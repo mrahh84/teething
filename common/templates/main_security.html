@@ -255,7 +255,7 @@
     </div>
 
     <!-- Controls - Cache for 5 minutes -->
-    {% cache 300 'main_security_controls' request.user.id %}
+            {% cache 300 'main_security_controls' request.user.id start_letter %}
     <div class="controls-wrapper">
         <h2>Employee Status</h2>
         <form method="get" class="controls" style="margin-bottom: 0;">
@@ -298,7 +298,7 @@
     {% endcache %}
 
     <!-- Employee Table - Cache for 2 minutes -->
-    {% cache 120 'main_security_table' request.user.id current_page %}
+            {% cache 120 'main_security_table' request.user.id current_page start_letter %}
     <table id="employee-table">
         <thead>
             <tr>
@@ -359,7 +359,7 @@
     {% endcache %}
 
     <!-- Pagination - Cache for 5 minutes -->
-    {% cache 300 'main_security_pagination' current_page %}
+            {% cache 300 'main_security_pagination' current_page start_letter %}
     <div class="pagination">
       <div class="pagination-info">
         Showing {{ employees.start_index }} to {{ employees.end_index }} of {{ total_employees }} employees

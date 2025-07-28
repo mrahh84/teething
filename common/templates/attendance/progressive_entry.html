@@ -455,92 +455,168 @@
 </style>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Auto-save functionality for inline fields
-    let saveTimeout;
+(function() {
+    'use strict';
     
-    function autoSave(employeeId, fieldName, fieldValue) {
-        clearTimeout(saveTimeout);
-        
-        saveTimeout = setTimeout(() => {
-            const formData = new FormData();
-            formData.append('employee_id', employeeId);
-            formData.append('field_name', fieldName);
-            formData.append('field_value', fieldValue);
-            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-            
-            fetch('{% url "progressive_entry" %}', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Update completion bar
-                    const row = document.querySelector(`[data-employee-id="${employeeId}"]`);
-                    const completionBar = row.querySelector('.completion-fill');
-                    const completionText = row.querySelector('.completion-text');
-                    
-                    if (completionBar && completionText) {
-                        completionBar.style.width = data.completion + '%';
-                        completionText.textContent = Math.round(data.completion) + '%';
-                    }
-                    
-                    // Show success indicator
-                    showSaveIndicator(row, true);
-                } else {
-                    showSaveIndicator(row, false);
-                }
-            })
-            .catch(error => {
-                console.error('Auto-save failed:', error);
-                showSaveIndicator(row, false);
-            });
-        }, 1000); // 1 second delay
+    // Debounce utility function
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
     }
     
-    function showSaveIndicator(row, success) {
-        const indicator = document.createElement('div');
-        indicator.className = `save-indicator ${success ? 'success' : 'error'}`;
-        indicator.textContent = success ? '✓' : '✗';
-        indicator.style.cssText = `
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: bold;
-            color: white;
-            background: ${success ? '#28a745' : '#dc3545'};
-            z-index: 10;
-        `;
+    // Batch processing for multiple field changes
+    let pendingChanges = new Map();
+    let batchTimeout = null;
+    
+    function batchSave() {
+        if (pendingChanges.size === 0) return;
         
-        row.style.position = 'relative';
-        row.appendChild(indicator);
+        const formData = new FormData();
+        formData.append('batch_update', 'true');
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        
+        // Add all pending changes to form data
+        pendingChanges.forEach((value, key) => {
+            const [employeeId, fieldName] = key.split('|');
+            formData.append(`changes[${employeeId}][${fieldName}]`, value);
+        });
+        
+        // Clear pending changes
+        pendingChanges.clear();
+        
+        // Show loading state
+        showBatchLoadingState(true);
+        
+        fetch('{% url "progressive_entry" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showBatchSuccessState();
+                updateCompletionBars(data.completions);
+            } else {
+                showBatchErrorState(data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Batch save failed:', error);
+            showBatchErrorState('Network error');
+        })
+        .finally(() => {
+            showBatchLoadingState(false);
+        });
+    }
+    
+    // Event delegation for all form field changes
+    document.addEventListener('change', debounce(function(e) {
+        if (e.target.matches('.inline-select, .inline-time')) {
+            const employeeId = e.target.dataset.employeeId;
+            const fieldName = e.target.dataset.field;
+            const fieldValue = e.target.value;
+            
+            if (!employeeId || !fieldName) return;
+            
+            // Add to pending changes
+            const key = `${employeeId}|${fieldName}`;
+            pendingChanges.set(key, fieldValue);
+            
+            // Schedule batch save
+            if (batchTimeout) clearTimeout(batchTimeout);
+            batchTimeout = setTimeout(batchSave, 1000); // 1 second delay
+            
+            // Show immediate feedback
+            showFieldChangeIndicator(e.target, true);
+        }
+    }, 300)); // 300ms debounce
+    
+    // Utility functions for UI feedback
+    function showFieldChangeIndicator(field, isPending) {
+        field.style.borderColor = isPending ? '#ffc107' : '#28a745';
+        field.style.backgroundColor = isPending ? '#fff3cd' : '#d4edda';
         
         setTimeout(() => {
-            indicator.remove();
+            field.style.borderColor = '';
+            field.style.backgroundColor = '';
         }, 2000);
     }
     
-    // Add event listeners to inline fields
-    document.querySelectorAll('.inline-select, .inline-time').forEach(field => {
-        field.addEventListener('change', function() {
-            const employeeId = this.dataset.employeeId;
-            const fieldName = this.dataset.field;
-            const fieldValue = this.value;
-            
-            autoSave(employeeId, fieldName, fieldValue);
+    function showBatchLoadingState(show) {
+        const loadingIndicator = document.getElementById('batch-loading') || createLoadingIndicator();
+        loadingIndicator.style.display = show ? 'block' : 'none';
+    }
+    
+    function showBatchSuccessState() {
+        const successIndicator = document.getElementById('batch-success') || createSuccessIndicator();
+        successIndicator.style.display = 'block';
+        setTimeout(() => {
+            successIndicator.style.display = 'none';
+        }, 3000);
+    }
+    
+    function showBatchErrorState(error) {
+        const errorIndicator = document.getElementById('batch-error') || createErrorIndicator();
+        errorIndicator.textContent = `Error: ${error}`;
+        errorIndicator.style.display = 'block';
+        setTimeout(() => {
+            errorIndicator.style.display = 'none';
+        }, 5000);
+    }
+    
+    function updateCompletionBars(completions) {
+        Object.entries(completions).forEach(([employeeId, completion]) => {
+            const row = document.querySelector(`[data-employee-id="${employeeId}"]`);
+            if (row) {
+                const completionBar = row.querySelector('.completion-fill');
+                const completionText = row.querySelector('.completion-text');
+                if (completionBar && completionText) {
+                    completionBar.style.width = completion + '%';
+                    completionText.textContent = Math.round(completion) + '%';
+                }
+            }
         });
-    });
-});
+    }
+    
+    // Create UI indicators
+    function createLoadingIndicator() {
+        const indicator = document.createElement('div');
+        indicator.id = 'batch-loading';
+        indicator.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div> Saving changes...';
+        indicator.className = 'alert alert-info position-fixed';
+        indicator.style.cssText = 'top: 20px; right: 20px; z-index: 9999; display: none;';
+        document.body.appendChild(indicator);
+        return indicator;
+    }
+    
+    function createSuccessIndicator() {
+        const indicator = document.createElement('div');
+        indicator.id = 'batch-success';
+        indicator.innerHTML = '✓ Changes saved successfully!';
+        indicator.className = 'alert alert-success position-fixed';
+        indicator.style.cssText = 'top: 20px; right: 20px; z-index: 9999; display: none;';
+        document.body.appendChild(indicator);
+        return indicator;
+    }
+    
+    function createErrorIndicator() {
+        const indicator = document.createElement('div');
+        indicator.id = 'batch-error';
+        indicator.className = 'alert alert-danger position-fixed';
+        indicator.style.cssText = 'top: 20px; right: 20px; z-index: 9999; display: none;';
+        document.body.appendChild(indicator);
+        return indicator;
+    }
+})();
 </script>
 {% endblock %} 

@@ -13,7 +13,6 @@ NOTEBOOKS=(
     "daily_attendance_dashboard"
     "employee_attendance_history"
     "attendance_summary_by_period"
-    "late_early_report"
 )
 
 # Run each notebook
