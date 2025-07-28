@@ -216,7 +216,7 @@ def comprehensive_reports(request):
 
     active_tab = request.GET.get('tab', 'comprehensive_attendance')
     
-    start_date = request.GET.get('start_date', (timezone.now() - timedelta(days=30)).date().isoformat())
+    start_date = request.GET.get('start_date', timezone.now().date().replace(day=1).isoformat())
     end_date = request.GET.get('end_date', timezone.now().date().isoformat())
     department_filter = request.GET.get('department', 'Digitization Tech')  # Default to Digitization Tech
     
@@ -1417,7 +1417,7 @@ def employee_history_report(request):
     # Get filter parameters
     employee_id = request.GET.get("employee_id")
     start_date = request.GET.get(
-        "start_date", (timezone.now() - timedelta(days=30)).date().isoformat()
+        "start_date", timezone.now().date().replace(day=1).isoformat()
     )
     end_date = request.GET.get("end_date", timezone.now().date().isoformat())
 
@@ -1487,7 +1487,7 @@ def generate_marimo_report(request, report_type):
 
         # Get filter parameters
         start_date_str = request.GET.get(
-            "start", (timezone.now() - timedelta(days=30)).date().isoformat()
+            "start", timezone.now().date().replace(day=1).isoformat()
         )
         end_date_str = request.GET.get("end", timezone.now().date().isoformat())
 
