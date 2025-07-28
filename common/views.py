@@ -377,27 +377,26 @@ def progressive_entry(request):
     else:
         form = ProgressiveEntryForm()
     
-    # Get all active employees - OPTIMIZED
-    employees = Employee.objects.filter(
-        is_active=True
-    ).select_related('card_number').order_by('surname', 'given_name')
-    
-    # Get all employees who have clocked in today for status tracking
+    # Get employees who were actually present (had clock-in events) today
     from datetime import time
     start_of_day = timezone.make_aware(datetime.combine(today, time.min))
     end_of_day = timezone.make_aware(datetime.combine(today, time.max))
     
-    # Single query to get all clocked-in employee IDs
-    clocked_in_employee_ids = set(
-        Event.objects.filter(
-            event_type__name='Clock In',
-            timestamp__gte=start_of_day,
-            timestamp__lte=end_of_day
-        ).values_list('employee_id', flat=True)
-    )
+    # Get employees who clocked in today
+    present_employees = Event.objects.filter(
+        event_type__name='Clock In',
+        timestamp__gte=start_of_day,
+        timestamp__lte=end_of_day
+    ).values_list('employee', flat=True).distinct()
+    
+    # Get the actual employee objects for present employees
+    employees = Employee.objects.filter(
+        id__in=present_employees,
+        is_active=True
+    ).select_related('card_number').order_by('surname', 'given_name')
     
     # Apply department filter
-    if department_filter:
+    if department_filter and department_filter != 'All Departments':
         employees = filter_employees_by_department(employees, department_filter)
     
     # Apply letter filter
@@ -425,12 +424,11 @@ def progressive_entry(request):
     employee_attendance = []
     for employee in employees:
         record = records_by_employee.get(employee.id)
-        is_clocked_in = employee.id in clocked_in_employee_ids
         
         employee_attendance.append({
             'employee': employee,
             'record': record,
-            'is_clocked_in': is_clocked_in,
+            'is_clocked_in': True,  # All employees shown are present
             'arrival_time': record.arrival_time if record else None,
             'departure_time': record.departure_time if record else None,
         })
