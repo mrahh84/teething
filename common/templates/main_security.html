@@ -1,3 +1,4 @@
+{% load cache %}
 <!DOCTYPE html>
 <html>
 <head>
@@ -253,6 +254,8 @@
         </div>
     </div>
 
+    <!-- Controls - Cache for 5 minutes -->
+    {% cache 300 'main_security_controls' request.user.id %}
     <div class="controls-wrapper">
         <h2>Employee Status</h2>
         <form method="get" class="controls" style="margin-bottom: 0;">
@@ -292,7 +295,10 @@
             {% endfor %}
         </div>
     </div>
+    {% endcache %}
 
+    <!-- Employee Table - Cache for 2 minutes -->
+    {% cache 120 'main_security_table' request.user.id current_page %}
     <table id="employee-table">
         <thead>
             <tr>
@@ -350,7 +356,10 @@
             {% endfor %}
         </tbody>
     </table>
+    {% endcache %}
 
+    <!-- Pagination - Cache for 5 minutes -->
+    {% cache 300 'main_security_pagination' current_page %}
     <div class="pagination">
       <div class="pagination-info">
         Showing {{ employees.start_index }} to {{ employees.end_index }} of {{ total_employees }} employees
@@ -371,6 +380,7 @@
         {% endif %}
       </div>
     </div>
+    {% endcache %}
     {% endblock %}
 </body>
 </html>

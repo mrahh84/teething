@@ -1,5 +1,6 @@
 {% extends "attendance/base.html" %}
 {% load attendance_extras %}
+{% load cache %}
 
 {% block attendance_content %}
 <div class="attendance-card">
@@ -10,7 +11,8 @@
         </div>
     </div>
     <div class="card-body">
-        <!-- Filter Form -->
+        <!-- Filter Form - Cache for 5 minutes -->
+        {% cache 300 'attendance_filters' request.user.id %}
         <form method="get" class="controls-wrapper" style="margin-bottom: 20px;">
             <div class="controls">
                 <div class="filter-group">
@@ -44,8 +46,10 @@
                 <a href="{% url 'attendance_list' %}" class="btn" style="margin-left: 10px;">Clear Filters</a>
             </div>
         </form>
+        {% endcache %}
 
-        <!-- Records Table -->
+        <!-- Records Table - Cache for 2 minutes -->
+        {% cache 120 'attendance_table' request.user.id page_obj.number %}
         {% if page_obj %}
             <table class="attendance-table">
                 <thead>
@@ -164,9 +168,17 @@
                     {% endfor %}
                 </tbody>
             </table>
+        {% else %}
+            <div style="text-align: center; padding: 40px;">
+                <p>No attendance records found.</p>
+                <a href="{% url 'attendance_entry' %}" class="btn btn-primary">Add First Record</a>
+            </div>
+        {% endif %}
+        {% endcache %}
 
-            <!-- Pagination -->
-            {% if page_obj.has_other_pages %}
+        <!-- Pagination - Cache for 5 minutes -->
+        {% if page_obj and page_obj.has_other_pages %}
+        {% cache 300 'attendance_pagination' page_obj.number %}
             <div class="pagination">
                 <div class="pagination-info">
                     Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} records
@@ -189,12 +201,7 @@
                     {% endif %}
                 </div>
             </div>
-            {% endif %}
-        {% else %}
-            <div style="text-align: center; padding: 40px;">
-                <p>No attendance records found.</p>
-                <a href="{% url 'attendance_entry' %}" class="btn btn-primary">Add First Record</a>
-            </div>
+        {% endcache %}
         {% endif %}
     </div>
 </div>

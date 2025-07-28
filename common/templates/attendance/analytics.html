@@ -1,4 +1,5 @@
 {% extends "attendance/base.html" %}
+{% load cache %}
 
 {% block title %}Attendance Analytics{% endblock %}
 
@@ -14,7 +15,8 @@
         </div>
     </div>
 
-    <!-- Date and Department Filter Form -->
+    <!-- Date and Department Filter Form - Cache for 5 minutes -->
+    {% cache 300 'analytics_filters' request.user.id %}
     <div class="filter-section">
         <form method="get" class="filter-form">
             <div class="form-row">
@@ -41,6 +43,7 @@
             </div>
         </form>
     </div>
+    {% endcache %}
 
     <!-- Summary Statistics -->
     <div class="stats-grid">

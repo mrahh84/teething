@@ -1,4 +1,5 @@
-<!-- Summary Statistics -->
+<!-- Summary Statistics - Cache for 2 minutes -->
+{% cache 120 'analytics_stats' request.user.id %}
 <div class="stats-grid">
     <div class="stat-card">
         <div class="stat-number">{{ total_records }}</div>
@@ -17,8 +18,10 @@
         <div class="stat-label">Attendance Rate</div>
     </div>
 </div>
+{% endcache %}
 
-<!-- Top Problematic Employees -->
+<!-- Top Problematic Employees - Cache for 2 minutes -->
+{% cache 120 'analytics_problematic' request.user.id %}
 {% if top_problematic %}
 <div class="section">
     <h2>Top Problematic Employees</h2>
@@ -42,8 +45,10 @@
     </div>
 </div>
 {% endif %}
+{% endcache %}
 
-<!-- Period Summary Statistics -->
+<!-- Period Summary Statistics - Cache for 2 minutes -->
+{% cache 120 'analytics_period_summary' request.user.id %}
 {% if period_summary %}
 <div class="section">
     <h2>Period Attendance Summary</h2>
@@ -75,6 +80,7 @@
     </div>
 </div>
 {% endif %}
+{% endcache %}
 
 <style>
 .stats-grid {

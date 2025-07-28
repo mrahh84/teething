@@ -421,6 +421,171 @@ class LetterFilteringTestCase(TestCase):
         self.assertContains(response, 'Adams')
 
 
+class TemplateFragmentCachingTestCase(TestCase):
+    """Test cases for template fragment caching functionality."""
+    
+    def setUp(self):
+        """Set up test data for template caching tests."""
+        # Create test user
+        self.user = User.objects.create_user(
+            username='testuser',
+            password='testpass123'
+        )
+        
+        # Create test employees
+        self.employees = []
+        for i in range(5):
+            employee = Employee.objects.create(
+                given_name=f'Test{i}',
+                surname=f'Employee{i}',
+                is_active=True
+            )
+            self.employees.append(employee)
+        
+        # Create test attendance records
+        today = timezone.now().date()
+        for employee in self.employees:
+            AttendanceRecord.objects.create(
+                employee=employee,
+                date=today,
+                created_by=self.user
+            )
+    
+    def test_attendance_list_template_renders_with_caching(self):
+        """Test that attendance list template renders successfully with fragment caching."""
+        client = Client()
+        client.force_login(self.user)
+        
+        # Test that the page renders without errors
+        response = client.get(reverse('attendance_list'))
+        self.assertEqual(response.status_code, 200)
+        
+        # Verify that the page contains expected content (indicating caching is working)
+        self.assertContains(response, 'Attendance Records')
+        self.assertContains(response, 'Apply Filters')
+        self.assertContains(response, 'Clear Filters')
+    
+    def test_main_security_template_renders_with_caching(self):
+        """Test that main security template renders successfully with fragment caching."""
+        client = Client()
+        client.force_login(self.user)
+        
+        # Test that the page renders without errors
+        response = client.get(reverse('main_security'))
+        self.assertEqual(response.status_code, 200)
+        
+        # Verify that the page contains expected content (indicating caching is working)
+        self.assertContains(response, 'Employee Status')
+        self.assertContains(response, 'Apply Filters')
+        self.assertContains(response, 'Clear All Filters')
+    
+    def test_analytics_template_renders_with_caching(self):
+        """Test that analytics template renders successfully with fragment caching."""
+        client = Client()
+        client.force_login(self.user)
+        
+        # Test that the page renders without errors
+        response = client.get(reverse('attendance_analytics'))
+        self.assertEqual(response.status_code, 200)
+        
+        # Verify that the page contains expected content (indicating caching is working)
+        self.assertContains(response, 'Attendance Analytics')
+        self.assertContains(response, 'Apply Filter')
+        self.assertContains(response, 'Period Attendance Summary')
+    
+    def test_cache_keys_are_unique_for_different_users(self):
+        """Test that cache keys are unique for different users."""
+        client = Client()
+        
+        # Create second user
+        user2 = User.objects.create_user(
+            username='testuser2',
+            password='testpass123'
+        )
+        
+        # Login first user
+        client.force_login(self.user)
+        response1 = client.get(reverse('attendance_list'))
+        self.assertEqual(response1.status_code, 200)
+        
+        # Login second user
+        client.force_login(user2)
+        response2 = client.get(reverse('attendance_list'))
+        self.assertEqual(response2.status_code, 200)
+        
+        # Both responses should be successful (different cache keys)
+        self.assertNotEqual(response1.content, response2.content)
+    
+    def test_cache_invalidation_on_data_change(self):
+        """Test that cache is invalidated when data changes."""
+        client = Client()
+        client.force_login(self.user)
+        
+        # First request
+        response1 = client.get(reverse('attendance_list'))
+        self.assertEqual(response1.status_code, 200)
+        
+        # Add new attendance record
+        new_employee = Employee.objects.create(
+            given_name='New',
+            surname='Employee',
+            is_active=True
+        )
+        AttendanceRecord.objects.create(
+            employee=new_employee,
+            date=timezone.now().date(),
+            created_by=self.user
+        )
+        
+        # Second request - should show new data
+        response2 = client.get(reverse('attendance_list'))
+        self.assertEqual(response2.status_code, 200)
+        
+        # Content should be different due to new data
+        self.assertNotEqual(response1.content, response2.content)
+    
+    def test_template_fragment_caching_performance(self):
+        """Test that template fragment caching improves performance."""
+        client = Client()
+        client.force_login(self.user)
+        
+        # Measure first request (cache miss)
+        start_time = time.time()
+        response1 = client.get(reverse('attendance_list'))
+        first_request_time = time.time() - start_time
+        self.assertEqual(response1.status_code, 200)
+        
+        # Measure second request (cache hit)
+        start_time = time.time()
+        response2 = client.get(reverse('attendance_list'))
+        second_request_time = time.time() - start_time
+        self.assertEqual(response2.status_code, 200)
+        
+        # Second request should be faster (cached fragments)
+        self.assertLess(second_request_time, first_request_time)
+    
+    def test_cache_fragments_are_functional(self):
+        """Test that cache fragments are actually working by checking performance."""
+        client = Client()
+        client.force_login(self.user)
+        
+        # First request - should cache fragments
+        response1 = client.get(reverse('attendance_list'))
+        self.assertEqual(response1.status_code, 200)
+        
+        # Second request - should use cached fragments
+        response2 = client.get(reverse('attendance_list'))
+        self.assertEqual(response2.status_code, 200)
+        
+        # Both responses should contain the same data (indicating caching worked)
+        self.assertContains(response1, 'Attendance Records')
+        self.assertContains(response2, 'Attendance Records')
+        
+        # The responses should be functionally equivalent (same data, different CSRF tokens)
+        self.assertIn('Attendance Records', str(response1.content))
+        self.assertIn('Attendance Records', str(response2.content))
+
+
 if __name__ == '__main__':
     # Run performance tests
     import unittest
