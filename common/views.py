@@ -267,21 +267,25 @@ def progressive_entry(request):
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             # Handle batch updates
             if request.POST.get('batch_update') == 'true':
-                changes = request.POST.getlist('changes')
                 completions = {}
                 
-                for change in changes:
-                    try:
-                        # Parse change data (format: changes[employee_id][field_name] = value)
-                        if change.startswith('changes['):
-                            # Extract employee_id and field_name from the key
-                            parts = change.split('[')
-                            if len(parts) >= 3:
-                                employee_id = parts[1].rstrip(']')
-                                field_name = parts[2].rstrip(']')
-                                field_value = request.POST.get(change)
+                # Parse all POST data to find changes
+                for key, value in request.POST.items():
+                    if key.startswith('changes[') and value:  # Only process non-empty values
+                        try:
+                            # Parse key format: changes[employee_id][field_name]
+                            # Remove 'changes[' prefix and split by ']['
+                            key_part = key[8:]  # Remove 'changes[' prefix
+                            if key_part.endswith(']'):
+                                key_part = key_part[:-1]  # Remove trailing ']'
+                            
+                            # Split by '][' to get employee_id and field_name
+                            parts = key_part.split('][')
+                            if len(parts) == 2:
+                                employee_id = parts[0]
+                                field_name = parts[1]
                                 
-                                if employee_id and field_name and field_value is not None:
+                                if employee_id and field_name:
                                     employee = Employee.objects.get(id=employee_id)
                                     record, created = AttendanceRecord.objects.get_or_create(
                                         employee=employee,
@@ -290,22 +294,21 @@ def progressive_entry(request):
                                     )
                                     
                                     # Convert lunch_time string to time object
-                                    if field_name == 'lunch_time' and field_value:
+                                    if field_name == 'lunch_time' and value:
                                         try:
-                                            field_value = datetime.strptime(field_value, "%H:%M").time()
+                                            value = datetime.strptime(value, "%H:%M").time()
                                         except Exception:
-                                            field_value = None
+                                            value = None
                                     
                                     # Update the specific field
                                     if hasattr(record, field_name):
-                                        setattr(record, field_name, field_value)
+                                        setattr(record, field_name, value)
                                         record.last_updated_by = request.user
                                         record.save()
                                         
                                         completions[employee_id] = record.completion_percentage
-                    except (Employee.DoesNotExist, ValueError) as e:
-                        return JsonResponse({'success': False, 'error': f'Error processing batch update: {str(e)}'})
-                
+                        except (Employee.DoesNotExist, ValueError) as e:
+                            return JsonResponse({'success': False, 'error': f'Error processing batch update: {str(e)}'})
                 return JsonResponse({
                     'success': True,
                     'completions': completions,
