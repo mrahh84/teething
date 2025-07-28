@@ -671,27 +671,42 @@ def historical_progressive_results(request):
             field_name = request.POST.get('field_name')
             field_value = request.POST.get('field_value')
             record_date = request.POST.get('record_date')
+            record_id = request.POST.get('record_id')
             
             try:
-                # Convert employee_id to integer if it's a string
-                if isinstance(employee_id, str):
-                    employee_id = int(employee_id)
-                employee = Employee.objects.get(id=employee_id, is_active=True)
-                record_date = datetime.strptime(record_date, '%Y-%m-%d').date()
+                # Handle both new records (employee_id + record_date) and existing records (record_id)
+                if record_id and record_id != 'new':
+                    # Updating existing record
+                    record = AttendanceRecord.objects.get(id=record_id)
+                    employee = record.employee
+                    record_date = record.date
+                elif employee_id and record_date:
+                    # Creating new record
+                    if isinstance(employee_id, str):
+                        employee_id = int(employee_id)
+                    employee = Employee.objects.get(id=employee_id, is_active=True)
+                    record_date = datetime.strptime(record_date, '%Y-%m-%d').date()
+                else:
+                    return JsonResponse({'success': False, 'error': 'Missing required parameters'})
                 
-                # Check if record exists
-                try:
-                    record = AttendanceRecord.objects.get(employee=employee, date=record_date)
+                # Check if record exists (only for new records)
+                if record_id and record_id != 'new':
+                    # We already have the record from above
                     created = False
-                except AttendanceRecord.DoesNotExist:
-                    # Create new record for missing employee
-                    record = AttendanceRecord.objects.create(
-                        employee=employee,
-                        date=record_date,
-                        created_by=request.user,
-                        status='DRAFT'
-                    )
-                    created = True
+                else:
+                    # Check if record exists for new records
+                    try:
+                        record = AttendanceRecord.objects.get(employee=employee, date=record_date)
+                        created = False
+                    except AttendanceRecord.DoesNotExist:
+                        # Create new record for missing employee
+                        record = AttendanceRecord.objects.create(
+                            employee=employee,
+                            date=record_date,
+                            created_by=request.user,
+                            status='DRAFT'
+                        )
+                        created = True
                 
                 # Convert lunch_time string to time object
                 if field_name == 'lunch_time' and field_value:
