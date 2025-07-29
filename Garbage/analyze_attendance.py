@@ -19,7 +19,7 @@ config.read('config.ini')
 # Use relative paths for input and output from config
 current_dir = os.path.dirname(os.path.abspath(__file__))
 final_dir = os.path.join(current_dir, config['Paths']['final'])
-consolidated_file_path = os.path.join(final_dir, 'final_sorted_consolidated_data.csv')
+consolidated_file_path = os.path.join(final_dir, 'consolidated_data.csv')
 
 # Path to save the analysis results
 output_dir = os.path.join(current_dir, config['Paths']['analysis'])
@@ -116,34 +116,46 @@ def analyze_month_data(month_df, month_name, year):
     
     for employee in employees:
         employee_data = month_df[month_df[name_column] == employee]
+        
         total_days = len(employee_data)
         
         # Count problematic patterns
         late_arrivals = 0
         early_departures = 0
         absent_spot_checks = 0
-        
+        problematic_by_date=[]
         for _, row in employee_data.iterrows():
+            this_date_count=0
             # Check for late arrivals/missing standup
             if standup_column in row and any(val in str(row[standup_column]) for val in problematic_values):
                 late_arrivals += 1
+                this_date_count+=1
             
             # Check for early departures (not leaving at assigned lunch time)
             if left_lunch_column in row and any(val in str(row[left_lunch_column]) for val in problematic_values):
                 early_departures += 1
+                this_date_count+=1
                 
             # Check for spot-check absences
             if returned_on_time_column in row and any(val in str(row[returned_on_time_column]) for val in problematic_values):
                 absent_spot_checks += 1
+                this_date_count+=1
             
             # Also check if they returned after lunch (additional spot check)
             if returned_after_lunch_column in row and any(val in str(row[returned_after_lunch_column]) for val in problematic_values):
                 absent_spot_checks += 1
+                this_date_count+=1
+            
+            # Only track days with MULTIPLE issues (same as comprehensive report)
+            if this_date_count > 1:
+                problematic_by_date.append(this_date_count)
+
         
         # Calculate total problematic days and percentage
         total_problematic = late_arrivals + early_departures + absent_spot_checks
-        problematic_percentage = (total_problematic / (total_days * 3)) * 100 if total_days > 0 else 0
-        
+        # Calculate percentage of days with multiple issues (same as comprehensive report)
+        problematic_percentage = (len(problematic_by_date) / total_days) * 100 if total_days > 0 else 0
+
         results.append([
             employee,
             total_days,
@@ -427,27 +439,40 @@ def analyze_attendance(df):
         late_arrivals = 0
         early_departures = 0
         absent_spot_checks = 0
+        problematic_by_date = []
         
         for _, row in employee_data.iterrows():
+            this_date_count = 0
+            
             # Check for late arrivals/missing standup
             if standup_column in row and any(val in str(row[standup_column]) for val in problematic_values):
                 late_arrivals += 1
+                this_date_count += 1
             
             # Check for early departures (not leaving at assigned lunch time)
             if left_lunch_column in row and any(val in str(row[left_lunch_column]) for val in problematic_values):
                 early_departures += 1
+                this_date_count += 1
                 
             # Check for spot-check absences
             if returned_on_time_column in row and any(val in str(row[returned_on_time_column]) for val in problematic_values):
                 absent_spot_checks += 1
+                this_date_count += 1
             
             # Also check if they returned after lunch (additional spot check)
             if returned_after_lunch_column in row and any(val in str(row[returned_after_lunch_column]) for val in problematic_values):
                 absent_spot_checks += 1
+                this_date_count += 1
+            
+            problematic_by_date.append(this_date_count)
         
         # Calculate total problematic days and percentage
         total_problematic = late_arrivals + early_departures + absent_spot_checks
-        problematic_percentage = (total_problematic / (total_days * 3)) * 100 if total_days > 0 else 0
+        # Calculate average issues per day (same as monthly analysis)
+        if len(problematic_by_date) > 0:
+            problematic_percentage = sum(problematic_by_date) / len(problematic_by_date)
+        else:
+            problematic_percentage = 0
         
         # Add to results
         results.append([
