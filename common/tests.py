@@ -1194,6 +1194,200 @@ class AnalyticsIntegrationTestCase(TestCase):
         self.assertEqual(config2.user, other_user)
 
 
+class RealTimeAnalyticsTestCase(TestCase):
+    """Test cases for real-time analytics API endpoints"""
+    
+    def setUp(self):
+        """Set up test data for real-time analytics"""
+        # Create test user with reporting role
+        self.reporting_user = User.objects.create_user(
+            username='realtime_test_user',
+            password='password',
+            email='realtime@test.com'
+        )
+        UserRole.objects.create(user=self.reporting_user, role='reporting')
+        
+        # Create test department
+        self.department = Department.objects.create(
+            name='Test Department',
+            code='TEST',
+            description='Test department for real-time analytics',
+            is_active=True
+        )
+        
+        # Create test employees
+        self.employee1 = Employee.objects.create(
+            given_name='John',
+            surname='Doe',
+            department=self.department,
+            is_active=True
+        )
+        
+        self.employee2 = Employee.objects.create(
+            given_name='Jane',
+            surname='Smith',
+            department=self.department,
+            is_active=True
+        )
+        
+        # Create test event types
+        self.clock_in_type = EventType.objects.create(name='Clock In')
+        self.clock_out_type = EventType.objects.create(name='Clock Out')
+        self.check_in_type = EventType.objects.create(name='Check In To Room')
+        self.check_out_type = EventType.objects.create(name='Check Out of Room')
+        
+        # Create test locations
+        self.location1 = Location.objects.create(name='Main Security')
+        self.location2 = Location.objects.create(name='Repository and Conservation')
+        
+        # Create test events
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        today = timezone.now().date()
+        yesterday = today - timedelta(days=1)
+        
+        # Employee 1: Clocked in today
+        Event.objects.create(
+            employee=self.employee1,
+            event_type=self.clock_in_type,
+            location=self.location1,
+            timestamp=timezone.now() - timedelta(hours=2)
+        )
+        
+        # Employee 2: Clocked in and out today
+        Event.objects.create(
+            employee=self.employee2,
+            event_type=self.clock_in_type,
+            location=self.location1,
+            timestamp=timezone.now() - timedelta(hours=4)
+        )
+        Event.objects.create(
+            employee=self.employee2,
+            event_type=self.clock_out_type,
+            location=self.location1,
+            timestamp=timezone.now() - timedelta(hours=1)
+        )
+        
+        # Add some movement events
+        Event.objects.create(
+            employee=self.employee1,
+            event_type=self.check_in_type,
+            location=self.location2,
+            timestamp=timezone.now() - timedelta(hours=1)
+        )
+    
+    def test_realtime_employee_status_api(self):
+        """Test real-time employee status API endpoint"""
+        self.client.login(username='realtime_test_user', password='password')
+        response = self.client.get('/common/api/realtime/employees/')
+        
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        
+        # Check that we get employee data with real-time status (paginated response)
+        self.assertIsInstance(data, dict)
+        self.assertIn('results', data)
+        self.assertIsInstance(data['results'], list)
+        self.assertEqual(len(data['results']), 2)
+        
+        # Check that employee data includes real-time fields
+        employee_data = data['results'][0]
+        self.assertIn('current_status', employee_data)
+        self.assertIn('last_activity', employee_data)
+        self.assertIn('current_location', employee_data)
+        
+        # Check specific status values
+        emp1_data = next(emp for emp in data['results'] if emp['given_name'] == 'John' and emp['surname'] == 'Doe')
+        emp2_data = next(emp for emp in data['results'] if emp['given_name'] == 'Jane' and emp['surname'] == 'Smith')
+        
+        self.assertEqual(emp1_data['current_status'], 'clocked_in')
+        self.assertEqual(emp2_data['current_status'], 'clocked_out')
+    
+    def test_live_attendance_counter_api(self):
+        """Test live attendance counter API endpoint"""
+        self.client.login(username='realtime_test_user', password='password')
+        response = self.client.get('/common/api/realtime/attendance-counter/')
+        
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        
+        # Check that we get attendance statistics
+        self.assertIn('total_employees', data)
+        self.assertIn('currently_clocked_in', data)
+        self.assertIn('currently_clocked_out', data)
+        self.assertIn('attendance_rate', data)
+        self.assertIn('last_updated', data)
+        
+        # Check specific values
+        self.assertEqual(data['total_employees'], 2)
+        self.assertEqual(data['currently_clocked_in'], 1)
+        self.assertEqual(data['currently_clocked_out'], 1)
+        self.assertEqual(data['attendance_rate'], 50.0)
+    
+    def test_attendance_heatmap_api(self):
+        """Test attendance heat map API endpoint"""
+        self.client.login(username='realtime_test_user', password='password')
+        response = self.client.get('/common/api/realtime/heatmap/?days=7')
+        
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        
+        # Check that we get heat map data
+        self.assertIn('heat_map_data', data)
+        self.assertIn('date_range', data)
+        
+        # Check data structure
+        heat_map_data = data['heat_map_data']
+        self.assertIsInstance(heat_map_data, list)
+        
+        # Check that we have data for each hour of each day
+        self.assertGreater(len(heat_map_data), 0)
+        
+        # Check individual data points
+        for item in heat_map_data:
+            self.assertIn('date', item)
+            self.assertIn('hour', item)
+            self.assertIn('count', item)
+            self.assertIn('intensity', item)
+    
+    def test_employee_movement_api(self):
+        """Test employee movement API endpoint"""
+        self.client.login(username='realtime_test_user', password='password')
+        response = self.client.get('/common/api/realtime/movements/?days=7')
+        
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        
+        # Check that we get movement data
+        self.assertIn('nodes', data)
+        self.assertIn('links', data)
+        self.assertIn('date_range', data)
+        
+        # Check data structure
+        self.assertIsInstance(data['nodes'], list)
+        self.assertIsInstance(data['links'], list)
+        
+        # Check that we have location nodes
+        self.assertGreater(len(data['nodes']), 0)
+        
+        # Check that nodes include our test locations
+        location_names = [loc.name for loc in Location.objects.all()]
+        for node in data['nodes']:
+            self.assertIn(node, location_names)
+    
+    def test_realtime_analytics_dashboard_view(self):
+        """Test real-time analytics dashboard view"""
+        self.client.login(username='realtime_test_user', password='password')
+        response = self.client.get('/common/realtime-analytics/')
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Real-Time Analytics Dashboard')
+        self.assertContains(response, 'Live Employee Status')
+        self.assertContains(response, 'Attendance Heat Map')
+        self.assertContains(response, 'Employee Movement Flow')
+
+
 if __name__ == '__main__':
     # Run performance tests
     import unittest

@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db import connections
 from django.http import HttpResponse, HttpResponseBadRequest, StreamingHttpResponse, JsonResponse
+from rest_framework.response import Response
 from django.shortcuts import (
     get_object_or_404,
     redirect,
@@ -3352,3 +3353,205 @@ def redirect_based_on_role(user):
     except:
         # If no role is assigned, redirect to main security
         return redirect('main_security')
+
+# Real-time Analytics API Views
+class RealTimeEmployeeStatusView(generics.ListAPIView):
+    """API endpoint for real-time employee status data"""
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [ReportingPermission]
+    serializer_class = EmployeeSerializer
+    
+    def get_queryset(self):
+        """Get current employee status with latest activity"""
+        return Employee.objects.select_related('department').prefetch_related(
+            'employee_events'
+        ).filter(is_active=True)
+    
+    def get_serializer_context(self):
+        """Add real-time context to serializer"""
+        context = super().get_serializer_context()
+        context['include_realtime_status'] = True
+        return context
+
+class LiveAttendanceCounterView(generics.RetrieveAPIView):
+    """API endpoint for live attendance counter data"""
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [ReportingPermission]
+    
+    def get_object(self):
+        """Return live attendance statistics"""
+        from django.db.models import Count, Q
+        from django.utils import timezone
+        
+        today = timezone.now().date()
+        
+        # Get total employees
+        total_employees = Employee.objects.filter(is_active=True).count()
+        
+        # Get currently clocked in (have clock in event today, no clock out)
+        clocked_in = Employee.objects.filter(
+            is_active=True,
+            employee_events__event_type__name='Clock In',
+            employee_events__timestamp__date=today
+        ).exclude(
+            employee_events__event_type__name='Clock Out',
+            employee_events__timestamp__date=today
+        ).distinct().count()
+        
+        # Get currently clocked out
+        clocked_out = total_employees - clocked_in
+        
+        # Calculate attendance rate
+        attendance_rate = (clocked_in / total_employees * 100) if total_employees > 0 else 0
+        
+        return {
+            'total_employees': total_employees,
+            'currently_clocked_in': clocked_in,
+            'currently_clocked_out': clocked_out,
+            'attendance_rate': round(attendance_rate, 1),
+            'last_updated': timezone.now()
+        }
+    
+    def retrieve(self, request, *args, **kwargs):
+        """Return live attendance data"""
+        data = self.get_object()
+        return Response(data)
+
+class AttendanceHeatMapView(generics.ListAPIView):
+    """API endpoint for attendance heat map data"""
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [ReportingPermission]
+    
+    def get(self, request, *args, **kwargs):
+        """Return attendance heat map data"""
+        from django.db.models import Count
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        # Get date range from query params
+        days_back = int(request.GET.get('days', 7))
+        end_date = timezone.now().date()
+        start_date = end_date - timedelta(days=days_back)
+        
+        # Get attendance data by hour and day
+        heat_map_data = []
+        
+        for day in range(days_back + 1):
+            current_date = start_date + timedelta(days=day)
+            
+            for hour in range(24):
+                hour_start = timezone.make_aware(
+                    timezone.datetime.combine(current_date, timezone.datetime.min.time())
+                ) + timedelta(hours=hour)
+                hour_end = hour_start + timedelta(hours=1)
+                
+                # Count events in this hour
+                event_count = Event.objects.filter(
+                    timestamp__gte=hour_start,
+                    timestamp__lt=hour_end
+                ).count()
+                
+                heat_map_data.append({
+                    'date': current_date.isoformat(),
+                    'hour': hour,
+                    'count': event_count,
+                    'intensity': min(event_count / 10, 1.0)  # Normalize to 0-1
+                })
+        
+        return Response({
+            'heat_map_data': heat_map_data,
+            'date_range': {
+                'start': start_date.isoformat(),
+                'end': end_date.isoformat()
+            }
+        })
+
+class EmployeeMovementView(generics.ListAPIView):
+    """API endpoint for employee movement Sankey diagram data"""
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [ReportingPermission]
+    
+    def get(self, request, *args, **kwargs):
+        """Return employee movement data for Sankey diagram"""
+        from django.db.models import Count
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        # Get date range from query params
+        days_back = int(request.GET.get('days', 7))
+        end_date = timezone.now().date()
+        start_date = end_date - timedelta(days=days_back)
+        
+        # Get movement data between locations
+        movements = Event.objects.filter(
+            timestamp__date__gte=start_date,
+            timestamp__date__lte=end_date,
+            event_type__name__in=['Check In To Room', 'Check Out of Room']
+        ).select_related('location', 'employee').order_by('timestamp')
+        
+        # Process movements into Sankey format
+        nodes = list(Location.objects.values_list('name', flat=True))
+        links = []
+        
+        # Group by employee and track movements
+        employee_movements = {}
+        for event in movements:
+            employee_id = event.employee.id
+            if employee_id not in employee_movements:
+                employee_movements[employee_id] = []
+            
+            employee_movements[employee_id].append({
+                'location': event.location.name,
+                'timestamp': event.timestamp,
+                'type': event.event_type.name
+            })
+        
+        # Create links between consecutive movements
+        for employee_id, movements_list in employee_movements.items():
+            for i in range(len(movements_list) - 1):
+                current = movements_list[i]
+                next_movement = movements_list[i + 1]
+                
+                # Only count if it's a valid movement (Check Out -> Check In)
+                if (current['type'] == 'Check Out of Room' and 
+                    next_movement['type'] == 'Check In To Room'):
+                    
+                    source = current['location']
+                    target = next_movement['location']
+                    
+                    # Find existing link or create new one
+                    link_found = False
+                    for link in links:
+                        if link['source'] == source and link['target'] == target:
+                            link['value'] += 1
+                            link_found = True
+                            break
+                    
+                    if not link_found:
+                        links.append({
+                            'source': source,
+                            'target': target,
+                            'value': 1
+                        })
+        
+        return Response({
+            'nodes': nodes,
+            'links': links,
+            'date_range': {
+                'start': start_date.isoformat(),
+                'end': end_date.isoformat()
+            }
+        })
+
+@reporting_required
+@extend_schema(exclude=True)
+def realtime_analytics_dashboard(request):
+    """
+    Real-time analytics dashboard with live employee status and attendance analytics.
+    This is the main dashboard for Phase 2 of the report enhancement roadmap.
+    """
+    context = {
+        'page_title': 'Real-Time Analytics Dashboard',
+        'active_tab': 'realtime_analytics',
+    }
+    return render(request, 'attendance/realtime_analytics_dashboard.html', context)
