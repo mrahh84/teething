@@ -19,7 +19,7 @@ def role_required(allowed_roles):
                     messages.error(request, f"Access denied. Your role '{user_role}' does not have permission to access this feature.")
                     # Redirect to appropriate page based on user role
                     if user_role == 'reporting':
-                        return redirect('reports_dashboard')
+                        return redirect('comprehensive_reports')
                     elif user_role == 'attendance':
                         return redirect('attendance_list')
                     elif user_role == 'admin':

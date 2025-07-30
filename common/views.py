@@ -1363,21 +1363,10 @@ def delete_event(request, employee_id):
 @extend_schema(exclude=True)
 def reports_dashboard(request):
     """
-    Main reports dashboard with links to different report types.
+    Reports dashboard - Redirect to comprehensive reports.
+    This page is now redundant with the comprehensive reports page.
     """
-    # Check if Marimo is installed
-    try:
-        import marimo
-
-        marimo_available = True
-    except ImportError:
-        marimo_available = False
-
-    context = {
-        "user": request.user,
-        "marimo_available": marimo_available,
-    }
-    return render(request, "reports/dashboard.html", context)
+    return redirect('comprehensive_reports')
 
 
 @reporting_required  # Reporting role and above
@@ -3127,7 +3116,7 @@ def redirect_based_on_role(user):
     try:
         user_role = user.userrole.role
         if user_role == 'reporting':
-            return redirect('reports_dashboard')
+            return redirect('comprehensive_reports')
         elif user_role == 'attendance':
             return redirect('attendance_list')
         elif user_role == 'admin':
