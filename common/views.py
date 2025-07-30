@@ -2933,7 +2933,7 @@ def comprehensive_attendance_report(request):
                 early_departure_issues += 1
             
             # Count problematic days
-            if record.is_problematic_day:
+            if record.is_problematic_day():
                 problematic_days += 1
         
         non_problematic_days = total_working_days - problematic_days
