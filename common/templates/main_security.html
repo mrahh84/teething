@@ -229,10 +229,6 @@
                     <a href="{% url 'reports_dashboard' %}" class="btn">📊 Reports</a>
                 {% endif %}
                 
-                {% if user|has_role:"admin" %}
-                    <a href="{% url 'admin:index' %}" class="btn">⚙️ Admin</a>
-                {% endif %}
-                
                 <form action="{% url 'logout' %}" method="post" style="display:inline;">
                   {% csrf_token %}
                   <button type="submit" class="btn btn-danger">Logout</button>
