@@ -133,11 +133,9 @@ api_urls = [
         "api/system-performance/<int:id>/", views.SingleSystemPerformanceView.as_view(), name="api_single_system_performance"
     ),
     
-    # Real-time Analytics API endpoints
-    path("api/realtime/employees/", views.RealTimeEmployeeStatusView.as_view(), name="api_realtime_employees"),
-    path("api/realtime/attendance-counter/", views.LiveAttendanceCounterView.as_view(), name="api_attendance_counter"),
-    path("api/realtime/heatmap/", views.AttendanceHeatMapView.as_view(), name="api_attendance_heatmap"),
-    path("api/realtime/movements/", views.EmployeeMovementView.as_view(), name="api_employee_movements"),
+                    # Real-time Analytics API endpoints
+                path("api/realtime/employees/", views.RealTimeEmployeeStatusView.as_view(), name="api_realtime_employees"),
+                path("api/realtime/attendance-counter/", views.LiveAttendanceCounterView.as_view(), name="api_attendance_counter"),
 ]
 
 # System URLs

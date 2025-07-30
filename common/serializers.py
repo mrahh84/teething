@@ -75,7 +75,6 @@ class EmployeeSerializer(serializers.ModelSerializer):
     # Real-time status fields
     current_status = serializers.SerializerMethodField()
     last_activity = serializers.SerializerMethodField()
-    current_location = serializers.SerializerMethodField()
 
     class Meta:
         model = Employee
@@ -101,7 +100,6 @@ class EmployeeSerializer(serializers.ModelSerializer):
             # Real-time fields
             "current_status",
             "last_activity",
-            "current_location",
         ]
         # Make related fields read-only in the default representation
         read_only_fields = [
@@ -112,7 +110,6 @@ class EmployeeSerializer(serializers.ModelSerializer):
             "last_clockinout_time",
             "current_status",
             "last_activity",
-            "current_location",
         ]
 
     def get_current_status(self, obj):
@@ -122,7 +119,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
 
         today = timezone.now().date()
 
-                # Check if employee has clocked in today
+        # Check if employee has clocked in today
         clock_in_today = obj.employee_events.filter(
             event_type__name='Clock In',
             timestamp__date=today
@@ -145,27 +142,6 @@ class EmployeeSerializer(serializers.ModelSerializer):
         """Get last activity timestamp"""
         last_event = obj.employee_events.order_by('-timestamp').first()
         return last_event.timestamp if last_event else None
-
-    def get_current_location(self, obj):
-        """Get current location based on latest room check-in"""
-        from django.utils import timezone
-
-        # Get the latest room check-in event
-        latest_checkin = obj.employee_events.filter(
-            event_type__name='Check In To Room'
-        ).order_by('-timestamp').first()
-
-        if latest_checkin:
-            # Check if there's a corresponding check-out after this check-in
-            check_out_after = obj.employee_events.filter(
-                event_type__name='Check Out of Room',
-                timestamp__gt=latest_checkin.timestamp
-            ).exists()
-
-            if not check_out_after:
-                return latest_checkin.location.name
-
-        return None
 
 
 class EventSerializer(serializers.ModelSerializer):

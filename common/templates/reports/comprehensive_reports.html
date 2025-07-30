@@ -29,6 +29,10 @@
                     onclick="switchTab('period_summary')">
                 📅 Period Summary
             </button>
+            <button class="tab-button {% if active_tab == 'realtime_analytics' %}active{% endif %}" 
+                    onclick="switchTab('realtime_analytics')">
+                ⚡ Real-Time Analytics
+            </button>
 
         </div>
 
@@ -261,7 +265,86 @@
                 {% endif %}
             </div>
 
-            <!-- Late & Early Report Tab -->
+            <!-- Real-Time Analytics Tab -->
+            <div id="realtime_analytics-tab" class="tab-pane {% if active_tab == 'realtime_analytics' %}active{% endif %}">
+                <div class="tab-header">
+                    <h3>⚡ Real-Time Analytics Dashboard</h3>
+                    <p>Live employee status tracking and attendance analytics with real-time updates</p>
+                </div>
+                
+                <!-- Real-time analytics content -->
+                <div class="realtime-analytics-content">
+                    <div class="dashboard-container">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h4>Live Attendance Overview</h4>
+                            <button class="refresh-button" onclick="refreshRealtimeData()">
+                                <i class="fas fa-sync-alt"></i> Refresh Data
+                            </button>
+                        </div>
+                        
+                        <!-- Live Attendance Counter -->
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <div class="metric-card text-center">
+                                    <div class="metric-value" id="total-employees">-</div>
+                                    <div class="metric-label">Total Employees</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="metric-card text-center">
+                                    <div class="metric-value text-success" id="clocked-in">-</div>
+                                    <div class="metric-label">Currently Clocked In</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="metric-card text-center">
+                                    <div class="metric-value text-danger" id="clocked-out">-</div>
+                                    <div class="metric-label">Currently Clocked Out</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="metric-card text-center">
+                                    <div class="metric-value text-primary" id="attendance-rate">-</div>
+                                    <div class="metric-label">Attendance Rate</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Filters -->
+                        <div class="filters">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="filter-group">
+                                        <label class="filter-label">Department</label>
+                                        <select class="filter-select" id="department-filter">
+                                            <option value="">All Departments</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="filter-group">
+                                        <label class="filter-label">Status</label>
+                                        <select class="filter-select" id="status-filter">
+                                            <option value="">All Status</option>
+                                            <option value="clocked_in">Clocked In</option>
+                                            <option value="clocked_out">Clocked Out</option>
+                                            <option value="not_clocked_in">Not Clocked In</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Employee Status Grid -->
+                        <div class="chart-container">
+                            <h5 class="chart-title">Live Employee Status</h5>
+                            <div id="employee-grid" class="employee-grid">
+                                <div class="loading">Loading employee data...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
         </div>
     </div>
@@ -458,6 +541,148 @@
     border-radius: 4px;
 }
 
+/* Real-Time Analytics Styles */
+.realtime-analytics-content .dashboard-container {
+    padding: 0;
+    background: none;
+    min-height: auto;
+}
+
+.realtime-analytics-content .metric-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    transition: transform 0.2s;
+}
+
+.realtime-analytics-content .metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.realtime-analytics-content .metric-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 8px;
+}
+
+.realtime-analytics-content .metric-label {
+    font-size: 0.9rem;
+    color: #7f8c8d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.realtime-analytics-content .status-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+.realtime-analytics-content .status-clocked-in {
+    background: #27ae60;
+}
+
+.realtime-analytics-content .status-clocked-out {
+    background: #e74c3c;
+}
+
+.realtime-analytics-content .status-not-clocked {
+    background: #f39c12;
+}
+
+.realtime-analytics-content .employee-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.realtime-analytics-content .employee-card {
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-left: 4px solid #3498db;
+}
+
+.realtime-analytics-content .employee-name {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 6px;
+}
+
+.realtime-analytics-content .employee-info {
+    color: #7f8c8d;
+    font-size: 0.85rem;
+    margin-bottom: 3px;
+}
+
+.realtime-analytics-content .chart-container {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.realtime-analytics-content .chart-title {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+.realtime-analytics-content .filters {
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.realtime-analytics-content .filter-group {
+    display: inline-block;
+    margin-right: 20px;
+}
+
+.realtime-analytics-content .filter-label {
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 5px;
+    display: block;
+    font-size: 0.9rem;
+}
+
+.realtime-analytics-content .filter-select {
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    font-size: 0.9rem;
+}
+
+.realtime-analytics-content .refresh-button {
+    background: #3498db;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background 0.2s;
+}
+
+.realtime-analytics-content .refresh-button:hover {
+    background: #2980b9;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .tab-navigation {
@@ -476,6 +701,10 @@
     
     #analytics-content .stats-grid {
         grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .realtime-analytics-content .employee-grid {
+        grid-template-columns: 1fr;
     }
 }
 </style>
@@ -508,6 +737,11 @@ function switchTab(tabName) {
     // Load analytics content if switching to analytics tab
     if (tabName === 'analytics') {
         loadAnalyticsContent();
+    }
+    
+    // Initialize real-time analytics if switching to realtime_analytics tab
+    if (tabName === 'realtime_analytics') {
+        initializeRealtimeAnalytics();
     }
 }
 
@@ -542,10 +776,125 @@ function loadAnalyticsContent() {
         });
 }
 
+// Real-time analytics functionality
+let employeeData = [];
+let realtimeInterval = null;
+
+function initializeRealtimeAnalytics() {
+    // Clear any existing interval
+    if (realtimeInterval) {
+        clearInterval(realtimeInterval);
+    }
+    
+    // Load initial data
+    loadAttendanceCounter();
+    loadEmployeeData();
+    
+    // Set up auto-refresh every 30 seconds
+    realtimeInterval = setInterval(function() {
+        loadAttendanceCounter();
+        loadEmployeeData();
+    }, 30000);
+}
+
+function loadAttendanceCounter() {
+    fetch('/common/api/realtime/attendance-counter/')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('total-employees').textContent = data.total_employees;
+            document.getElementById('clocked-in').textContent = data.currently_clocked_in;
+            document.getElementById('clocked-out').textContent = data.currently_clocked_out;
+            document.getElementById('attendance-rate').textContent = data.attendance_rate + '%';
+        })
+        .catch(error => console.error('Error loading attendance counter:', error));
+}
+
+function loadEmployeeData() {
+    fetch('/common/api/realtime/employees/')
+        .then(response => response.json())
+        .then(data => {
+            employeeData = data;
+            renderEmployeeGrid(data);
+            populateFilters(data);
+        })
+        .catch(error => console.error('Error loading employee data:', error));
+}
+
+function renderEmployeeGrid(employees) {
+    const grid = document.getElementById('employee-grid');
+    const departmentFilter = document.getElementById('department-filter').value;
+    const statusFilter = document.getElementById('status-filter').value;
+    
+    // Apply filters
+    let filteredEmployees = employees;
+    
+    if (departmentFilter) {
+        filteredEmployees = filteredEmployees.filter(emp => 
+            emp.department_name === departmentFilter
+        );
+    }
+    
+    if (statusFilter) {
+        filteredEmployees = filteredEmployees.filter(emp => 
+            emp.current_status === statusFilter
+        );
+    }
+    
+    // Render grid
+    grid.innerHTML = filteredEmployees.map(employee => `
+        <div class="employee-card">
+            <div class="employee-name">
+                <span class="status-indicator status-${employee.current_status}"></span>
+                ${employee.given_name} ${employee.surname}
+            </div>
+            <div class="employee-info">Department: ${employee.department_name || 'N/A'}</div>
+            <div class="employee-info">Last Activity: ${employee.last_activity ? new Date(employee.last_activity).toLocaleString() : 'N/A'}</div>
+        </div>
+    `).join('');
+}
+
+function populateFilters(employees) {
+    const departments = [...new Set(employees.map(emp => emp.department_name).filter(Boolean))];
+    
+    // Populate department filter
+    const deptFilter = document.getElementById('department-filter');
+    deptFilter.innerHTML = '<option value="">All Departments</option>' +
+        departments.map(dept => `<option value="${dept}">${dept}</option>`).join('');
+}
+
+function refreshRealtimeData() {
+    loadAttendanceCounter();
+    loadEmployeeData();
+}
+
+// Add filter event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    // Add event listeners for real-time analytics filters
+    const deptFilter = document.getElementById('department-filter');
+    const statusFilter = document.getElementById('status-filter');
+    
+    if (deptFilter) {
+        deptFilter.addEventListener('change', function() {
+            renderEmployeeGrid(employeeData);
+        });
+    }
+    
+    if (statusFilter) {
+        statusFilter.addEventListener('change', function() {
+            renderEmployeeGrid(employeeData);
+        });
+    }
+});
+
 // Load analytics content on page load if analytics tab is active
 document.addEventListener('DOMContentLoaded', function() {
     if ('{{ active_tab }}' === 'analytics') {
         loadAnalyticsContent();
+    }
+    
+    // Initialize real-time analytics if it's the active tab
+    if ('{{ active_tab }}' === 'realtime_analytics') {
+        initializeRealtimeAnalytics();
     }
 });
 </script>

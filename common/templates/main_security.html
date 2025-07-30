@@ -227,7 +227,6 @@
                 
                 {% if user|has_any_role:"reporting,attendance,admin" %}
                     <a href="{% url 'reports_dashboard' %}" class="btn">📊 Reports</a>
-                    <a href="{% url 'realtime_analytics_dashboard' %}" class="btn">📈 Real-Time Analytics</a>
                 {% endif %}
                 
                 {% if user|has_role:"admin" %}
