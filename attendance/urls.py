@@ -23,14 +23,15 @@ from drf_spectacular.views import (
     # SpectacularRedocView,
     SpectacularSwaggerView,
 )
+from common import views
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("common/", include("common.urls")),
-    # Django's built-in auth views
+    # Custom login view with role-based redirects
     path(
         "login/",
-        auth_views.LoginView.as_view(template_name="registration/login.html"),
+        views.custom_login,
         name="login",
     ),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),

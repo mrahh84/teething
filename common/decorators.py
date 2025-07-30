@@ -17,7 +17,15 @@ def role_required(allowed_roles):
                     return view_func(request, *args, **kwargs)
                 else:
                     messages.error(request, f"Access denied. Your role '{user_role}' does not have permission to access this feature.")
-                    return redirect('main_security')
+                    # Redirect to appropriate page based on user role
+                    if user_role == 'reporting':
+                        return redirect('reports_dashboard')
+                    elif user_role == 'attendance':
+                        return redirect('attendance_list')
+                    elif user_role == 'admin':
+                        return redirect('main_security')
+                    else:
+                        return redirect('main_security')
             except UserRole.DoesNotExist:
                 messages.error(request, "No role assigned. Please contact administrator.")
                 return redirect('main_security')

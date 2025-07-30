@@ -17,6 +17,8 @@ from django.db.models import Q, Count, Prefetch, Avg
 from datetime import datetime, timedelta, date
 from django.urls import reverse
 from django.views.decorators.clickjacking import xframe_options_sameorigin
+from django.contrib.auth import authenticate, login
+from django.contrib.auth.forms import AuthenticationForm
 import json
 import traceback
 import csv
@@ -3097,3 +3099,43 @@ def performance_dashboard(request):
     }
     
     return render(request, 'performance_dashboard.html', context)
+
+
+def custom_login(request):
+    """Custom login view that redirects users to appropriate pages based on their role"""
+    if request.user.is_authenticated:
+        # User is already logged in, redirect based on role
+        return redirect_based_on_role(request.user)
+    
+    if request.method == 'POST':
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            user = authenticate(username=username, password=password)
+            if user is not None:
+                login(request, user)
+                return redirect_based_on_role(user)
+    else:
+        form = AuthenticationForm()
+    
+    return render(request, 'registration/login.html', {'form': form})
+
+
+def redirect_based_on_role(user):
+    """Redirect user to appropriate page based on their role"""
+    try:
+        user_role = user.userrole.role
+        if user_role == 'reporting':
+            return redirect('reports_dashboard')
+        elif user_role == 'attendance':
+            return redirect('attendance_list')
+        elif user_role == 'admin':
+            return redirect('main_security')
+        elif user_role == 'security':
+            return redirect('main_security')
+        else:
+            return redirect('main_security')
+    except:
+        # If no role is assigned, redirect to main security
+        return redirect('main_security')
