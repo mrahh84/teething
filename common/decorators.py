@@ -22,6 +22,8 @@ def role_required(allowed_roles):
                         return redirect('comprehensive_reports')
                     elif user_role == 'attendance':
                         return redirect('attendance_list')
+                    elif user_role == 'security':
+                        return redirect('main_security')
                     elif user_role == 'admin':
                         return redirect('main_security')
                     else:
@@ -35,8 +37,8 @@ def role_required(allowed_roles):
 
 # Specific role decorators
 def security_required(view_func):
-    """Decorator for security role and above"""
-    return role_required(['security', 'attendance', 'admin'])(view_func)
+    """Decorator for security role only (clock in/out functions)"""
+    return role_required(['security', 'admin'])(view_func)
 
 
 def attendance_required(view_func):
