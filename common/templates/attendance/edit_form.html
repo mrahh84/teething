@@ -1,0 +1,123 @@
+{% extends "attendance/base.html" %}
+
+{% block attendance_content %}
+<div class="attendance-card">
+    <div class="card-header">
+        <h2>Edit Attendance Record</h2>
+        <p style="margin: 0; color: #6c757d;">{{ record.employee }} - {{ record.date|date:"M d, Y" }}</p>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-section">
+                <h3>Basic Information</h3>
+                <div class="field-group">
+                    <div>
+                        <label for="{{ form.employee.id_for_label }}">{{ form.employee.label }}</label>
+                        {{ form.employee }}
+                        {% if form.employee.errors %}
+                            <div class="text-danger">{{ form.employee.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label for="{{ form.date.id_for_label }}">{{ form.date.label }}</label>
+                        {{ form.date }}
+                        {% if form.date.errors %}
+                            <div class="text-danger">{{ form.date.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Stand-up Meeting</h3>
+                <div class="field-group">
+                    <div>
+                        <label for="{{ form.standup_attendance.id_for_label }}">{{ form.standup_attendance.label }}</label>
+                        {{ form.standup_attendance }}
+                        {% if form.standup_attendance.errors %}
+                            <div class="text-danger">{{ form.standup_attendance.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Lunch Tracking</h3>
+                <div class="field-group">
+                    <div>
+                        <label for="{{ form.lunch_time.id_for_label }}">{{ form.lunch_time.label }}</label>
+                        {{ form.lunch_time }}
+                        {% if form.lunch_time.errors %}
+                            <div class="text-danger">{{ form.lunch_time.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label for="{{ form.left_lunch_on_time.id_for_label }}">{{ form.left_lunch_on_time.label }}</label>
+                        {{ form.left_lunch_on_time }}
+                        {% if form.left_lunch_on_time.errors %}
+                            <div class="text-danger">{{ form.left_lunch_on_time.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="field-group">
+                    <div>
+                        <label for="{{ form.returned_on_time_after_lunch.id_for_label }}">{{ form.returned_on_time_after_lunch.label }}</label>
+                        {{ form.returned_on_time_after_lunch }}
+                        {% if form.returned_on_time_after_lunch.errors %}
+                            <div class="text-danger">{{ form.returned_on_time_after_lunch.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label for="{{ form.returned_after_lunch.id_for_label }}">{{ form.returned_after_lunch.label }}</label>
+                        {{ form.returned_after_lunch }}
+                        {% if form.returned_after_lunch.errors %}
+                            <div class="text-danger">{{ form.returned_after_lunch.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Departure</h3>
+                <div class="field-group">
+                    <div>
+                        <label for="{{ form.departure_time.id_for_label }}">{{ form.departure_time.label }}</label>
+                        {{ form.departure_time }}
+                        {% if form.departure_time.errors %}
+                            <div class="text-danger">{{ form.departure_time.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Additional Information</h3>
+                <div class="field-group">
+                    <div style="grid-column: 1 / -1;">
+                        <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+                        {{ form.notes }}
+                        {% if form.notes.errors %}
+                            <div class="text-danger">{{ form.notes.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {% for error in form.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div style="text-align: right; margin-top: 30px;">
+                <a href="{% url 'attendance_list' %}" class="btn" style="margin-right: 10px;">Cancel</a>
+                <button type="submit" class="btn btn-primary">Update Record</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %} 

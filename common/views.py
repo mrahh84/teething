@@ -2,7 +2,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db import connections
-from django.http import HttpResponse, HttpResponseBadRequest, StreamingHttpResponse
+from django.http import HttpResponse, HttpResponseBadRequest, StreamingHttpResponse, JsonResponse
 from django.shortcuts import (
     get_object_or_404,
     redirect,
@@ -13,21 +13,25 @@ from drf_spectacular.utils import extend_schema
 from rest_framework import generics
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
-from django.db.models import Q, Count, Prefetch
+from django.db.models import Q, Count, Prefetch, Avg
 from datetime import datetime, timedelta, date
 from django.urls import reverse
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 import json
 import traceback
 import csv
+import re
+from typing import Optional
 
-from .models import Employee, Event, EventType, Location
+from .models import Employee, Event, EventType, Location, AttendanceRecord, Card
+from .forms import AttendanceRecordForm, BulkHistoricalUpdateForm, ProgressiveEntryForm, HistoricalProgressiveEntryForm, AttendanceFilterForm
 from .serializers import (
     EmployeeSerializer,
     EventSerializer,
     LocationSerializer,
     SingleEventSerializer,
 )
+from .utils import performance_monitor, query_count_monitor
 
 # --- API Views ---
 # Apply authentication and permissions to all API views
@@ -101,6 +105,824 @@ class ListEventsView(generics.ListAPIView):
     )
 
 
+# --- Attendance Views ---
+
+@login_required
+@extend_schema(exclude=True)
+def attendance_analytics(request):
+    """
+    Comprehensive attendance analytics view with filtering and statistics.
+    """
+    # Get filter parameters
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    department_filter = request.GET.get('department', 'Digitization Tech')  # Default to Digitization Tech
+    
+    # Default to last 30 days if no dates provided
+    if not start_date:
+        start_date = (timezone.now() - timedelta(days=30)).date().isoformat()
+    if not end_date:
+        end_date = timezone.now().date().isoformat()
+    
+    try:
+        start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+    except ValueError:
+        start_date = (timezone.now() - timedelta(days=30)).date()
+        end_date = timezone.now().date()
+    
+    # Get all employees
+    employees = Employee.objects.filter(is_active=True).order_by('surname', 'given_name')
+    
+    # Apply department filter
+    if department_filter:
+        employees = filter_employees_by_department(employees, department_filter)
+    
+    # Get attendance records for the date range
+    records = AttendanceRecord.objects.filter(
+        date__gte=start_date,
+        date__lte=end_date,
+        employee__in=employees
+    ).select_related('employee')
+    
+    # Calculate statistics
+    total_records = records.count()
+    total_employees = len(employees)  # Use len() since employees is now a list
+    
+    # Count problematic records (excluding absences - based on Garbage logic)
+    problematic_records = sum(1 for record in records if record.is_problematic_day())
+    
+    # Calculate attendance percentage
+    if total_records > 0:
+        attendance_percentage = ((total_records - problematic_records) / total_records) * 100
+    else:
+        attendance_percentage = 0
+    
+    # Get top problematic employees
+    employee_issues = {}
+    for record in records:
+        if record.is_problematic_day():
+            emp_name = f"{record.employee.given_name} {record.employee.surname}"
+            employee_issues[emp_name] = employee_issues.get(emp_name, 0) + record.total_issues
+    
+    top_problematic = sorted(employee_issues.items(), key=lambda x: x[1], reverse=True)[:10]
+    
+    # Get period summary statistics (instead of daily breakdown)
+    period_summary = {
+        'total_records': total_records,
+        'problematic_records': problematic_records,
+        'attendance_percentage': round(attendance_percentage, 2),
+        'avg_records_per_day': round(total_records / max(1, (end_date - start_date).days + 1), 2),
+        'avg_problematic_per_day': round(problematic_records / max(1, (end_date - start_date).days + 1), 2),
+        'period_days': (end_date - start_date).days + 1,
+    }
+    
+    # Get available departments for filter
+    available_departments = get_available_departments()
+    
+    context = {
+        'start_date': start_date,
+        'end_date': end_date,
+        'department_filter': department_filter,
+        'available_departments': available_departments,
+        'total_records': total_records,
+        'total_employees': total_employees,
+        'problematic_records': problematic_records,
+        'attendance_percentage': round(attendance_percentage, 2),
+        'top_problematic': top_problematic,
+        'period_summary': period_summary,
+        'employees': employees,
+    }
+    
+    # Check if this is an AJAX request
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        # Return just the analytics content for AJAX requests
+        return render(request, 'attendance/analytics_content.html', context)
+    
+    return render(request, 'attendance/analytics.html', context)
+
+
+@login_required
+@extend_schema(exclude=True)
+def comprehensive_reports(request):
+    """
+    Comprehensive reports page with tabs for different report types.
+    """
+    try:
+        import marimo
+        marimo_available = True
+    except ImportError:
+        marimo_available = False
+
+    active_tab = request.GET.get('tab', 'comprehensive_attendance')
+    
+    start_date = request.GET.get('start_date', timezone.now().date().replace(day=1).isoformat())
+    end_date = request.GET.get('end_date', timezone.now().date().isoformat())
+    department_filter = request.GET.get('department', 'Digitization Tech')  # Default to Digitization Tech
+    
+    employee_id = request.GET.get("employee_id")
+    period = request.GET.get("period", "day")
+    start_time = request.GET.get("start_time", "09:00")
+    end_time = request.GET.get("end_time", "17:00")
+    
+    employees = Employee.objects.all().order_by("surname", "given_name")
+    
+    if not employee_id and employees.exists():
+        employee_id = employees.first().id
+
+    # Get available departments for filter
+    available_departments = get_available_departments()
+
+    context = {
+        "user": request.user,
+        "marimo_available": marimo_available,
+        "active_tab": active_tab,
+        "start_date": start_date,
+        "end_date": end_date,
+        "department_filter": department_filter,
+        "available_departments": available_departments,
+        "employees": employees,
+        "selected_employee_id": employee_id,
+        "selected_period": period,
+        "start_time": start_time,
+        "end_time": end_time,
+    }
+    
+    return render(request, "reports/comprehensive_reports.html", context)
+
+
+@login_required
+@extend_schema(exclude=True)
+def progressive_entry(request):
+    """Progressive attendance entry - optimized with bulk prefetch"""
+    today = timezone.now().date()
+    
+    # Get request parameters for filtering
+    start_letter = request.GET.get("start_letter", "")
+    search_query = request.GET.get("search", "")
+    department_filter = request.GET.get('department', 'Digitization Tech')
+    
+    if request.method == 'POST':
+        # Handle AJAX save requests (existing code)
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            # Handle batch updates
+            if request.POST.get('batch_update') == 'true':
+                completions = {}
+                
+                # Parse all POST data to find changes
+                for key, value in request.POST.items():
+                    if key.startswith('changes[') and value:  # Only process non-empty values
+                        try:
+                            # Parse key format: changes[employee_id][field_name]
+                            # Remove 'changes[' prefix and split by ']['
+                            key_part = key[8:]  # Remove 'changes[' prefix
+                            if key_part.endswith(']'):
+                                key_part = key_part[:-1]  # Remove trailing ']'
+                            
+                            # Split by '][' to get employee_id and field_name
+                            parts = key_part.split('][')
+                            if len(parts) == 2:
+                                employee_id = parts[0]
+                                field_name = parts[1]
+                                
+                                if employee_id and field_name:
+                                    employee = Employee.objects.get(id=employee_id)
+                                    record, created = AttendanceRecord.objects.get_or_create(
+                                        employee=employee,
+                                        date=today,
+                                        defaults={'created_by': request.user}
+                                    )
+                                    
+                                    # Convert lunch_time string to time object
+                                    if field_name == 'lunch_time' and value:
+                                        try:
+                                            value = datetime.strptime(value, "%H:%M").time()
+                                        except Exception:
+                                            value = None
+                                    
+                                    # Update the specific field
+                                    if hasattr(record, field_name):
+                                        setattr(record, field_name, value)
+                                        record.last_updated_by = request.user
+                                        record.save()
+                                        
+                                        completions[employee_id] = record.completion_percentage
+                        except (Employee.DoesNotExist, ValueError) as e:
+                            return JsonResponse({'success': False, 'error': f'Error processing batch update: {str(e)}'})
+                return JsonResponse({
+                    'success': True,
+                    'completions': completions,
+                    'message': f'Batch update completed for {len(completions)} records'
+                })
+            
+            # Handle single field updates (existing code)
+            employee_id = request.POST.get('employee_id')
+            field_name = request.POST.get('field_name')
+            field_value = request.POST.get('field_value')
+            
+            try:
+                employee = Employee.objects.get(id=employee_id)
+                record, created = AttendanceRecord.objects.get_or_create(
+                    employee=employee,
+                    date=today,
+                    defaults={'created_by': request.user}
+                )
+                
+                # Convert lunch_time string to time object
+                if field_name == 'lunch_time' and field_value:
+                    try:
+                        field_value = datetime.strptime(field_value, "%H:%M").time()
+                    except Exception:
+                        field_value = None
+                
+                # Update the specific field
+                if hasattr(record, field_name):
+                    setattr(record, field_name, field_value)
+                    record.last_updated_by = request.user
+                    record.save()
+                    
+                    return JsonResponse({
+                        'success': True,
+                        'status': record.status,
+                        'completion': record.completion_percentage,
+                        'message': f'{field_name} updated successfully'
+                    })
+                else:
+                    return JsonResponse({'success': False, 'error': 'Invalid field'})
+                    
+            except Employee.DoesNotExist:
+                return JsonResponse({'success': False, 'error': 'Employee not found'})
+        
+        # Handle regular form submission
+        form = ProgressiveEntryForm(request.POST)
+        if form.is_valid():
+            employee = form.cleaned_data['employee']
+            record, created = AttendanceRecord.objects.get_or_create(
+                employee=employee,
+                date=today,
+                defaults={'created_by': request.user}
+            )
+            
+            # Update fields that were provided
+            for field_name in ['standup_attendance', 'left_lunch_on_time', 
+                             'returned_on_time_after_lunch', 'returned_after_lunch', 'lunch_time', 'notes']:
+                if form.cleaned_data.get(field_name):
+                    setattr(record, field_name, form.cleaned_data[field_name])
+            
+            record.last_updated_by = request.user
+            record.save()
+            
+            messages.success(request, f'Attendance data saved for {employee} ({record.status})')
+            return redirect('progressive_entry')
+    else:
+        form = ProgressiveEntryForm()
+    
+    # Get employees who were actually present (had clock-in events) today
+    from datetime import time
+    start_of_day = timezone.make_aware(datetime.combine(today, time.min))
+    end_of_day = timezone.make_aware(datetime.combine(today, time.max))
+    
+    # Get employees who clocked in today
+    present_employees = Event.objects.filter(
+        event_type__name='Clock In',
+        timestamp__gte=start_of_day,
+        timestamp__lte=end_of_day
+    ).values_list('employee', flat=True).distinct()
+    
+    # Get the actual employee objects for present employees
+    employees = Employee.objects.filter(
+        id__in=present_employees,
+        is_active=True
+    ).select_related('card_number').order_by('surname', 'given_name')
+    
+    # Apply department filter
+    if department_filter and department_filter != 'All Departments':
+        employees = filter_employees_by_department(employees, department_filter)
+    
+    # Apply letter filter
+    if start_letter and start_letter != 'all' and len(start_letter) == 1:
+        employees = employees.filter(surname__istartswith=start_letter)
+    
+    # Apply search filter
+    if search_query:
+        employees = employees.filter(
+            Q(given_name__icontains=search_query)
+            | Q(surname__icontains=search_query)
+            | Q(card_number__designation__icontains=search_query)
+        )
+    
+    # BULK PREFETCH: Get all today's records in one query
+    today_records = AttendanceRecord.objects.filter(
+        date=today,
+        employee__in=employees
+    ).select_related('employee', 'employee__card_number')
+    
+    # Create lookup dictionary for O(1) access
+    records_by_employee = {record.employee_id: record for record in today_records}
+    
+    # Create employee attendance list with O(1) lookups
+    employee_attendance = []
+    for employee in employees:
+        record = records_by_employee.get(employee.id)
+        
+        employee_attendance.append({
+            'employee': employee,
+            'record': record,
+            'is_clocked_in': True,  # All employees shown are present
+            'arrival_time': record.arrival_time if record else None,
+            'departure_time': record.departure_time if record else None,
+        })
+    
+    # Get available departments for filter
+    available_departments = get_available_departments()
+    
+    context = {
+        'today': today,
+        'today_records': today_records,
+        'employee_attendance': employee_attendance,
+        'employees': employees,
+        'form': form,
+        'start_letter': start_letter,
+        'search_query': search_query,
+        'department_filter': department_filter,
+        'available_departments': available_departments,
+    }
+    
+    return render(request, 'attendance/progressive_entry.html', context)
+
+
+@login_required
+@extend_schema(exclude=True)
+def attendance_list(request):
+    """
+    List view of attendance records with filtering and search.
+    """
+    # Get filter parameters
+    date_filter = request.GET.get('date')
+    employee_filter = request.GET.get('employee')
+    status_filter = request.GET.get('status')
+    department_filter = request.GET.get('department', 'Digitization Tech')  # Default to Digitization Tech
+    
+    # Default to today if no date specified
+    if not date_filter:
+        date_filter = timezone.now().date().isoformat()
+    
+    try:
+        target_date = datetime.strptime(date_filter, '%Y-%m-%d').date()
+    except ValueError:
+        target_date = timezone.now().date()
+    
+    # Get all active employees with optimized prefetch
+    all_employees = Employee.objects.filter(is_active=True).select_related('card_number').order_by('surname', 'given_name')
+    
+    # Apply department filter to employees
+    if department_filter:
+        all_employees = filter_employees_by_department(all_employees, department_filter)
+    
+    # Get attendance records for the target date with optimized prefetch
+    records = AttendanceRecord.objects.filter(date=target_date).select_related('employee', 'employee__card_number')
+    
+    # Apply department filter to records using the same logic
+    if department_filter:
+        # Filter records by department using the same logic as employees
+        filtered_records = []
+        for record in records:
+            if record.employee.card_number:
+                emp_dept = get_department_from_designation(record.employee.card_number.designation)
+                if emp_dept == department_filter:
+                    filtered_records.append(record)
+        records = filtered_records
+    
+    # Filter by employee if specified
+    if employee_filter:
+        records = records.filter(employee_id=employee_filter)
+    
+    # Filter by status if specified
+    if status_filter:
+        records = records.filter(status=status_filter)
+    
+    # Identify absent employees (those who didn't clock in) - OPTIMIZED
+    from datetime import time
+    start_of_day = timezone.make_aware(datetime.combine(target_date, time.min))
+    end_of_day = timezone.make_aware(datetime.combine(target_date, time.max))
+    
+    # Single optimized query to get all clocked-in employee IDs
+    clocked_in_employees = set(
+        Event.objects.filter(
+            event_type__name='Clock In',
+            timestamp__gte=start_of_day,
+            timestamp__lte=end_of_day
+        ).values_list('employee_id', flat=True)
+    )
+    
+    absentees = [emp for emp in all_employees if emp.id not in clocked_in_employees]
+    
+    # Filter by employee if specified
+    if employee_filter:
+        absentees = [emp for emp in absentees if str(emp.id) == employee_filter]
+    
+    # Build a list of display records: attendance records + absentees + clocked-in with no record
+    # Filter out attendance records for absent employees to avoid duplicates
+    absentee_ids = {emp.id for emp in absentees}
+    filtered_records = [r for r in records if r.employee.id not in absentee_ids]
+    display_records = list(filtered_records)
+    
+    # Add absent employees as dummy records
+    for employee in absentees:
+        # Create a dummy record-like object for template
+        dummy_record = type('DummyRecord', (), {
+            'employee': employee,
+            'date': target_date,
+            'arrival_time': None,
+            'departure_time': None,
+            'is_absent': True,
+            'is_problematic_day': lambda: False,
+            'total_issues': 0,
+            'status': 'ABSENT',
+        })()
+        display_records.append(dummy_record)
+    
+    # Add employees who clocked in but don't have attendance records
+    clocked_in_no_record = []
+    for employee in all_employees:
+        if (employee.id in clocked_in_employees and 
+            not any(r.employee.id == employee.id for r in display_records)):
+            # Create a dummy record for clocked-in employee without attendance record
+            dummy_record = type('DummyRecord', (), {
+                'employee': employee,
+                'date': target_date,
+                'arrival_time': None,  # Will be calculated by property
+                'departure_time': None,  # Will be calculated by property
+                'is_absent': False,
+                'is_problematic_day': lambda: False,
+                'total_issues': 0,
+                'status': 'DRAFT',
+            })()
+            display_records.append(dummy_record)
+    
+    # Sort display records
+    display_records.sort(key=lambda x: (x.employee.surname, x.employee.given_name))
+    
+    # Pagination
+    paginator = Paginator(display_records, 25)  # Show 25 records per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Get available departments for filter
+    available_departments = get_available_departments()
+    
+    context = {
+        'date_filter': target_date,
+        'employee_filter': employee_filter,
+        'status_filter': status_filter,
+        'department_filter': department_filter,
+        'available_departments': available_departments,
+        'page_obj': page_obj,
+        'employees': all_employees,
+        'total_records': len(display_records),
+        'absent_count': len(absentees),
+        'present_count': len(display_records) - len(absentees),
+    }
+    
+    return render(request, 'attendance/list.html', context)
+
+
+@login_required
+@extend_schema(exclude=True)
+def historical_progressive_entry(request):
+    """
+    Historical progressive entry for past dates.
+    """
+    from .forms import HistoricalProgressiveEntryForm
+    
+    if request.method == 'POST':
+        form = HistoricalProgressiveEntryForm(request.POST)
+        if form.is_valid():
+            # Redirect to results page with search parameters
+            date_from = form.cleaned_data['date_from']
+            date_to = form.cleaned_data['date_to']
+            department = form.cleaned_data['department']
+            
+            # Build redirect URL
+            redirect_url = reverse('historical_progressive_results')
+            params = {
+                'date_from': date_from.isoformat(),
+                'date_to': date_to.isoformat(),
+                'department': department,
+            }
+            
+            return redirect(f"{redirect_url}?{'&'.join([f'{k}={v}' for k, v in params.items()])}")
+    else:
+        # Handle GET parameters for quick actions
+        date_from_param = request.GET.get('date_from')
+        date_to_param = request.GET.get('date_to')
+        
+        if date_from_param and date_to_param:
+            # Handle relative date parameters (e.g., -7, -14, -30)
+            try:
+                if date_from_param.startswith('-') and date_to_param.startswith('-'):
+                    days_from = int(date_from_param)
+                    days_to = int(date_to_param)
+                    today = timezone.now().date()
+                    date_from = today + timedelta(days=days_from)
+                    date_to = today + timedelta(days=days_to)
+                else:
+                    date_from = datetime.strptime(date_from_param, '%Y-%m-%d').date()
+                    date_to = datetime.strptime(date_to_param, '%Y-%m-%d').date()
+                
+                # Redirect to results page
+                redirect_url = reverse('historical_progressive_results')
+                params = {
+                    'date_from': date_from.isoformat(),
+                    'date_to': date_to.isoformat(),
+                }
+                department = request.GET.get('department', 'Digitization Tech')
+                params['department'] = department
+                
+                return redirect(f"{redirect_url}?{'&'.join([f'{k}={v}' for k, v in params.items()])}")
+            except (ValueError, TypeError):
+                pass
+        
+        # Initialize form with default values
+        form = HistoricalProgressiveEntryForm()
+    
+    context = {
+        'form': form,
+    }
+    
+    return render(request, 'attendance/historical_progressive_entry.html', context)
+
+
+@login_required
+@extend_schema(exclude=True)
+def historical_progressive_results(request):
+    """
+    Results page for historical progressive entry.
+    """
+    from django.core.paginator import Paginator
+    
+    # Handle POST requests for saving historical records
+    if request.method == 'POST':
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            # Handle AJAX save requests
+            employee_id = request.POST.get('employee_id')
+            field_name = request.POST.get('field_name')
+            field_value = request.POST.get('field_value')
+            record_date = request.POST.get('record_date')
+            record_id = request.POST.get('record_id')
+            
+            try:
+                # Handle both new records (employee_id + record_date) and existing records (record_id)
+                if record_id and record_id != 'new':
+                    # Updating existing record
+                    record = AttendanceRecord.objects.get(id=record_id)
+                    employee = record.employee
+                    record_date = record.date
+                elif employee_id and record_date:
+                    # Creating new record
+                    if isinstance(employee_id, str):
+                        employee_id = int(employee_id)
+                    employee = Employee.objects.get(id=employee_id, is_active=True)
+                    record_date = datetime.strptime(record_date, '%Y-%m-%d').date()
+                else:
+                    return JsonResponse({'success': False, 'error': 'Missing required parameters'})
+                
+                # Check if record exists (only for new records)
+                if record_id and record_id != 'new':
+                    # We already have the record from above
+                    created = False
+                else:
+                    # Check if record exists for new records
+                    try:
+                        record = AttendanceRecord.objects.get(employee=employee, date=record_date)
+                        created = False
+                    except AttendanceRecord.DoesNotExist:
+                        # Create new record for missing employee
+                        record = AttendanceRecord.objects.create(
+                            employee=employee,
+                            date=record_date,
+                            created_by=request.user,
+                            status='DRAFT'
+                        )
+                        created = True
+                
+                # Convert lunch_time string to time object
+                if field_name == 'lunch_time' and field_value:
+                    try:
+                        field_value = datetime.strptime(field_value, "%H:%M").time()
+                    except Exception:
+                        field_value = None
+                
+                # Update the specific field
+                if hasattr(record, field_name):
+                    setattr(record, field_name, field_value)
+                    record.last_updated_by = request.user
+                    record.save()
+                    
+                    response_data = {
+                        'success': True,
+                        'status': record.status,
+                        'completion': record.completion_percentage,
+                        'message': f'{field_name} updated successfully'
+                    }
+                    
+                    # If this was a new record, include the record ID
+                    if created:
+                        response_data['record_id'] = record.id
+                    
+                    return JsonResponse(response_data)
+                else:
+                    return JsonResponse({'success': False, 'error': 'Invalid field'})
+                    
+            except (Employee.DoesNotExist, ValueError) as e:
+                return JsonResponse({'success': False, 'error': f'Error: {str(e)}'})
+    
+    # Get search parameters
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    department_filter = request.GET.get('department', 'Digitization Tech')  # Default to Digitization Tech
+    days_per_page = int(request.GET.get('days_per_page', 7))
+    page_number = request.GET.get('page', 1)
+    
+    if not date_from or not date_to:
+        return redirect('historical_progressive_entry')
+    
+    try:
+        date_from = datetime.strptime(date_from, '%Y-%m-%d').date()
+        date_to = datetime.strptime(date_to, '%Y-%m-%d').date()
+        page_number = int(page_number)
+    except (ValueError, TypeError):
+        return redirect('historical_progressive_entry')
+    
+    # Get employees by department filter
+    all_employees = Employee.objects.filter(is_active=True)
+    if department_filter and department_filter != 'All Departments':
+        filtered_employees = filter_employees_by_department(all_employees, department_filter)
+    else:
+        filtered_employees = all_employees
+    
+    # Get all dates in the range
+    date_range = []
+    current_date = date_from
+    while current_date <= date_to:
+        date_range.append(current_date)
+        current_date += timedelta(days=1)
+    
+    # Paginate the dates
+    date_paginator = Paginator(date_range, days_per_page)
+    date_page = date_paginator.get_page(page_number)
+    
+    # Get records for the current page of dates
+    records_by_date = {}
+    for date_key in date_page:
+        # Get employees who were actually present (had clock-in events) on this date
+        from common.models import Event
+        present_employees = Event.objects.filter(
+            timestamp__date=date_key,
+            event_type__name='Clock In'
+        ).values_list('employee', flat=True).distinct()
+        
+        # Filter by department if specified
+        if department_filter and department_filter != 'All Departments':
+            present_employees = present_employees.filter(employee__in=filtered_employees)
+        
+        # Get the actual employee objects for present employees
+        present_employee_objects = Employee.objects.filter(
+            id__in=present_employees,
+            is_active=True
+        ).order_by('surname', 'given_name')
+        
+        # Get existing attendance records for present employees on this date
+        existing_records = AttendanceRecord.objects.filter(
+            date=date_key,
+            employee__in=present_employee_objects
+        ).select_related('employee').order_by('employee__surname', 'employee__given_name')
+        
+        # Create a list of present employees with their records (or create new records if needed)
+        employee_records = []
+        for emp in present_employee_objects:
+            # Find existing record for this employee on this date
+            existing_record = existing_records.filter(employee=emp).first()
+            if existing_record:
+                employee_records.append(existing_record)
+            else:
+                # Create a dummy record object for present employees without attendance records
+                # This allows the template to show present employees and create records on demand
+                dummy_record = type('DummyRecord', (), {
+                    'id': None,
+                    'employee': emp,
+                    'date': date_key,
+                    'lunch_time': None,
+                    'left_lunch_on_time': None,
+                    'returned_on_time_after_lunch': None,
+                    'returned_after_lunch': None,
+                    'standup_attendance': None,
+                    'status': 'DRAFT',
+                    'completion_percentage': 0,
+                    'last_updated_by': None,
+                    'updated_at': None,
+                    'notes': '',
+                })()
+                employee_records.append(dummy_record)
+        
+        if employee_records:
+            records_by_date[date_key] = employee_records
+    
+    # Calculate statistics
+    total_days = len(date_range)
+    total_records = sum(len(records) for records in records_by_date.values())
+    
+    # Get available departments for filter
+    available_departments = get_available_departments()
+    
+    context = {
+        'date_from': date_from,
+        'date_to': date_to,
+        'department_filter': department_filter,
+        'available_departments': available_departments,
+        'date_page': date_page,
+        'records_by_date': records_by_date,
+        'total_days': total_days,
+        'total_records': total_records,
+        'days_per_page': days_per_page,
+    }
+    
+    return render(request, 'attendance/historical_progressive_results.html', context)
+
+
+@login_required
+@extend_schema(exclude=True)
+def attendance_export_csv(request):
+    """
+    Export attendance records to CSV.
+    """
+    # Get filter parameters
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    employee_filter = request.GET.get('employee')
+    
+    # Default to last 30 days if no dates provided
+    if not start_date:
+        start_date = (timezone.now() - timedelta(days=30)).date().isoformat()
+    if not end_date:
+        end_date = timezone.now().date().isoformat()
+    
+    try:
+        start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+    except ValueError:
+        start_date = (timezone.now() - timedelta(days=30)).date()
+        end_date = timezone.now().date()
+    
+    # Get attendance records
+    records = AttendanceRecord.objects.filter(
+        date__gte=start_date,
+        date__lte=end_date
+    ).select_related('employee')
+    
+    # Filter by employee if specified
+    if employee_filter:
+        records = records.filter(employee_id=employee_filter)
+    
+    # Create CSV response
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="attendance_export_{start_date}_{end_date}.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow([
+        'Employee Name',
+        'Date',
+        'Arrival Time',
+        'Departure Time',
+        'Worked Hours',
+        'Standup Attendance',
+        'Left Lunch On Time',
+        'Returned On Time After Lunch',
+        'Returned After Lunch',
+        'Total Issues',
+        'Status',
+        'Notes'
+    ])
+    
+    for record in records:
+        writer.writerow([
+            f"{record.employee.given_name} {record.employee.surname}",
+            record.date,
+            record.arrival_time.strftime('%H:%M') if record.arrival_time else '',
+            record.departure_time.strftime('%H:%M') if record.departure_time else '',
+            f"{record.worked_hours:.2f}" if record.worked_hours else '',
+            record.standup_attendance or '',
+            record.left_lunch_on_time or '',
+            record.returned_on_time_after_lunch or '',
+            record.returned_after_lunch or '',
+            record.total_issues,
+            record.status,
+            record.notes or ''
+        ])
+    
+    return response
+
+
 # --- Template Views ---
 # Apply login_required decorator
 
@@ -113,6 +935,7 @@ def main_security(request):
     """
     Displays the main security dashboard, listing all employees
     and their current clock-in/out status. Requires login.
+    Optimized with caching for better performance.
     """
     # Get request parameters for sorting and filtering
     search_query = request.GET.get("search", "")
@@ -129,16 +952,31 @@ def main_security(request):
             server_items_per_page = 100
     except ValueError:
         server_items_per_page = 100
-
+    
+    # Try to get cached data first
+    try:
+        from common.cache_utils import (
+            get_main_security_cache_key, 
+            get_cached_main_security_data,
+            cache_main_security_data,
+            bulk_cache_employee_statuses
+        )
+        
+        cache_key = get_main_security_cache_key(
+            int(page_number), sort_by, sort_direction, status_filter, search_query, start_letter
+        )
+        cached_data = get_cached_main_security_data(cache_key)
+        
+        if cached_data:
+            return render(request, "main_security.html", cached_data)
+    except ImportError:
+        pass  # Fall back to non-cached version
+        
     # Start with all employees, using optimized queries
     employees_query = Employee.objects.select_related("card_number").all()
 
     # Count stats for the dashboard before applying filters
     total_employees = employees_query.count()
-
-    # Apply letter filter if provided
-    if start_letter and len(start_letter) == 1:
-        employees_query = employees_query.filter(surname__istartswith=start_letter)
 
     # Apply search if provided
     if search_query:
@@ -173,6 +1011,13 @@ def main_security(request):
     # Get the employee list - we need to materialize the queryset here
     # because we need to apply status filtering and card sorting in Python
     all_employees = list(employees_query)
+    
+    # Bulk cache employee statuses to improve performance
+    try:
+        employee_ids = [emp.id for emp in all_employees]
+        bulk_cache_employee_statuses(employee_ids)
+    except (ImportError, NameError):
+        pass  # Ignore if caching not available
 
     # Apply status filtering in Python since it's a calculated property
     if status_filter == "in":
@@ -191,6 +1036,13 @@ def main_security(request):
             key=lambda emp: emp.card_number.designation if emp.card_number else "",
             reverse=reverse,
         )
+    
+    # Apply letter filter if provided (after all other filtering)
+    if start_letter and start_letter != 'all' and len(start_letter) == 1:
+        all_employees = [
+            employee for employee in all_employees 
+            if employee.surname.upper().startswith(start_letter.upper())
+        ]
 
     # Server-side pagination
     paginator = Paginator(all_employees, server_items_per_page)
@@ -210,7 +1062,7 @@ def main_security(request):
         "status_filter": status_filter,
         "sort_by": sort_by,
         "sort_direction": sort_direction,
-        "total_employees": total_employees,
+        "total_employees": len(all_employees),  # Use filtered count
         "clocked_in_count": clocked_in_count,
         "clocked_out_count": clocked_out_count,
         "start_letter": start_letter,
@@ -218,6 +1070,13 @@ def main_security(request):
         "total_pages": paginator.num_pages,
         "items_per_page": server_items_per_page,
     }
+    
+    # Cache the result for future requests
+    try:
+        cache_main_security_data(cache_key, context)
+    except (ImportError, NameError):
+        pass  # Ignore if caching not available
+    
     return render(request, "main_security.html", context)
 
 
@@ -228,7 +1087,18 @@ def main_security_clocked_in_status_flip(request, id):
     Handles the clock-in/clock-out action for an employee from the main security view.
     Creates a new 'Clock In' or 'Clock Out' event. Requires login.
     Includes a basic debounce mechanism.
+    Optimized with caching for better performance.
     """
+    # Check if we need to clear cache (for testing purposes)
+    if request.GET.get('clear_cache') == 'true':
+        try:
+            from django.core.cache import cache
+            cache.delete(f"employee_status_{id}")
+            cache.delete(f"employee_last_event_{id}")
+            messages.info(request, "Employee cache cleared for testing.")
+        except Exception:
+            pass
+    
     employee = get_object_or_404(Employee, id=id)
 
     # Determine the *opposite* action to take
@@ -238,27 +1108,63 @@ def main_security_clocked_in_status_flip(request, id):
     # Basic Debounce: Prevent accidental double-clicks/rapid toggling
     # Check the time of the *very last* clock event for this user
     last_event_time = employee.last_clockinout_time
-    debounce_seconds = 5  # Adjust as needed
-    if (
-        last_event_time
-        and (timezone.now() - last_event_time).total_seconds() < debounce_seconds
-    ):
-        # NOTE: include a message for the user
-        messages.warning(
-            request, f"Please wait {debounce_seconds} seconds before clocking again."
-        )
-        print(
-            f"Clock action for {employee} blocked by debounce ({debounce_seconds}s)"
-        )  # Log for debugging
-        return redirect("main_security")  # Redirect without making changes
+    debounce_seconds = 2  # Reduced from 5 to 2 seconds for better UX
+    
+    # More robust debounce check - also check recent events directly from database
+    recent_events = Event.objects.filter(
+        employee=employee,
+        event_type__name__in=['Clock In', 'Clock Out']
+    ).order_by('-timestamp')[:1]
+    
+    if recent_events.exists():
+        most_recent_event = recent_events.first()
+        # Ensure both timestamps are timezone-aware for proper comparison
+        current_time = timezone.now()
+        event_time = most_recent_event.timestamp
+        
+        # Convert both to UTC for consistent comparison
+        if current_time.tzinfo is None:
+            current_time = timezone.make_aware(current_time)
+        if event_time.tzinfo is None:
+            event_time = timezone.make_aware(event_time)
+            
+        time_since_last_event = (current_time - event_time).total_seconds()
+        
+        # Safety check: if event is in the future or more than 1 hour ago, skip debounce
+        if time_since_last_event < -3600 or time_since_last_event > 3600:
+            # Skip debounce for invalid timestamps
+            pass
+        elif time_since_last_event < debounce_seconds:
+            messages.warning(
+                request, f"Please wait {debounce_seconds} seconds before clocking again."
+            )
+            print(
+                f"Clock action for {employee} blocked by debounce ({debounce_seconds}s) - last event was {time_since_last_event:.1f}s ago"
+            )  # Log for debugging
+            return redirect("main_security")  # Redirect without making changes
 
     try:
-        # Get the EventType instance (Clock In or Clock Out)
-        event_type = EventType.objects.get(name=target_event_type_name)
-        # Assume the event happens at 'Main Security' location - adjust if needed
-        location = Location.objects.get(
-            name="Main Security"
-        )  # Ensure this location exists!
+        # Try to get cached event types and locations first for better performance
+        try:
+            from common.cache_utils import get_cached_event_types, get_cached_locations
+            event_types = get_cached_event_types()
+            locations = get_cached_locations()
+            
+            event_type = event_types.get(target_event_type_name)
+            location = locations.get("Main Security")
+            
+
+            
+            if not event_type:
+                raise EventType.DoesNotExist(f"Event type '{target_event_type_name}' not found in cache")
+            if not location:
+                raise Location.DoesNotExist("Location 'Main Security' not found in cache")
+                
+        except ImportError:
+            # Fall back to database queries if caching not available
+            event_type = EventType.objects.get(name=target_event_type_name)
+            location = Location.objects.get(name="Main Security")
+            
     except (EventType.DoesNotExist, Location.DoesNotExist) as e:
         # Handle case where required EventType or Location is missing
         print(f"Error: Required EventType or Location missing: {e}")  # Log error
@@ -293,7 +1199,7 @@ def main_security_clocked_in_status_flip(request, id):
         return redirect(redirect_url)
 
 
-@login_required  # Protect this view
+@login_required
 @extend_schema(exclude=True)
 def employee_events(request, id):
     """
@@ -509,7 +1415,7 @@ def employee_history_report(request):
     # Get filter parameters
     employee_id = request.GET.get("employee_id")
     start_date = request.GET.get(
-        "start_date", (timezone.now() - timedelta(days=30)).date().isoformat()
+        "start_date", timezone.now().date().replace(day=1).isoformat()
     )
     end_date = request.GET.get("end_date", timezone.now().date().isoformat())
 
@@ -558,35 +1464,7 @@ def period_summary_report(request):
     return render(request, "reports/period_summary_report.html", context)
 
 
-@login_required
-@extend_schema(exclude=True)
-def late_early_report(request):
-    """
-    Display the late arrival and early departure report using Marimo.
-    """
-    # Get filter parameters
-    start_date = request.GET.get(
-        "start_date", (timezone.now() - timedelta(days=30)).date().isoformat()
-    )
-    end_date = request.GET.get("end_date", timezone.now().date().isoformat())
-    late_threshold = request.GET.get("late_threshold", "15")
-    early_threshold = request.GET.get("early_threshold", "15")
-    start_time = request.GET.get("start_time", "09:00")
-    end_time = request.GET.get("end_time", "17:00")
 
-    context = {
-        "user": request.user,
-        "start_date": start_date,
-        "end_date": end_date,
-        "late_threshold": late_threshold,
-        "early_threshold": early_threshold,
-        "start_time": start_time,
-        "end_time": end_time,
-        "report_url": f"{reverse('generate_marimo_report', args=['late_early'])}?start={start_date}&end={end_date}&late_threshold={late_threshold}&early_threshold={early_threshold}&start_time={start_time}&end_time={end_time}",
-        "report_title": "Late Arrival and Early Departure Report",
-        "report_description": "Track employee punctuality with customizable thresholds for lateness and early departures.",
-    }
-    return render(request, "reports/late_early_report.html", context)
 
 
 @login_required
@@ -607,7 +1485,7 @@ def generate_marimo_report(request, report_type):
 
         # Get filter parameters
         start_date_str = request.GET.get(
-            "start", (timezone.now() - timedelta(days=30)).date().isoformat()
+            "start", timezone.now().date().replace(day=1).isoformat()
         )
         end_date_str = request.GET.get("end", timezone.now().date().isoformat())
 
@@ -653,21 +1531,7 @@ def generate_marimo_report(request, report_type):
                 request, period, start_date, end_date_with_day, start_time, end_time
             )
 
-        elif report_type == "late_early":
-            late_threshold = int(request.GET.get("late_threshold", "15"))
-            early_threshold = int(request.GET.get("early_threshold", "15"))
-            start_time = request.GET.get("start_time", "09:00")
-            end_time = request.GET.get("end_time", "17:00")
 
-            return generate_late_early_html(
-                request,
-                start_date,
-                end_date_with_day,
-                late_threshold,
-                early_threshold,
-                start_time,
-                end_time,
-            )
 
         else:
             return HttpResponse(f"Unknown report type: {report_type}", status=400)
@@ -1149,7 +2013,7 @@ def generate_period_summary_html(
             employee_id = event.employee.id
             employee_name = f"{event.employee.given_name} {event.employee.surname}"
             event_date = event.timestamp.date()
-            event_time = event.timestamp.time()
+            event_time = timezone.localtime(event.timestamp).time()
 
             # Determine which period this event belongs to
             if period_type == "day":
@@ -1362,12 +2226,12 @@ def generate_period_summary_html(
                 period["employees"].items(), key=lambda x: x[1]["name"]
             ):
                 first_in = (
-                    emp_data["first_clock_in"].strftime("%Y-%m-%d %H:%M")
+                    timezone.localtime(emp_data["first_clock_in"]).strftime("%Y-%m-%d %H:%M")
                     if emp_data["first_clock_in"]
                     else "—"
                 )
                 last_out = (
-                    emp_data["last_clock_out"].strftime("%Y-%m-%d %H:%M")
+                    timezone.localtime(emp_data["last_clock_out"]).strftime("%Y-%m-%d %H:%M")
                     if emp_data["last_clock_out"]
                     else "—"
                 )
@@ -1421,15 +2285,7 @@ def generate_period_summary_html(
         )
 
 
-def generate_late_early_html(
-    request,
-    start_date,
-    end_date,
-    late_threshold,
-    early_threshold,
-    start_time_str,
-    end_time_str,
-):
+
     """Generate HTML report for late arrivals and early departures"""
     try:
         # Convert time strings to time objects
@@ -1459,7 +2315,8 @@ def generate_late_early_html(
         early_departures = []
 
         for event in events:
-            event_time = event.timestamp.time()
+            local_timestamp = timezone.localtime(event.timestamp)
+            event_time = local_timestamp.time()
             employee_name = f"{event.employee.given_name} {event.employee.surname}"
 
             if event.event_type.name == "Clock In":
@@ -1789,8 +2646,8 @@ def employee_history_report_csv(request):
             day = event_days[date_key]
             yield [
                 date_key.strftime("%Y-%m-%d"),
-                day["clock_in"].strftime("%H:%M") if day["clock_in"] else "",
-                day["clock_out"].strftime("%H:%M") if day["clock_out"] else "",
+                timezone.localtime(day["clock_in"]).strftime("%H:%M") if day["clock_in"] else "",
+                timezone.localtime(day["clock_out"]).strftime("%H:%M") if day["clock_out"] else "",
                 day["hours"],
             ]
 
@@ -1895,10 +2752,10 @@ def period_summary_report_csv(request):
                 yield [
                     str(period_key),
                     emp_data["name"],
-                    emp_data["first_clock_in"].strftime("%Y-%m-%d %H:%M")
+                    timezone.localtime(emp_data["first_clock_in"]).strftime("%Y-%m-%d %H:%M")
                     if emp_data["first_clock_in"]
                     else "",
-                    emp_data["last_clock_out"].strftime("%Y-%m-%d %H:%M")
+                    timezone.localtime(emp_data["last_clock_out"]).strftime("%Y-%m-%d %H:%M")
                     if emp_data["last_clock_out"]
                     else "",
                     emp_data["hours"],
@@ -1913,78 +2770,328 @@ def period_summary_report_csv(request):
     return response
 
 
-def late_early_report_csv(request):
-    """Download late/early report as CSV"""
-    start_date = request.GET.get(
-        "start_date", (timezone.now() - timedelta(days=30)).date().isoformat()
-    )
-    end_date = request.GET.get("end_date", timezone.now().date().isoformat())
-    late_threshold = int(request.GET.get("late_threshold", "15"))
-    early_threshold = int(request.GET.get("early_threshold", "15"))
-    start_time = request.GET.get("start_time", "09:00")
-    end_time = request.GET.get("end_time", "17:00")
+
+
+
+@login_required
+def attendance_entry(request):
+    """Single day attendance entry form"""
+    if request.method == 'POST':
+        form = AttendanceRecordForm(request.POST)
+        if form.is_valid():
+            record = form.save(commit=False)
+            record.created_by = request.user
+            record.save()
+            messages.success(request, f"Attendance record saved for {record.employee} on {record.date}")
+            return redirect('attendance_list')
+    else:
+        form = AttendanceRecordForm()
+    
+    return render(request, 'attendance/entry_form.html', {'form': form})
+
+
+@login_required
+def attendance_edit(request, record_id):
+    """Edit existing attendance record"""
+    record = get_object_or_404(AttendanceRecord, id=record_id)
+    
+    if request.method == 'POST':
+        form = AttendanceRecordForm(request.POST, instance=record)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Attendance record updated for {record.employee} on {record.date}")
+            return redirect('attendance_list')
+    else:
+        form = AttendanceRecordForm(instance=record)
+    
+    return render(request, 'attendance/edit_form.html', {'form': form, 'record': record})
+
+
+@login_required
+def attendance_delete(request, record_id):
+    """Delete attendance record"""
+    record = get_object_or_404(AttendanceRecord, id=record_id)
+    
+    if request.method == 'POST':
+        employee_name = str(record.employee)
+        date_str = record.date.strftime('%Y-%m-%d')
+        record.delete()
+        messages.success(request, f"Attendance record deleted for {employee_name} on {date_str}")
+        return redirect('attendance_list')
+    
+    return render(request, 'attendance/delete_confirm.html', {'record': record})
+
+
+@login_required
+def bulk_historical_update(request):
+    """Bulk update historical attendance records"""
+    
+    if request.method == 'POST':
+        form = BulkHistoricalUpdateForm(request.POST)
+        if form.is_valid():
+            field_to_update = form.cleaned_data['field_to_update']
+            new_value = form.cleaned_data['new_value']
+            
+            # Get the records to update from session or request
+            record_ids = request.POST.getlist('record_ids')
+            
+            if not record_ids:
+                messages.error(request, 'No records selected for update')
+                return redirect('historical_progressive_entry')
+            
+            # Convert lunch time if needed
+            if field_to_update == 'lunch_time' and new_value:
+                try:
+                    new_value = datetime.strptime(new_value, "%H:%M").time()
+                except Exception:
+                    new_value = None
+            
+            # Update the records
+            updated_count = 0
+            for record_id in record_ids:
+                try:
+                    record = AttendanceRecord.objects.get(id=record_id)
+                    if hasattr(record, field_to_update):
+                        setattr(record, field_to_update, new_value)
+                        record.last_updated_by = request.user
+                        record.save()
+                        updated_count += 1
+                except AttendanceRecord.DoesNotExist:
+                    continue
+            
+            messages.success(request, f'Successfully updated {updated_count} records')
+            return redirect('historical_progressive_entry')
+    else:
+        form = BulkHistoricalUpdateForm()
+    
+    context = {
+        'form': form,
+        'page_title': 'Bulk Historical Update',
+    }
+    
+    return render(request, 'attendance/bulk_historical_update.html', context)
+
+
+@login_required
+@extend_schema(exclude=True)
+@xframe_options_sameorigin
+def comprehensive_attendance_report(request):
+    """Comprehensive attendance report based on the CSV analysis format"""
+    today = timezone.now().date()
+    
+    # Get date range parameters
+    start_date = request.GET.get('start_date', (today - timedelta(days=30)).isoformat())
+    end_date = request.GET.get('end_date', today.isoformat())
+    department_filter = request.GET.get('department', 'Digitization Tech')  # Default to Digitization Tech
+    
     try:
-        start_date = datetime.fromisoformat(start_date).date()
-        end_date = datetime.fromisoformat(end_date).date()
+        start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
     except ValueError:
-        return HttpResponseBadRequest("Invalid date format")
-    start_datetime = timezone.make_aware(
-        datetime.combine(start_date, datetime.min.time())
-    )
-    end_datetime = timezone.make_aware(datetime.combine(end_date, datetime.min.time()))
-    events = Event.objects.filter(
-        timestamp__range=(start_datetime, end_datetime),
-        event_type__name__in=["Clock In", "Clock Out"],
-    ).select_related("employee", "event_type")
-    late_arrivals = []
-    early_departures = []
-    for event in events:
-        event_time = event.timestamp.time()
-        employee_name = f"{event.employee.given_name} {event.employee.surname}"
-        if event.event_type.name == "Clock In":
-            if event_time > datetime.strptime(start_time, "%H:%M").time():
-                minutes_late = (
-                    datetime.combine(date.min, event_time)
-                    - datetime.combine(
-                        date.min, datetime.strptime(start_time, "%H:%M").time()
-                    )
-                ).total_seconds() / 60
-                if minutes_late >= late_threshold:
-                    late_arrivals.append(
-                        [
-                            employee_name,
-                            event.timestamp.date(),
-                            event_time.strftime("%H:%M"),
-                            int(minutes_late),
-                        ]
-                    )
-        elif event.event_type.name == "Clock Out":
-            if event_time < datetime.strptime(end_time, "%H:%M").time():
-                minutes_early = (
-                    datetime.combine(
-                        date.min, datetime.strptime(end_time, "%H:%M").time()
-                    )
-                    - datetime.combine(date.min, event_time)
-                ).total_seconds() / 60
-                if minutes_early >= early_threshold:
-                    early_departures.append(
-                        [
-                            employee_name,
-                            event.timestamp.date(),
-                            event_time.strftime("%H:%M"),
-                            int(minutes_early),
-                        ]
-                    )
+        start_date = today - timedelta(days=30)
+        end_date = today
+    
+    # Get all employees
+    employees = Employee.objects.filter(is_active=True).order_by('surname', 'given_name')
+    
+    # Apply department filter
+    if department_filter:
+        employees = filter_employees_by_department(employees, department_filter)
+    
+    # Calculate comprehensive attendance data for each employee
+    employee_data = []
+    
+    for employee in employees:
+        # Get attendance records for the date range
+        records = AttendanceRecord.objects.filter(
+            employee=employee,
+            date__range=[start_date, end_date]
+        )
+        
+        total_working_days = records.count()
+        
+        if total_working_days == 0:
+            continue
+        
+        # Calculate problematic days (days with issues)
+        problematic_days = 0
+        standup_issues = 0
+        return_lunch_issues = 0
+        early_departure_issues = 0
+        
+        for record in records:
+            # Check for problematic values
+            problematic_values = ['NO', 'LATE']
+            
+            if record.standup_attendance in problematic_values:
+                standup_issues += 1
+            
+            if record.returned_on_time_after_lunch in problematic_values:
+                return_lunch_issues += 1
+            
+            if record.is_early_departure:
+                early_departure_issues += 1
+            
+            # Count problematic days
+            if record.is_problematic_day():
+                problematic_days += 1
+        
+        non_problematic_days = total_working_days - problematic_days
+        problematic_percentage = (problematic_days / total_working_days * 100) if total_working_days > 0 else 0
+        non_problematic_percentage = (non_problematic_days / total_working_days * 100) if total_working_days > 0 else 0
+        total_individual_issues = standup_issues + return_lunch_issues + early_departure_issues
+        
+        employee_data.append({
+            'name': f"{employee.given_name} {employee.surname}",
+            'total_working_days': total_working_days,
+            'problematic_days': problematic_days,
+            'problematic_percentage': round(problematic_percentage, 2),
+            'non_problematic_days': non_problematic_days,
+            'non_problematic_percentage': round(non_problematic_percentage, 2),
+            'standup_issues': standup_issues,
+            'return_lunch_issues': return_lunch_issues,
+            'early_departure_issues': early_departure_issues,
+            'total_individual_issues': total_individual_issues,
+        })
+    
+    # Sort by problematic percentage (highest first)
+    employee_data.sort(key=lambda x: x['problematic_percentage'], reverse=True)
+    
+    # Calculate summary statistics
+    total_employees = len(employee_data)
+    avg_problematic_percentage = sum(e['problematic_percentage'] for e in employee_data) / total_employees if total_employees > 0 else 0
+    total_issues = sum(e['total_individual_issues'] for e in employee_data)
+    
+    # Check if this is being loaded in an iframe
+    is_iframe = request.GET.get('iframe', False) or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    
+    # Get available departments for filter
+    available_departments = get_available_departments()
+    
+    context = {
+        'employee_data': employee_data,
+        'start_date': start_date,
+        'end_date': end_date,
+        'department_filter': department_filter,
+        'available_departments': available_departments,
+        'total_employees': total_employees,
+        'avg_problematic_percentage': round(avg_problematic_percentage, 2),
+        'total_issues': total_issues,
+        'is_iframe': is_iframe,
+    }
+    
+    # Use different template for iframe to avoid navigation duplication
+    if is_iframe:
+        return render(request, 'reports/comprehensive_attendance_report_iframe.html', context)
+    else:
+        return render(request, 'reports/comprehensive_attendance_report.html', context)
 
-    def row_gen():
-        yield ["Type", "Employee", "Date", "Time", "Minutes"]
-        for row in late_arrivals:
-            yield ["Late Arrival"] + row
-        for row in early_departures:
-            yield ["Early Departure"] + row
 
-    response = StreamingHttpResponse(
-        (",".join(map(str, row)) + "\n" for row in row_gen()), content_type="text/csv"
-    )
-    response["Content-Disposition"] = 'attachment; filename="late_early_report.csv"'
-    return response
+def get_department_from_designation(designation):
+    """
+    Extract and normalize department from card designation.
+    Returns the normalized department name or None if not found.
+    """
+    if not designation:
+        return None
+    
+    # Extract department from designation (e.g., "Digitization Tech.1" -> "Digitization Tech")
+    match = re.match(r'^([^.]+)', designation.strip())
+    if match:
+        raw_dept = match.group(1).strip()
+        
+        # Normalize department names to main departments
+        dept = raw_dept.lower()
+        
+        # Map to main departments
+        if 'digitization' in dept and 'tech' in dept:
+            return 'Digitization Tech'
+        elif 'digitization' in dept:
+            return 'Digitization Tech'
+        elif 'tech' in dept and 'compute' in dept:
+            return 'Tech Compute'
+        elif 'tech' in dept or 'tch' in dept:
+            return 'Tech Compute'
+        elif 'con' in dept:
+            return 'Con'
+        elif 'custodian' in dept:
+            return 'Custodian'
+        elif 'material' in dept and 'retriever' in dept:
+            return 'Material Retriever'
+        elif 'material' in dept and 'retriver' in dept:
+            return 'Material Retriever'
+        elif 'admin' in dept:
+            return 'Con'  # Map Admin to Con as specified
+        else:
+            # Return original if no match found
+            return raw_dept
+    return None
+
+def get_available_departments():
+    """
+    Get list of all available departments from card designations.
+    """
+    departments = set()
+    for card in Card.objects.all():
+        dept = get_department_from_designation(card.designation)
+        if dept:
+            departments.add(dept)
+    return sorted(list(departments))
+
+def filter_employees_by_department(employees, department):
+    """
+    Filter employees by department using their card designation.
+    """
+    if not department:
+        return employees
+    
+    filtered_employees = []
+    for employee in employees:
+        if employee.card_number:
+            emp_dept = get_department_from_designation(employee.card_number.designation)
+            if emp_dept == department:
+                filtered_employees.append(employee)
+    
+    return filtered_employees
+
+
+@login_required
+@extend_schema(exclude=True)
+def performance_dashboard(request):
+    """Performance monitoring dashboard."""
+    from .utils import get_performance_metrics, get_query_metrics, get_cache_metrics
+    
+    # Get performance metrics for key functions
+    metrics = {
+        'main_security': get_performance_metrics('main_security'),
+        'progressive_entry': get_performance_metrics('progressive_entry'),
+        'attendance_list': get_performance_metrics('attendance_list'),
+    }
+    
+    # Get query metrics
+    query_metrics = {
+        'main_security': get_query_metrics('main_security'),
+        'progressive_entry': get_query_metrics('progressive_entry'),
+        'attendance_list': get_query_metrics('attendance_list'),
+    }
+    
+    # Calculate overall performance stats
+    total_calls = sum(m.get('count', 0) for m in metrics.values())
+    total_time = sum(m.get('total_time', 0) for m in metrics.values())
+    avg_time = total_time / total_calls if total_calls > 0 else 0
+    
+    # Calculate overall query stats
+    total_queries = sum(qm.get('total_queries', 0) for qm in query_metrics.values())
+    avg_queries = total_queries / total_calls if total_calls > 0 else 0
+    
+    context = {
+        'metrics': metrics,
+        'query_metrics': query_metrics,
+        'total_calls': total_calls,
+        'total_time': total_time,
+        'avg_time': avg_time,
+        'total_queries': total_queries,
+        'avg_queries': avg_queries,
+    }
+    
+    return render(request, 'performance_dashboard.html', context)

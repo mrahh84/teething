@@ -1,0 +1,285 @@
+{% extends "attendance/base.html" %}
+
+{% block attendance_content %}
+<div class="attendance-card">
+    <div class="card-header">
+        <h2>📅 Historical Progressive Entry</h2>
+        <p style="margin: 0; color: #6c757d;">Modify attendance records for previous days</p>
+    </div>
+    <div class="card-body">
+        <div class="info-section">
+            <div class="alert alert-info">
+                <h4>ℹ️ How to use Historical Progressive Entry</h4>
+                <ul style="margin-bottom: 0;">
+                    <li><strong>Select a date range</strong> - Choose the period you want to modify (max 31 days)</li>
+                    <li><strong>Select department</strong> - Choose which department's records to modify (defaults to Digitization Tech)</li>
+                    <li><strong>Inline editing</strong> - Click on any field to edit it directly</li>
+                    <li><strong>Bulk updates</strong> - Use the bulk update form to modify multiple records at once</li>
+                    <li><strong>Auto-save</strong> - Changes are saved automatically as you type</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="search-form-section">
+            <h3>🔍 Search Parameters</h3>
+            <form method="post" class="search-form">
+                {% csrf_token %}
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="{{ form.date_from.id_for_label }}">{{ form.date_from.label }}</label>
+                        {{ form.date_from }}
+                        {% if form.date_from.help_text %}
+                            <small class="form-text text-muted">{{ form.date_from.help_text }}</small>
+                        {% endif %}
+                        {% if form.date_from.errors %}
+                            <div class="alert alert-danger">{{ form.date_from.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ form.date_to.id_for_label }}">{{ form.date_to.label }}</label>
+                        {{ form.date_to }}
+                        {% if form.date_to.help_text %}
+                            <small class="form-text text-muted">{{ form.date_to.help_text }}</small>
+                        {% endif %}
+                        {% if form.date_to.errors %}
+                            <div class="alert alert-danger">{{ form.date_to.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ form.department.id_for_label }}">{{ form.department.label }}</label>
+                        {{ form.department }}
+                        {% if form.department.help_text %}
+                            <small class="form-text text-muted">{{ form.department.help_text }}</small>
+                        {% endif %}
+                        {% if form.department.errors %}
+                            <div class="alert alert-danger">{{ form.department.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        🔍 Search Records
+                    </button>
+                    <a href="{% url 'progressive_entry' %}" class="btn btn-secondary">
+                        📝 Today's Progressive Entry
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <div class="quick-actions-section">
+            <h3>⚡ Quick Actions</h3>
+            <div class="quick-actions-grid">
+                <a href="{% url 'historical_progressive_entry' %}?date_from=-7&date_to=-1" class="quick-action-card">
+                    <div class="quick-action-icon">📅</div>
+                    <div class="quick-action-title">Last 7 Days</div>
+                    <div class="quick-action-desc">Modify records from the past week</div>
+                </a>
+                
+                <a href="{% url 'historical_progressive_entry' %}?date_from=-14&date_to=-1" class="quick-action-card">
+                    <div class="quick-action-icon">📊</div>
+                    <div class="quick-action-title">Last 2 Weeks</div>
+                    <div class="quick-action-desc">Modify records from the past 2 weeks</div>
+                </a>
+                
+                <a href="{% url 'historical_progressive_entry' %}?date_from=-30&date_to=-1" class="quick-action-card">
+                    <div class="quick-action-icon">📈</div>
+                    <div class="quick-action-title">Last Month</div>
+                    <div class="quick-action-desc">Modify records from the past month</div>
+                </a>
+                
+                <a href="{% url 'bulk_historical_update' %}" class="quick-action-card">
+                    <div class="quick-action-icon">🔄</div>
+                    <div class="quick-action-title">Bulk Update</div>
+                    <div class="quick-action-desc">Update multiple records at once</div>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.info-section {
+    margin-bottom: 30px;
+}
+
+.search-form-section {
+    background: white;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 25px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #495057;
+}
+
+.form-group input,
+.form-group select {
+    padding: 10px 12px;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+}
+
+.form-text {
+    font-size: 12px;
+    margin-top: 5px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.quick-actions-section {
+    background: white;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.quick-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.quick-action-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.quick-action-card:hover {
+    border-color: #007bff;
+    background: #f8f9fa;
+    transform: translateY(-2px);
+    text-decoration: none;
+    color: inherit;
+}
+
+.quick-action-icon {
+    font-size: 2em;
+    margin-bottom: 10px;
+}
+
+.quick-action-title {
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #495057;
+}
+
+.quick-action-desc {
+    font-size: 0.9em;
+    color: #6c757d;
+    line-height: 1.4;
+}
+
+.alert {
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+}
+
+.alert-info {
+    background: #d1ecf1;
+    border: 1px solid #bee5eb;
+    color: #0c5460;
+}
+
+.alert-danger {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.btn-primary {
+    background: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #0056b3;
+    color: white;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #545b62;
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .quick-actions-grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+    
+    .form-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .btn {
+        justify-content: center;
+    }
+}
+</style>
+{% endblock %} 

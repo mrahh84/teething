@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprehensive Attendance Report</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        
+        .attendance-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .card-header h2 {
+            margin: 0 0 5px 0;
+            font-size: 1.5rem;
+        }
+        
+        .card-header p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+        
+        .card-body {
+            padding: 20px;
+        }
+        
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 1rem;
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .stat-label {
+            display: block;
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-value {
+            display: block;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #495057;
+        }
+        
+        .filter-section {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .filter-form {
+            display: flex;
+            gap: 1rem;
+            align-items: end;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 1rem;
+            align-items: end;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group label {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #495057;
+        }
+        
+        .form-control {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-block;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        
+        .table-responsive {
+            overflow-x: auto;
+        }
+        
+        .comprehensive-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .comprehensive-table th {
+            background: #495057;
+            color: white;
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .comprehensive-table td {
+            padding: 10px 8px;
+            text-align: center;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .comprehensive-table th:first-child,
+        .comprehensive-table td:first-child {
+            text-align: left;
+            position: sticky;
+            left: 0;
+            background: white;
+            z-index: 5;
+        }
+        
+        .employee-row {
+            transition: background-color 0.2s;
+        }
+        
+        .employee-row:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .employee-row.high-risk {
+            background-color: #fff5f5;
+        }
+        
+        .employee-row.medium-risk {
+            background-color: #fffbf0;
+        }
+        
+        .employee-row.low-risk {
+            background-color: #f0fff4;
+        }
+        
+        .percentage-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+        
+        .percentage-badge.high {
+            background-color: #fed7d7;
+            color: #c53030;
+        }
+        
+        .percentage-badge.medium {
+            background-color: #fef5e7;
+            color: #d69e2e;
+        }
+        
+        .percentage-badge.low {
+            background-color: #c6f6d5;
+            color: #2f855a;
+        }
+        
+        .issue-count {
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        
+        .issue-count.high {
+            background-color: #fed7d7;
+            color: #c53030;
+        }
+        
+        .issue-count.medium {
+            background-color: #fef5e7;
+            color: #d69e2e;
+        }
+        
+        .issue-count.low {
+            background-color: #c6f6d5;
+            color: #2f855a;
+        }
+        
+        .total-issues {
+            font-weight: bold;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        
+        .total-issues.high {
+            background-color: #fed7d7;
+            color: #c53030;
+        }
+        
+        .total-issues.medium {
+            background-color: #fef5e7;
+            color: #d69e2e;
+        }
+        
+        .total-issues.low {
+            background-color: #c6f6d5;
+            color: #2f855a;
+        }
+        
+        .legend-section {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .legend-section h4 {
+            margin-bottom: 1rem;
+            color: #495057;
+        }
+        
+        .legend-items {
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+        
+        .legend-color.high {
+            background-color: #fed7d7;
+            border: 2px solid #c53030;
+        }
+        
+        .legend-color.medium {
+            background-color: #fef5e7;
+            border: 2px solid #d69e2e;
+        }
+        
+        .legend-color.low {
+            background-color: #c6f6d5;
+            border: 2px solid #2f855a;
+        }
+        
+        @media (max-width: 768px) {
+            .summary-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .filter-form {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .form-row {
+                flex-direction: column;
+            }
+            
+            .comprehensive-table {
+                font-size: 0.8rem;
+            }
+            
+            .comprehensive-table th,
+            .comprehensive-table td {
+                padding: 6px 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="attendance-card">
+        <div class="card-header">
+            <h2>📊 Comprehensive Attendance Report</h2>
+            <p style="margin: 0; color: rgba(255,255,255,0.9);">Detailed attendance analysis for {{ start_date|date:"M d, Y" }} to {{ end_date|date:"M d, Y" }}</p>
+        </div>
+        
+        <div class="card-body">
+            <!-- Summary Statistics -->
+            <div class="summary-stats">
+                <div class="stat-item">
+                    <span class="stat-label">👥 Total Employees</span>
+                    <span class="stat-value">{{ total_employees }}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">📅 Date Range</span>
+                    <span class="stat-value">{{ start_date|date:"M d" }} - {{ end_date|date:"M d, Y" }}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">⚠️ Avg Problematic %</span>
+                    <span class="stat-value">{{ avg_problematic_percentage }}%</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">🔢 Total Issues</span>
+                    <span class="stat-value">{{ total_issues }}</span>
+                </div>
+            </div>
+
+            <!-- Date Range Filter -->
+            <div class="filter-section">
+                <form method="get" class="filter-form">
+                    <input type="hidden" name="iframe" value="1">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="start_date">Start Date:</label>
+                            <input type="date" id="start_date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="end_date">End Date:</label>
+                            <input type="date" id="end_date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary">🔍 Update Report</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Comprehensive Report Table -->
+            <div class="table-responsive">
+                <table class="comprehensive-table">
+                    <thead>
+                        <tr>
+                            <th>👤 Employee Name</th>
+                            <th>📅 Total Working Days</th>
+                            <th>⚠️ Problematic Days</th>
+                            <th>📊 Problematic %</th>
+                            <th>✅ Non-Problematic Days</th>
+                            <th>📈 Non-Problematic %</th>
+                            <th>🕐 Stand-up Issues</th>
+                            <th>🍽️ Return from Lunch Issues</th>
+                            <th>🚪 Early Departure Issues</th>
+                            <th>🔢 Total Individual Issues</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for employee in employee_data %}
+                        <tr class="employee-row {% if employee.problematic_percentage > 50 %}high-risk{% elif employee.problematic_percentage > 25 %}medium-risk{% else %}low-risk{% endif %}">
+                            <td><strong>{{ employee.name }}</strong></td>
+                            <td>{{ employee.total_working_days }}</td>
+                            <td>{{ employee.problematic_days }}</td>
+                            <td>
+                                <span class="percentage-badge {% if employee.problematic_percentage > 50 %}high{% elif employee.problematic_percentage > 25 %}medium{% else %}low{% endif %}">
+                                    {{ employee.problematic_percentage }}%
+                                </span>
+                            </td>
+                            <td>{{ employee.non_problematic_days }}</td>
+                            <td>{{ employee.non_problematic_percentage }}%</td>
+                            <td>
+                                <span class="issue-count {% if employee.standup_issues > 20 %}high{% elif employee.standup_issues > 10 %}medium{% else %}low{% endif %}">
+                                    {{ employee.standup_issues }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="issue-count {% if employee.return_lunch_issues > 20 %}high{% elif employee.return_lunch_issues > 10 %}medium{% else %}low{% endif %}">
+                                    {{ employee.return_lunch_issues }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="issue-count {% if employee.early_departure_issues > 20 %}high{% elif employee.early_departure_issues > 10 %}medium{% else %}low{% endif %}">
+                                    {{ employee.early_departure_issues }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="total-issues {% if employee.total_individual_issues > 50 %}high{% elif employee.total_individual_issues > 25 %}medium{% else %}low{% endif %}">
+                                    {{ employee.total_individual_issues }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="10" style="text-align: center; padding: 40px;">
+                                <p>No attendance data available for the selected date range.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Risk Level Legend -->
+            <div class="legend-section">
+                <h4>📋 Risk Level Legend</h4>
+                <div class="legend-items">
+                    <div class="legend-item">
+                        <span class="legend-color high"></span>
+                        <span>High Risk (>50% problematic)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color medium"></span>
+                        <span>Medium Risk (25-50% problematic)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color low"></span>
+                        <span>Low Risk (<25% problematic)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

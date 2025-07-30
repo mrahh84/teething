@@ -4,6 +4,7 @@ db.sqlite3
 __pycache__/
 static/
 
+
 # Environment variables
 .env
 .env.local
@@ -12,3 +13,7 @@ static/
 data/
 logs/
 backups/
+
+# Documentation files
+OPTIMIZATION_IMPLEMENTATION_PLAN.md
+EFFICIENCY_ANALYSIS.md

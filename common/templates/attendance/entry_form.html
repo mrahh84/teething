@@ -1,0 +1,525 @@
+{% extends "attendance/base.html" %}
+
+{% block attendance_content %}
+<div class="attendance-card">
+    <div class="card-header">
+        <h2>Single Attendance Entry</h2>
+        <p style="margin: 0; color: #6c757d;">Enter detailed attendance information for one employee</p>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <!-- Basic Information Section -->
+            <div class="form-section">
+                <h3>📋 Basic Information</h3>
+                <div class="field-group">
+                    <div>
+                        <label for="{{ form.employee.id_for_label }}">{{ form.employee.label }}</label>
+                        {{ form.employee }}
+                        {% if form.employee.errors %}
+                            <div class="text-danger">{{ form.employee.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label for="{{ form.date.id_for_label }}">{{ form.date.label }}</label>
+                        {{ form.date }}
+                        {% if form.date.errors %}
+                            <div class="text-danger">{{ form.date.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Status Overview -->
+            <div class="form-section">
+                <h3>⚡ Quick Status Overview</h3>
+                
+                <!-- Quick Entry Mode Toggle -->
+                <div class="quick-entry-toggle">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="quickEntryMode">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="toggle-label">Quick Entry Mode</span>
+                </div>
+                
+                <div class="quick-status-grid">
+                    <div class="status-item">
+                        <label>Stand-up Meeting</label>
+                        <div class="status-buttons">
+                            <button type="button" class="status-btn status-yes" data-field="standup_attendance" data-value="YES">✅ Present</button>
+                            <button type="button" class="status-btn status-no" data-field="standup_attendance" data-value="NO">❌ Absent</button>
+                            <button type="button" class="status-btn status-late" data-field="standup_attendance" data-value="LATE">⏰ Late</button>
+                        </div>
+                        {{ form.standup_attendance }}
+                    </div>
+                    
+                    <div class="status-item">
+                        <label>Lunch Compliance</label>
+                        <div class="status-buttons">
+                            <button type="button" class="status-btn status-yes" data-field="left_lunch_on_time" data-value="YES">✅ On Time</button>
+                            <button type="button" class="status-btn status-no" data-field="left_lunch_on_time" data-value="NO">❌ Late</button>
+                            <button type="button" class="status-btn status-appointment" data-field="left_lunch_on_time" data-value="APPOINTMENT">🏥 Appointment</button>
+                        </div>
+                        {{ form.left_lunch_on_time }}
+                    </div>
+                    
+                    <div class="status-item">
+                        <label>Return from Lunch</label>
+                        <div class="status-buttons">
+                            <button type="button" class="status-btn status-yes" data-field="returned_on_time_after_lunch" data-value="YES">✅ On Time</button>
+                            <button type="button" class="status-btn status-no" data-field="returned_on_time_after_lunch" data-value="NO">❌ Late</button>
+                            <button type="button" class="status-btn status-absent" data-field="returned_on_time_after_lunch" data-value="ABSENT">🚫 No Return</button>
+                        </div>
+                        {{ form.returned_on_time_after_lunch }}
+                    </div>
+                </div>
+                
+                <!-- Quick Preset Buttons -->
+                <div class="quick-presets">
+                    <h4>🚀 Quick Presets</h4>
+                    <div class="preset-buttons">
+                        <button type="button" class="preset-btn preset-perfect" data-preset="perfect">
+                            🌟 Perfect Day
+                        </button>
+                        <button type="button" class="preset-btn preset-issues" data-preset="issues">
+                            ⚠️ Minor Issues
+                        </button>
+                        <button type="button" class="preset-btn preset-problematic" data-preset="problematic">
+                            🚨 Problematic Day
+                        </button>
+                        <button type="button" class="preset-btn preset-absent" data-preset="absent">
+                            🚫 Absent/No Show
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Lunch Tracking -->
+            <div class="form-section">
+                <h3>🍽️ Lunch Details</h3>
+                <div class="field-group">
+                    <div>
+                        <label for="{{ form.lunch_time.id_for_label }}">{{ form.lunch_time.label }}</label>
+                        {{ form.lunch_time }}
+                        {% if form.lunch_time.errors %}
+                            <div class="text-danger">{{ form.lunch_time.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label for="{{ form.returned_after_lunch.id_for_label }}">{{ form.returned_after_lunch.label }}</label>
+                        {{ form.returned_after_lunch }}
+                        {% if form.returned_after_lunch.errors %}
+                            <div class="text-danger">{{ form.returned_after_lunch.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Clock-in System Integration -->
+            <div class="form-section">
+                <h3>🕐 Clock-in System Integration</h3>
+                <div class="field-group">
+                    <div style="grid-column: 1 / -1;">
+                        <div class="alert alert-info">
+                            <strong>ℹ️ Automatic Data:</strong> Arrival and departure times are automatically pulled from the clock-in system. 
+                            This form focuses on behavioral observations that punch cards cannot track.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Information -->
+            <div class="form-section">
+                <h3>📝 Additional Information</h3>
+                <div class="field-group">
+                    <div style="grid-column: 1 / -1;">
+                        <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+                        {{ form.notes }}
+                        {% if form.notes.errors %}
+                            <div class="text-danger">{{ form.notes.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {% for error in form.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div style="text-align: right; margin-top: 30px;">
+                <a href="{% url 'attendance_list' %}" class="btn" style="margin-right: 10px;">Cancel</a>
+                <button type="submit" class="btn btn-primary">💾 Save Record</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.quick-status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.status-item {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+}
+
+.status-item label {
+    font-weight: 600;
+    margin-bottom: 10px;
+    display: block;
+    color: #495057;
+}
+
+.status-buttons {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.status-btn {
+    padding: 6px 12px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: all 0.2s;
+}
+
+.status-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.status-btn.status-yes:hover {
+    background: #d4edda;
+    border-color: #28a745;
+}
+
+.status-btn.status-no:hover {
+    background: #f8d7da;
+    border-color: #dc3545;
+}
+
+.status-btn.status-late:hover {
+    background: #d1ecf1;
+    border-color: #17a2b8;
+}
+
+.status-btn.status-absent:hover {
+    background: #fff3cd;
+    border-color: #ffc107;
+}
+
+.status-btn.status-appointment:hover {
+    background: #e2e3e5;
+    border-color: #6c757d;
+}
+
+.status-btn.active {
+    color: white;
+    font-weight: 600;
+}
+
+.status-btn.status-yes.active {
+    background: #28a745;
+    border-color: #28a745;
+}
+
+.status-btn.status-no.active {
+    background: #dc3545;
+    border-color: #dc3545;
+}
+
+.status-btn.status-late.active {
+    background: #17a2b8;
+    border-color: #17a2b8;
+}
+
+.status-btn.status-absent.active {
+    background: #ffc107;
+    border-color: #ffc107;
+    color: #212529;
+}
+
+.status-btn.status-appointment.active {
+    background: #6c757d;
+    border-color: #6c757d;
+}
+
+/* Hide the original select fields */
+.status-item select {
+    display: none;
+}
+
+/* Quick Entry Toggle */
+.quick-entry-toggle {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #e3f2fd;
+    border-radius: 8px;
+    border-left: 4px solid #2196f3;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+    margin-right: 15px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: #2196f3;
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+.toggle-label {
+    font-weight: 600;
+    color: #1976d2;
+}
+
+/* Quick Presets */
+.quick-presets {
+    margin-top: 20px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #28a745;
+}
+
+.quick-presets h4 {
+    margin: 0 0 15px 0;
+    color: #495057;
+}
+
+.preset-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+}
+
+.preset-btn {
+    padding: 12px 16px;
+    border: 2px solid #dee2e6;
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.preset-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.preset-perfect:hover {
+    background: #d4edda;
+    border-color: #28a745;
+    color: #155724;
+}
+
+.preset-issues:hover {
+    background: #fff3cd;
+    border-color: #ffc107;
+    color: #856404;
+}
+
+.preset-problematic:hover {
+    background: #f8d7da;
+    border-color: #dc3545;
+    color: #721c24;
+}
+
+.preset-absent:hover {
+    background: #e2e3e5;
+    border-color: #6c757d;
+    color: #383d41;
+}
+
+/* Quick Entry Mode Styles */
+.quick-entry-mode .field-group {
+    display: none;
+}
+
+.quick-entry-mode .quick-status-grid {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.quick-entry-mode .status-item {
+    background: #fff;
+    border: 2px solid #007bff;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-fill current date if not set
+    const dateField = document.querySelector('input[name="date"]');
+    if (dateField && !dateField.value) {
+        const today = new Date().toISOString().split('T')[0];
+        dateField.value = today;
+    }
+    
+    // Handle status button clicks
+    document.querySelectorAll('.status-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const fieldName = this.dataset.field;
+            const value = this.dataset.value;
+            const selectField = document.querySelector(`select[name="${fieldName}"]`);
+            
+            // Update the hidden select field
+            if (selectField) {
+                selectField.value = value;
+            }
+            
+            // Update button states
+            const parentItem = this.closest('.status-item');
+            parentItem.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+    
+    // Initialize button states based on existing values
+    document.querySelectorAll('select').forEach(select => {
+        if (select.value) {
+            const parentItem = select.closest('.status-item');
+            if (parentItem) {
+                const activeBtn = parentItem.querySelector(`[data-value="${select.value}"]`);
+                if (activeBtn) {
+                    activeBtn.classList.add('active');
+                }
+            }
+        }
+    });
+    
+    // Quick Entry Mode Toggle
+    const quickEntryToggle = document.getElementById('quickEntryMode');
+    const formBody = document.querySelector('.card-body');
+    
+    quickEntryToggle.addEventListener('change', function() {
+        if (this.checked) {
+            formBody.classList.add('quick-entry-mode');
+        } else {
+            formBody.classList.remove('quick-entry-mode');
+        }
+    });
+    
+    // Preset Button Functionality
+    const presets = {
+        perfect: {
+            standup_attendance: 'YES',
+            left_lunch_on_time: 'YES',
+            returned_on_time_after_lunch: 'YES',
+            returned_after_lunch: 'YES'
+        },
+        issues: {
+            standup_attendance: 'YES',
+            left_lunch_on_time: 'YES',
+            returned_on_time_after_lunch: 'LATE',
+            returned_after_lunch: 'YES'
+        },
+        problematic: {
+            standup_attendance: 'LATE',
+            left_lunch_on_time: 'NO',
+            returned_on_time_after_lunch: 'NO',
+            returned_after_lunch: 'LATE'
+        },
+        absent: {
+            standup_attendance: 'ABSENT',
+            left_lunch_on_time: 'ABSENT',
+            returned_on_time_after_lunch: 'ABSENT',
+            returned_after_lunch: 'ABSENT'
+        }
+    };
+    
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const presetName = this.dataset.preset;
+            const preset = presets[presetName];
+            
+            if (preset) {
+                // Apply preset values
+                Object.keys(preset).forEach(fieldName => {
+                    const selectField = document.querySelector(`select[name="${fieldName}"]`);
+                    if (selectField) {
+                        selectField.value = preset[fieldName];
+                        
+                        // Update button states
+                        const parentItem = selectField.closest('.status-item');
+                        if (parentItem) {
+                            parentItem.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active'));
+                            const activeBtn = parentItem.querySelector(`[data-value="${preset[fieldName]}"]`);
+                            if (activeBtn) {
+                                activeBtn.classList.add('active');
+                            }
+                        }
+                    }
+                });
+                
+                // Show confirmation
+                this.style.background = '#28a745';
+                this.style.color = 'white';
+                this.style.borderColor = '#28a745';
+                
+                setTimeout(() => {
+                    this.style.background = '';
+                    this.style.color = '';
+                    this.style.borderColor = '';
+                }, 1000);
+            }
+        });
+    });
+});
+</script>
+{% endblock %} 

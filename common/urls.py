@@ -28,16 +28,32 @@ clock_in_urls = [
     ),
 ]
 
+# Attendance section
+attendance_urls = [
+    path("attendance/", views.attendance_list, name="attendance_list"),
+    path("attendance/analytics/", views.attendance_analytics, name="attendance_analytics"),
+    path("attendance/progressive_entry/", views.progressive_entry, name="progressive_entry"),
+    path("attendance/historical_progressive_entry/", views.historical_progressive_entry, name="historical_progressive_entry"),
+    path("attendance/historical_progressive_results/", views.historical_progressive_results, name="historical_progressive_results"),
+    path("attendance/export_csv/", views.attendance_export_csv, name="attendance_export_csv"),
+    path("attendance/entry/", views.attendance_entry, name="attendance_entry"),
+    path("attendance/edit/<int:record_id>/", views.attendance_edit, name="attendance_edit"),
+    path("attendance/delete/<int:record_id>/", views.attendance_delete, name="attendance_delete"),
+    path("attendance/bulk_historical_update/", views.bulk_historical_update, name="bulk_historical_update"),
+]
+
 # Reports section
 report_urls = [
     path("reports/", views.reports_dashboard, name="reports_dashboard"),
+    path("reports/comprehensive/", views.comprehensive_reports, name="comprehensive_reports"),
+    path("reports/comprehensive-attendance/", views.comprehensive_attendance_report, name="comprehensive_attendance_report"),
     path("reports/daily_dashboard/", views.daily_dashboard_report, name="daily_dashboard_report"),
     path("reports/employee_history/", views.employee_history_report, name="employee_history_report"),
     path("reports/employee_history/csv/", views.employee_history_report_csv, name="employee_history_report_csv"),
     path("reports/period_summary/", views.period_summary_report, name="period_summary_report"),
     path("reports/period_summary/csv/", views.period_summary_report_csv, name="period_summary_report_csv"),
-    path("reports/late_early/", views.late_early_report, name="late_early_report"),
-    path("reports/late_early/csv/", views.late_early_report_csv, name="late_early_report_csv"),
+
+    path("reports/performance/", views.performance_dashboard, name="performance_dashboard"),
     path(
         "reports/generate/<str:report_type>/",
         views.generate_marimo_report,
@@ -76,4 +92,4 @@ system_urls = [
 ]
 
 # Combine all URL patterns
-urlpatterns = clock_in_urls + report_urls + api_urls + system_urls
+urlpatterns = clock_in_urls + attendance_urls + report_urls + api_urls + system_urls
