@@ -9,7 +9,7 @@ from datetime import datetime, time, timedelta
 import time as time_module
 
 from .models import (
-    Employee, Card, Location, EventType, Event, AttendanceRecord
+    Employee, Card, Location, EventType, Event, AttendanceRecord, UserRole
 )
 
 
@@ -585,6 +585,242 @@ class TemplateFragmentCachingTestCase(TestCase):
         # The responses should be functionally equivalent (same data, different CSRF tokens)
         self.assertIn('Attendance Records', str(response1.content))
         self.assertIn('Attendance Records', str(response2.content))
+
+
+class UserRoleTestCase(TestCase):
+    def setUp(self):
+        """Create test users with different roles"""
+        # Create users
+        self.security_user = User.objects.create_user('security', 'security@test.com', 'password')
+        self.attendance_user = User.objects.create_user('attendance', 'attendance@test.com', 'password')
+        self.reporting_user = User.objects.create_user('reporting', 'reporting@test.com', 'password')
+        self.admin_user = User.objects.create_user('admin', 'admin@test.com', 'password')
+        
+        # Assign roles
+        UserRole.objects.create(user=self.security_user, role='security')
+        UserRole.objects.create(user=self.attendance_user, role='attendance')
+        UserRole.objects.create(user=self.reporting_user, role='reporting')
+        UserRole.objects.create(user=self.admin_user, role='admin')
+        
+        # Create test data
+        self.location = Location.objects.create(name='Test Location')
+        self.event_type = EventType.objects.create(name='Clock In')
+        self.employee = Employee.objects.create(
+            given_name='Test',
+            surname='Employee'
+        )
+    
+    def test_security_access(self):
+        """Test security role access"""
+        client = Client()
+        client.login(username='security', password='password')
+        
+        # Should access clock functions
+        response = client.get(reverse('main_security'))
+        self.assertEqual(response.status_code, 200)
+        
+        # Should not access attendance management
+        response = client.get(reverse('attendance_list'))
+        self.assertEqual(response.status_code, 302)  # Redirected
+        
+        # Should not access reports
+        response = client.get(reverse('reports_dashboard'))
+        self.assertEqual(response.status_code, 302)  # Redirected
+    
+    def test_attendance_access(self):
+        """Test attendance management role access"""
+        client = Client()
+        client.login(username='attendance', password='password')
+        
+        # Should access attendance functions
+        response = client.get(reverse('attendance_list'))
+        self.assertEqual(response.status_code, 200)
+        
+        # Should access clock functions
+        response = client.get(reverse('main_security'))
+        self.assertEqual(response.status_code, 200)
+        
+        # Should access reports
+        response = client.get(reverse('reports_dashboard'))
+        self.assertEqual(response.status_code, 200)
+    
+    def test_reporting_access(self):
+        """Test reporting role access"""
+        client = Client()
+        client.login(username='reporting', password='password')
+        
+        # Should access reports
+        response = client.get(reverse('reports_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        
+        # Should not access attendance management
+        response = client.get(reverse('attendance_list'))
+        self.assertEqual(response.status_code, 302)  # Redirected
+        
+        # Should not access clock functions
+        response = client.get(reverse('main_security'))
+        self.assertEqual(response.status_code, 302)  # Redirected
+    
+    def test_admin_access(self):
+        """Test admin role access"""
+        client = Client()
+        client.login(username='admin', password='password')
+        
+        # Should access everything
+        response = client.get(reverse('main_security'))
+        self.assertEqual(response.status_code, 200)
+        
+        response = client.get(reverse('attendance_list'))
+        self.assertEqual(response.status_code, 200)
+        
+        response = client.get(reverse('reports_dashboard'))
+        self.assertEqual(response.status_code, 200)
+    
+    def test_user_role_methods(self):
+        """Test User model role methods"""
+        # Test get_role
+        self.assertEqual(self.security_user.get_role(), 'security')
+        self.assertEqual(self.attendance_user.get_role(), 'attendance')
+        self.assertEqual(self.reporting_user.get_role(), 'reporting')
+        self.assertEqual(self.admin_user.get_role(), 'admin')
+        
+        # Test has_role
+        self.assertTrue(self.security_user.has_role('security'))
+        self.assertFalse(self.security_user.has_role('admin'))
+        
+        # Test has_any_role
+        self.assertTrue(self.attendance_user.has_any_role(['attendance', 'admin']))
+        self.assertFalse(self.attendance_user.has_any_role(['security', 'reporting']))
+    
+    def test_no_role_user(self):
+        """Test user without role assignment"""
+        no_role_user = User.objects.create_user('norole', 'norole@test.com', 'password')
+        client = Client()
+        client.login(username='norole', password='password')
+        
+        # Should be redirected to main_security with error message
+        response = client.get(reverse('attendance_list'))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('main_security', response.url)
+
+
+class RoleIntegrationTestCase(TestCase):
+    def setUp(self):
+        """Set up test data for integration tests"""
+        # Create users with roles
+        self.security_user = User.objects.create_user('security', 'security@test.com', 'password')
+        self.attendance_user = User.objects.create_user('attendance', 'attendance@test.com', 'password')
+        self.reporting_user = User.objects.create_user('reporting', 'reporting@test.com', 'password')
+        self.admin_user = User.objects.create_user('admin', 'admin@test.com', 'password')
+        
+        UserRole.objects.create(user=self.security_user, role='security')
+        UserRole.objects.create(user=self.attendance_user, role='attendance')
+        UserRole.objects.create(user=self.reporting_user, role='reporting')
+        UserRole.objects.create(user=self.admin_user, role='admin')
+        
+        # Create test data
+        self.location = Location.objects.create(name='Test Location')
+        self.event_type = EventType.objects.create(name='Clock In')
+        self.employee = Employee.objects.create(
+            given_name='Test',
+            surname='Employee'
+        )
+    
+    def test_api_permissions(self):
+        """Test API endpoint permissions"""
+        client = Client()
+        
+        # Test security user API access
+        client.login(username='security', password='password')
+        response = client.get(reverse('api_event_list'))
+        self.assertEqual(response.status_code, 200)
+        
+        # Test admin user API access
+        client.login(username='admin', password='password')
+        response = client.get(reverse('api_single_employee', args=[self.employee.id]))
+        self.assertEqual(response.status_code, 200)
+        
+        # Test non-admin user API access (should be denied)
+        client.login(username='security', password='password')
+        response = client.get(reverse('api_single_employee', args=[self.employee.id]))
+        self.assertEqual(response.status_code, 403)  # Forbidden
+    
+    def test_template_role_filters(self):
+        """Test template role filters"""
+        from django.template import Template, Context
+        
+        template = Template("""
+            {% load role_extras %}
+            {% if user|has_role:'security' %}Security User{% endif %}
+            {% if user|has_any_role:'attendance,admin' %}Attendance or Admin{% endif %}
+            {% if user|get_role_display %}{{ user|get_role_display }}{% endif %}
+        """)
+        
+        context = Context({'user': self.security_user})
+        result = template.render(context)
+        
+        self.assertIn('Security User', result)
+        self.assertNotIn('Attendance or Admin', result)
+        self.assertIn('Security', result)
+    
+    def test_role_based_navigation(self):
+        """Test that navigation shows correct items based on role"""
+        client = Client()
+        
+        # Test security user navigation
+        client.login(username='security', password='password')
+        response = client.get(reverse('main_security'))
+        self.assertContains(response, 'Clock-in/Out')
+        
+        # Test admin user navigation
+        client.login(username='admin', password='password')
+        response = client.get(reverse('main_security'))
+        self.assertContains(response, 'Clock-in/Out')
+        self.assertContains(response, 'Attendance')
+
+
+class RoleModelTestCase(TestCase):
+    def setUp(self):
+        """Set up test data for model tests"""
+        self.user = User.objects.create_user('testuser', 'test@test.com', 'password')
+    
+    def test_userrole_creation(self):
+        """Test UserRole model creation"""
+        user_role = UserRole.objects.create(user=self.user, role='security')
+        self.assertEqual(user_role.user, self.user)
+        self.assertEqual(user_role.role, 'security')
+        self.assertIsNotNone(user_role.created_at)
+        self.assertIsNotNone(user_role.updated_at)
+    
+    def test_userrole_str(self):
+        """Test UserRole string representation"""
+        user_role = UserRole.objects.create(user=self.user, role='attendance')
+        self.assertEqual(str(user_role), 'testuser - Attendance Management')
+    
+    def test_userrole_choices(self):
+        """Test UserRole choices"""
+        choices = UserRole.ROLE_CHOICES
+        expected_choices = [
+            ('security', 'Security'),
+            ('attendance', 'Attendance Management'),
+            ('reporting', 'Reporting'),
+            ('admin', 'Administrator'),
+        ]
+        self.assertEqual(choices, expected_choices)
+    
+    def test_user_methods(self):
+        """Test User model role methods"""
+        # Test without role
+        self.assertIsNone(self.user.get_role())
+        self.assertFalse(self.user.has_role('security'))
+        self.assertFalse(self.user.has_any_role(['security', 'admin']))
+        
+        # Test with role
+        UserRole.objects.create(user=self.user, role='security')
+        self.assertEqual(self.user.get_role(), 'security')
+        self.assertTrue(self.user.has_role('security'))
+        self.assertTrue(self.user.has_any_role(['security', 'admin']))
+        self.assertFalse(self.user.has_any_role(['attendance', 'reporting']))
 
 
 if __name__ == '__main__':

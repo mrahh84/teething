@@ -77,13 +77,24 @@
 </style>
 {% endblock %}
 
+{% load role_extras %}
+
 {% block content %}
 <div class="attendance-nav">
-    <a href="{% url 'attendance_list' %}" class="nav-link {% if request.resolver_match.url_name == 'attendance_list' %}active{% endif %}">Attendance Records</a>
-    <a href="{% url 'progressive_entry' %}" class="nav-link {% if request.resolver_match.url_name == 'progressive_entry' %}active{% endif %}">Progressive Entry</a>
-    <a href="{% url 'historical_progressive_entry' %}" class="nav-link {% if request.resolver_match.url_name == 'historical_progressive_entry' or request.resolver_match.url_name == 'historical_progressive_results' %}active{% endif %}">Historical Entry</a>
-    <a href="{% url 'comprehensive_reports' %}" class="nav-link {% if request.resolver_match.url_name == 'comprehensive_reports' or request.resolver_match.url_name == 'attendance_analytics' %}active{% endif %}">Analytics & Reports</a>
-    <a href="{% url 'attendance_export_csv' %}" class="nav-link">Export CSV</a>
+    {% if user|has_any_role:"attendance,admin" %}
+        <a href="{% url 'attendance_list' %}" class="nav-link {% if request.resolver_match.url_name == 'attendance_list' %}active{% endif %}">Attendance Records</a>
+        <a href="{% url 'progressive_entry' %}" class="nav-link {% if request.resolver_match.url_name == 'progressive_entry' %}active{% endif %}">Progressive Entry</a>
+        <a href="{% url 'historical_progressive_entry' %}" class="nav-link {% if request.resolver_match.url_name == 'historical_progressive_entry' or request.resolver_match.url_name == 'historical_progressive_results' %}active{% endif %}">Historical Entry</a>
+    {% endif %}
+    
+    {% if user|has_any_role:"reporting,attendance,admin" %}
+        <a href="{% url 'comprehensive_reports' %}" class="nav-link {% if request.resolver_match.url_name == 'comprehensive_reports' or request.resolver_match.url_name == 'attendance_analytics' %}active{% endif %}">Analytics & Reports</a>
+        <a href="{% url 'attendance_export_csv' %}" class="nav-link">Export CSV</a>
+    {% endif %}
+    
+    {% if user|has_role:"admin" %}
+        <a href="{% url 'admin:index' %}" class="nav-link">Admin</a>
+    {% endif %}
 </div>
 {% block attendance_content %}{% endblock %}
 {% endblock %} 

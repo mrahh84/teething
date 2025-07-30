@@ -213,13 +213,26 @@
     {% endblock %}
 </head>
 <body>
+    {% load role_extras %}
     <header>
         <h1>Clock-in Dashboard</h1>
         {% if user.is_authenticated %}
             <nav style="display: flex; gap: 10px; align-items: center;">
                 <a href="{% url 'main_security' %}" class="btn">Clock-in/Out</a>
-                <a href="{% url 'attendance_list' %}" class="btn">Attendance</a>
-                <a href="{% url 'progressive_entry' %}" class="btn">📝 Progressive Entry</a>
+                
+                {% if user|has_any_role:"attendance,admin" %}
+                    <a href="{% url 'attendance_list' %}" class="btn">Attendance</a>
+                    <a href="{% url 'progressive_entry' %}" class="btn">📝 Progressive Entry</a>
+                {% endif %}
+                
+                {% if user|has_any_role:"reporting,attendance,admin" %}
+                    <a href="{% url 'reports_dashboard' %}" class="btn">📊 Reports</a>
+                {% endif %}
+                
+                {% if user|has_role:"admin" %}
+                    <a href="{% url 'admin:index' %}" class="btn">⚙️ Admin</a>
+                {% endif %}
+                
                 <form action="{% url 'logout' %}" method="post" style="display:inline;">
                   {% csrf_token %}
                   <button type="submit" class="btn btn-danger">Logout</button>

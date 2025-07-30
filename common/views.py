@@ -32,6 +32,8 @@ from .serializers import (
     SingleEventSerializer,
 )
 from .utils import performance_monitor, query_count_monitor
+from .decorators import security_required, attendance_required, reporting_required, admin_required
+from .permissions import SecurityPermission, AttendancePermission, ReportingPermission, AdminPermission
 
 # --- API Views ---
 # Apply authentication and permissions to all API views
@@ -45,7 +47,7 @@ class SingleEventView(generics.RetrieveUpdateDestroyAPIView):
     """
 
     authentication_classes = [SessionAuthentication]  # Or TokenAuthentication, etc.
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [SecurityPermission]  # Security can view events
     serializer_class = SingleEventSerializer
     queryset = Event.objects.all()
     lookup_field = "id"
@@ -65,7 +67,7 @@ class SingleLocationView(generics.RetrieveUpdateDestroyAPIView):
     """
 
     authentication_classes = [SessionAuthentication]
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [SecurityPermission]  # Security can view locations
     serializer_class = LocationSerializer
     queryset = Location.objects.all()
     lookup_field = "id"
@@ -80,7 +82,7 @@ class SingleEmployeeView(generics.RetrieveUpdateDestroyAPIView):
     """
 
     authentication_classes = [SessionAuthentication]
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [AdminPermission]  # Only admin can manage employees
     serializer_class = EmployeeSerializer
     queryset = Employee.objects.all()
     lookup_field = "id"
@@ -94,7 +96,7 @@ class ListEventsView(generics.ListAPIView):
     """
 
     authentication_classes = [SessionAuthentication]
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [SecurityPermission]  # Security can view events
     serializer_class = EventSerializer  # Use the detailed serializer for listing
     queryset = (
         Event.objects.all()
@@ -107,7 +109,7 @@ class ListEventsView(generics.ListAPIView):
 
 # --- Attendance Views ---
 
-@login_required
+@reporting_required  # Reporting role and above
 @extend_schema(exclude=True)
 def attendance_analytics(request):
     """
@@ -202,7 +204,7 @@ def attendance_analytics(request):
     return render(request, 'attendance/analytics.html', context)
 
 
-@login_required
+@reporting_required  # Reporting role and above
 @extend_schema(exclude=True)
 def comprehensive_reports(request):
     """
@@ -251,7 +253,7 @@ def comprehensive_reports(request):
     return render(request, "reports/comprehensive_reports.html", context)
 
 
-@login_required
+@attendance_required  # Attendance management role and above
 @extend_schema(exclude=True)
 def progressive_entry(request):
     """Progressive attendance entry - optimized with bulk prefetch"""
@@ -451,7 +453,7 @@ def progressive_entry(request):
     return render(request, 'attendance/progressive_entry.html', context)
 
 
-@login_required
+@attendance_required  # Attendance management role and above
 @extend_schema(exclude=True)
 def attendance_list(request):
     """
@@ -587,7 +589,7 @@ def attendance_list(request):
     return render(request, 'attendance/list.html', context)
 
 
-@login_required
+@attendance_required  # Attendance management role and above
 @extend_schema(exclude=True)
 def historical_progressive_entry(request):
     """
@@ -653,7 +655,7 @@ def historical_progressive_entry(request):
     return render(request, 'attendance/historical_progressive_entry.html', context)
 
 
-@login_required
+@attendance_required  # Attendance management role and above
 @extend_schema(exclude=True)
 def historical_progressive_results(request):
     """
@@ -850,7 +852,7 @@ def historical_progressive_results(request):
     return render(request, 'attendance/historical_progressive_results.html', context)
 
 
-@login_required
+@reporting_required  # Reporting role and above
 @extend_schema(exclude=True)
 def attendance_export_csv(request):
     """
@@ -927,7 +929,7 @@ def attendance_export_csv(request):
 # Apply login_required decorator
 
 
-@login_required  # Redirects to LOGIN_URL if user not authenticated
+@security_required  # Security role and above
 @extend_schema(exclude=True)
 # NOTE: Keep exclude if you don't want this in API docs
 # Link: https://drf-spectacular.readthedocs.io/en/latest/drf_spectacular.html#drf_spectacular.utils.extend_schema
@@ -1080,7 +1082,7 @@ def main_security(request):
     return render(request, "main_security.html", context)
 
 
-@login_required  # Protect this view
+@security_required  # Security role and above
 @extend_schema(exclude=True)
 def main_security_clocked_in_status_flip(request, id):
     """
@@ -1199,7 +1201,7 @@ def main_security_clocked_in_status_flip(request, id):
         return redirect(redirect_url)
 
 
-@login_required
+@security_required  # Security role and above (read-only)
 @extend_schema(exclude=True)
 def employee_events(request, id):
     """
@@ -1269,7 +1271,7 @@ def employee_events(request, id):
     return render(request, "employee_rollup.html", context)
 
 
-@login_required
+@security_required  # Security role and above
 @extend_schema(exclude=True)
 def update_event(request, employee_id):
     """
@@ -1326,7 +1328,7 @@ def update_event(request, employee_id):
     return redirect("employee_events", id=employee_id)
 
 
-@login_required
+@security_required  # Security role and above
 @extend_schema(exclude=True)
 def delete_event(request, employee_id):
     """
@@ -1355,7 +1357,7 @@ def delete_event(request, employee_id):
 
 
 # --- Reports Views ---
-@login_required
+@reporting_required  # Reporting role and above
 @extend_schema(exclude=True)
 def reports_dashboard(request):
     """
@@ -1376,7 +1378,7 @@ def reports_dashboard(request):
     return render(request, "reports/dashboard.html", context)
 
 
-@login_required
+@reporting_required  # Reporting role and above
 @extend_schema(exclude=True)
 def daily_dashboard_report(request):
     """
@@ -1406,7 +1408,7 @@ def daily_dashboard_report(request):
     return render(request, "reports/marimo_report.html", context)
 
 
-@login_required
+@reporting_required  # Reporting role and above
 @extend_schema(exclude=True)
 def employee_history_report(request):
     """
@@ -1439,7 +1441,7 @@ def employee_history_report(request):
     return render(request, "reports/employee_history_report.html", context)
 
 
-@login_required
+@reporting_required  # Reporting role and above
 @extend_schema(exclude=True)
 def period_summary_report(request):
     """
@@ -1467,7 +1469,7 @@ def period_summary_report(request):
 
 
 
-@login_required
+@reporting_required  # Reporting role and above
 @extend_schema(exclude=True)
 @xframe_options_sameorigin
 def generate_marimo_report(request, report_type):
@@ -2773,7 +2775,7 @@ def period_summary_report_csv(request):
 
 
 
-@login_required
+@attendance_required  # Attendance management role and above
 def attendance_entry(request):
     """Single day attendance entry form"""
     if request.method == 'POST':
@@ -2790,7 +2792,7 @@ def attendance_entry(request):
     return render(request, 'attendance/entry_form.html', {'form': form})
 
 
-@login_required
+@attendance_required  # Attendance management role and above
 def attendance_edit(request, record_id):
     """Edit existing attendance record"""
     record = get_object_or_404(AttendanceRecord, id=record_id)
@@ -2807,7 +2809,7 @@ def attendance_edit(request, record_id):
     return render(request, 'attendance/edit_form.html', {'form': form, 'record': record})
 
 
-@login_required
+@attendance_required  # Attendance management role and above
 def attendance_delete(request, record_id):
     """Delete attendance record"""
     record = get_object_or_404(AttendanceRecord, id=record_id)
@@ -2822,7 +2824,7 @@ def attendance_delete(request, record_id):
     return render(request, 'attendance/delete_confirm.html', {'record': record})
 
 
-@login_required
+@attendance_required  # Attendance management role and above
 def bulk_historical_update(request):
     """Bulk update historical attendance records"""
     
@@ -2872,7 +2874,7 @@ def bulk_historical_update(request):
     return render(request, 'attendance/bulk_historical_update.html', context)
 
 
-@login_required
+@reporting_required  # Reporting role and above
 @extend_schema(exclude=True)
 @xframe_options_sameorigin
 def comprehensive_attendance_report(request):
@@ -3055,7 +3057,7 @@ def filter_employees_by_department(employees, department):
     return filtered_employees
 
 
-@login_required
+@admin_required  # Admin role only
 @extend_schema(exclude=True)
 def performance_dashboard(request):
     """Performance monitoring dashboard."""
