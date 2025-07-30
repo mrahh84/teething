@@ -391,5 +391,68 @@
     </div>
     {% endcache %}
     {% endblock %}
+
+<script>
+// Client-side filtering functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('search');
+    const statusFilter = document.getElementById('status-filter');
+    const employeeRows = document.querySelectorAll('.employee-row');
+    
+    function filterEmployees() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const statusValue = statusFilter.value;
+        
+        employeeRows.forEach(row => {
+            const firstName = row.getAttribute('data-firstname').toLowerCase();
+            const lastName = row.getAttribute('data-lastname').toLowerCase();
+            const status = row.getAttribute('data-status');
+            
+            // Check if row matches search term
+            const matchesSearch = searchTerm === '' || 
+                firstName.includes(searchTerm) || 
+                lastName.includes(searchTerm) ||
+                (firstName + ' ' + lastName).includes(searchTerm);
+            
+            // Check if row matches status filter
+            const matchesStatus = statusValue === 'all' || status === statusValue;
+            
+            // Show/hide row based on filters
+            if (matchesSearch && matchesStatus) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update visible row count
+        updateVisibleCount();
+    }
+    
+    function updateVisibleCount() {
+        const visibleRows = document.querySelectorAll('.employee-row[style=""]').length;
+        const hiddenRows = document.querySelectorAll('.employee-row[style="display: none;"]').length;
+        
+        // Update pagination info if it exists
+        const paginationInfo = document.querySelector('.pagination-info');
+        if (paginationInfo) {
+            const totalRows = visibleRows + hiddenRows;
+            paginationInfo.textContent = `Showing ${visibleRows} of ${totalRows} employees (filtered)`;
+        }
+    }
+    
+    // Add event listeners for real-time filtering
+    if (searchInput) {
+        searchInput.addEventListener('input', filterEmployees);
+    }
+    
+    if (statusFilter) {
+        statusFilter.addEventListener('change', filterEmployees);
+    }
+    
+    // Initial filter application
+    filterEmployees();
+});
+</script>
 </body>
 </html>
