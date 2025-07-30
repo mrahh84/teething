@@ -25,13 +25,22 @@ import csv
 import re
 from typing import Optional
 
-from .models import Employee, Event, EventType, Location, AttendanceRecord, Card
+from .models import (
+    Employee, Event, EventType, Location, AttendanceRecord, Card, Department,
+    AnalyticsCache, ReportConfiguration, EmployeeAnalytics, DepartmentAnalytics, SystemPerformance
+)
 from .forms import AttendanceRecordForm, BulkHistoricalUpdateForm, ProgressiveEntryForm, HistoricalProgressiveEntryForm, AttendanceFilterForm
 from .serializers import (
     EmployeeSerializer,
     EventSerializer,
     LocationSerializer,
     SingleEventSerializer,
+    DepartmentSerializer,
+    AnalyticsCacheSerializer,
+    ReportConfigurationSerializer,
+    EmployeeAnalyticsSerializer,
+    DepartmentAnalyticsSerializer,
+    SystemPerformanceSerializer,
 )
 from .utils import performance_monitor, query_count_monitor
 from .decorators import security_required, attendance_required, reporting_required, admin_required
@@ -107,6 +116,221 @@ class ListEventsView(generics.ListAPIView):
         )
         .order_by("-timestamp")
     )
+
+
+class ListDepartmentsView(generics.ListAPIView):
+    """
+    API endpoint for listing all Departments.
+    Requires authentication for creating, updating or deleting.
+    """
+
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [AdminPermission]  # Only admin can view departments
+    serializer_class = DepartmentSerializer
+    queryset = Department.objects.filter(is_active=True)
+
+
+class SingleDepartmentView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    API endpoint for retrieving, updating, or deleting a single Department.
+    Requires authentication for creating, updating or deleting.
+    """
+
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [AdminPermission]  # Only admin can manage departments
+    serializer_class = DepartmentSerializer
+    queryset = Department.objects.all()
+    lookup_field = "id"
+
+
+class ListAnalyticsCacheView(generics.ListAPIView):
+    """
+    API endpoint for listing AnalyticsCache entries.
+    Requires authentication for creating, updating or deleting.
+    """
+
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [ReportingPermission]  # Reporting role can view analytics cache
+    serializer_class = AnalyticsCacheSerializer
+    queryset = AnalyticsCache.objects.all()
+
+
+class SingleAnalyticsCacheView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    API endpoint for retrieving, updating, or deleting a single AnalyticsCache entry.
+    Requires authentication for creating, updating or deleting.
+    """
+
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [ReportingPermission]  # Reporting role can manage analytics cache
+    serializer_class = AnalyticsCacheSerializer
+    queryset = AnalyticsCache.objects.all()
+    lookup_field = "id"
+
+
+class ListReportConfigurationsView(generics.ListAPIView):
+    """
+    API endpoint for listing ReportConfiguration entries.
+    Requires authentication for creating, updating or deleting.
+    """
+
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [ReportingPermission]  # Reporting role can view report configurations
+    serializer_class = ReportConfigurationSerializer
+    queryset = ReportConfiguration.objects.all()
+
+    def get_queryset(self):
+        """Filter configurations by current user."""
+        return ReportConfiguration.objects.filter(user=self.request.user)
+
+
+class SingleReportConfigurationView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    API endpoint for retrieving, updating, or deleting a single ReportConfiguration entry.
+    Requires authentication for creating, updating or deleting.
+    """
+
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [ReportingPermission]  # Reporting role can manage report configurations
+    serializer_class = ReportConfigurationSerializer
+    queryset = ReportConfiguration.objects.all()
+    lookup_field = "id"
+
+    def get_queryset(self):
+        """Filter configurations by current user."""
+        return ReportConfiguration.objects.filter(user=self.request.user)
+
+
+class ListEmployeeAnalyticsView(generics.ListAPIView):
+    """
+    API endpoint for listing EmployeeAnalytics entries.
+    Requires authentication for creating, updating or deleting.
+    """
+
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [ReportingPermission]  # Reporting role can view employee analytics
+    serializer_class = EmployeeAnalyticsSerializer
+    queryset = EmployeeAnalytics.objects.all()
+
+    def get_queryset(self):
+        """Allow filtering by employee, date range, and anomaly status."""
+        queryset = EmployeeAnalytics.objects.all()
+        
+        # Filter by employee
+        employee_id = self.request.query_params.get('employee_id')
+        if employee_id:
+            queryset = queryset.filter(employee_id=employee_id)
+        
+        # Filter by date range
+        start_date = self.request.query_params.get('start_date')
+        end_date = self.request.query_params.get('end_date')
+        if start_date:
+            queryset = queryset.filter(date__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(date__lte=end_date)
+        
+        # Filter by anomaly status
+        is_anomaly = self.request.query_params.get('is_anomaly')
+        if is_anomaly is not None:
+            queryset = queryset.filter(is_anomaly=is_anomaly.lower() == 'true')
+        
+        return queryset.order_by('-date', 'employee__surname')
+
+
+class SingleEmployeeAnalyticsView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    API endpoint for retrieving, updating, or deleting a single EmployeeAnalytics entry.
+    Requires authentication for creating, updating or deleting.
+    """
+
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [ReportingPermission]  # Reporting role can manage employee analytics
+    serializer_class = EmployeeAnalyticsSerializer
+    queryset = EmployeeAnalytics.objects.all()
+    lookup_field = "id"
+
+
+class ListDepartmentAnalyticsView(generics.ListAPIView):
+    """
+    API endpoint for listing DepartmentAnalytics entries.
+    Requires authentication for creating, updating or deleting.
+    """
+
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [ReportingPermission]  # Reporting role can view department analytics
+    serializer_class = DepartmentAnalyticsSerializer
+    queryset = DepartmentAnalytics.objects.all()
+
+    def get_queryset(self):
+        """Allow filtering by department and date range."""
+        queryset = DepartmentAnalytics.objects.all()
+        
+        # Filter by department
+        department_id = self.request.query_params.get('department_id')
+        if department_id:
+            queryset = queryset.filter(department_id=department_id)
+        
+        # Filter by date range
+        start_date = self.request.query_params.get('start_date')
+        end_date = self.request.query_params.get('end_date')
+        if start_date:
+            queryset = queryset.filter(date__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(date__lte=end_date)
+        
+        return queryset.order_by('-date', 'department__name')
+
+
+class SingleDepartmentAnalyticsView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    API endpoint for retrieving, updating, or deleting a single DepartmentAnalytics entry.
+    Requires authentication for creating, updating or deleting.
+    """
+
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [ReportingPermission]  # Reporting role can manage department analytics
+    serializer_class = DepartmentAnalyticsSerializer
+    queryset = DepartmentAnalytics.objects.all()
+    lookup_field = "id"
+
+
+class ListSystemPerformanceView(generics.ListAPIView):
+    """
+    API endpoint for listing SystemPerformance entries.
+    Requires authentication for creating, updating or deleting.
+    """
+
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [AdminPermission]  # Only admin can view system performance
+    serializer_class = SystemPerformanceSerializer
+    queryset = SystemPerformance.objects.all()
+
+    def get_queryset(self):
+        """Allow filtering by date range."""
+        queryset = SystemPerformance.objects.all()
+        
+        # Filter by date range
+        start_date = self.request.query_params.get('start_date')
+        end_date = self.request.query_params.get('end_date')
+        if start_date:
+            queryset = queryset.filter(date__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(date__lte=end_date)
+        
+        return queryset.order_by('-date')
+
+
+class SingleSystemPerformanceView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    API endpoint for retrieving, updating, or deleting a single SystemPerformance entry.
+    Requires authentication for creating, updating or deleting.
+    """
+
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [AdminPermission]  # Only admin can manage system performance
+    serializer_class = SystemPerformanceSerializer
+    queryset = SystemPerformance.objects.all()
+    lookup_field = "id"
 
 
 # --- Attendance Views ---

@@ -83,6 +83,55 @@ api_urls = [
         views.SingleLocationView.as_view(),
         name="api_single_location",
     ),
+    
+    # Analytics API endpoints
+    # Departments
+    path(
+        "api/departments/", views.ListDepartmentsView.as_view(), name="api_department_list"
+    ),
+    path(
+        "api/departments/<int:id>/", views.SingleDepartmentView.as_view(), name="api_single_department"
+    ),
+    
+    # Analytics Cache
+    path(
+        "api/analytics-cache/", views.ListAnalyticsCacheView.as_view(), name="api_analytics_cache_list"
+    ),
+    path(
+        "api/analytics-cache/<int:id>/", views.SingleAnalyticsCacheView.as_view(), name="api_single_analytics_cache"
+    ),
+    
+    # Report Configurations
+    path(
+        "api/report-configurations/", views.ListReportConfigurationsView.as_view(), name="api_report_configuration_list"
+    ),
+    path(
+        "api/report-configurations/<int:id>/", views.SingleReportConfigurationView.as_view(), name="api_single_report_configuration"
+    ),
+    
+    # Employee Analytics
+    path(
+        "api/employee-analytics/", views.ListEmployeeAnalyticsView.as_view(), name="api_employee_analytics_list"
+    ),
+    path(
+        "api/employee-analytics/<int:id>/", views.SingleEmployeeAnalyticsView.as_view(), name="api_single_employee_analytics"
+    ),
+    
+    # Department Analytics
+    path(
+        "api/department-analytics/", views.ListDepartmentAnalyticsView.as_view(), name="api_department_analytics_list"
+    ),
+    path(
+        "api/department-analytics/<int:id>/", views.SingleDepartmentAnalyticsView.as_view(), name="api_single_department_analytics"
+    ),
+    
+    # System Performance
+    path(
+        "api/system-performance/", views.ListSystemPerformanceView.as_view(), name="api_system_performance_list"
+    ),
+    path(
+        "api/system-performance/<int:id>/", views.SingleSystemPerformanceView.as_view(), name="api_single_system_performance"
+    ),
 ]
 
 # System URLs

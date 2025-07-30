@@ -50,6 +50,22 @@ class EventType(models.Model):
         return f"{self.name}"
 
 
+class Department(models.Model):
+    """Department classification for employees"""
+    
+    name = models.CharField(max_length=255, unique=True, help_text="Department name")
+    code = models.CharField(max_length=10, unique=True, help_text="Short department code")
+    description = models.TextField(blank=True, help_text="Department description")
+    is_active = models.BooleanField(default=True, help_text="Whether this department is active")
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['name']
+    
+    def __str__(self):
+        return self.name
+
+
 class Employee(models.Model):
     """Represents an employee who can be associated with events and cards."""
 
@@ -66,6 +82,15 @@ class Employee(models.Model):
         blank=True,
         on_delete=models.SET_NULL,
         help_text="The access card currently assigned to the employee.",
+    )
+    
+    # Department classification
+    department = models.ForeignKey(
+        Department,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        help_text="Employee's department",
     )
     
     # New fields for attendance tracking
@@ -363,13 +388,12 @@ class AttendanceRecord(models.Model):
             self.status = 'PARTIAL'
         else:
             self.status = 'COMPLETE'
-        
-        self.save()
 
     def save(self, *args, **kwargs):
         """Override save to auto-update status."""
-        super().save(*args, **kwargs)
+        # Update status before saving
         self.auto_update_status()
+        super().save(*args, **kwargs)
 
 
 class Event(models.Model):
@@ -501,3 +525,212 @@ def User_has_any_role(self, roles):
 User.get_role = User_get_role
 User.has_role = User_has_role
 User.has_any_role = User_has_any_role
+
+
+class AnalyticsCache(models.Model):
+    """Cache for analytics data to improve report performance"""
+    
+    cache_key = models.CharField(max_length=255, unique=True, help_text="Unique identifier for cached data")
+    data = models.JSONField(help_text="Cached analytics data")
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(help_text="When this cache entry expires")
+    cache_type = models.CharField(
+        max_length=50, 
+        choices=[
+            ('daily_summary', 'Daily Summary'),
+            ('employee_analytics', 'Employee Analytics'),
+            ('department_analytics', 'Department Analytics'),
+            ('attendance_heatmap', 'Attendance Heatmap'),
+            ('movement_patterns', 'Movement Patterns'),
+            ('anomaly_detection', 'Anomaly Detection'),
+        ],
+        help_text="Type of cached analytics data"
+    )
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=['cache_type', 'expires_at']),
+            models.Index(fields=['cache_key']),
+        ]
+    
+    def __str__(self):
+        return f"{self.cache_type}: {self.cache_key}"
+    
+    def is_expired(self):
+        """Check if cache entry has expired"""
+        return timezone.now() > self.expires_at
+
+
+class ReportConfiguration(models.Model):
+    """User-specific report configurations and preferences"""
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='report_configurations')
+    report_type = models.CharField(
+        max_length=50,
+        choices=[
+            ('daily_dashboard', 'Daily Dashboard'),
+            ('employee_history', 'Employee History'),
+            ('period_summary', 'Period Summary'),
+            ('comprehensive_attendance', 'Comprehensive Attendance'),
+            ('real_time_analytics', 'Real-Time Analytics'),
+            ('department_performance', 'Department Performance'),
+            ('compliance_audit', 'Compliance & Audit'),
+        ],
+        help_text="Type of report"
+    )
+    configuration = models.JSONField(
+        default=dict,
+        help_text="User-specific configuration for this report type"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ['user', 'report_type']
+        indexes = [
+            models.Index(fields=['user', 'report_type']),
+        ]
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.report_type}"
+
+
+class EmployeeAnalytics(models.Model):
+    """Aggregated analytics data for employees"""
+    
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='analytics')
+    date = models.DateField(help_text="Date of analytics data")
+    
+    # Attendance metrics
+    total_events = models.IntegerField(default=0, help_text="Total events for the day")
+    clock_in_count = models.IntegerField(default=0, help_text="Number of clock-in events")
+    clock_out_count = models.IntegerField(default=0, help_text="Number of clock-out events")
+    total_hours_worked = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        default=0, 
+        help_text="Total hours worked"
+    )
+    average_arrival_time = models.TimeField(null=True, blank=True, help_text="Average arrival time")
+    average_departure_time = models.TimeField(null=True, blank=True, help_text="Average departure time")
+    
+    # Location metrics
+    locations_visited = models.JSONField(default=list, help_text="List of locations visited")
+    movement_count = models.IntegerField(default=0, help_text="Number of location movements")
+    
+    # Performance metrics
+    is_late_arrival = models.BooleanField(default=False, help_text="Was arrival late?")
+    is_early_departure = models.BooleanField(default=False, help_text="Was departure early?")
+    attendance_score = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        default=0, 
+        help_text="Attendance performance score (0-100)"
+    )
+    
+    # Anomaly detection
+    is_anomaly = models.BooleanField(default=False, help_text="Flagged as anomalous behavior")
+    anomaly_reason = models.TextField(blank=True, help_text="Reason for anomaly flag")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ['employee', 'date']
+        indexes = [
+            models.Index(fields=['employee', 'date']),
+            models.Index(fields=['date', 'is_anomaly']),
+            models.Index(fields=['employee', 'is_late_arrival']),
+        ]
+    
+    def __str__(self):
+        return f"{self.employee} - {self.date}"
+
+
+class DepartmentAnalytics(models.Model):
+    """Aggregated analytics data for departments"""
+    
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='analytics')
+    date = models.DateField(help_text="Date of analytics data")
+    
+    # Attendance metrics
+    total_employees = models.IntegerField(default=0, help_text="Total employees in department")
+    present_employees = models.IntegerField(default=0, help_text="Employees present today")
+    absent_employees = models.IntegerField(default=0, help_text="Employees absent today")
+    late_employees = models.IntegerField(default=0, help_text="Employees who arrived late")
+    
+    # Performance metrics
+    average_attendance_rate = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        default=0, 
+        help_text="Average attendance rate percentage"
+    )
+    average_hours_worked = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        default=0, 
+        help_text="Average hours worked per employee"
+    )
+    total_hours_worked = models.DecimalField(
+        max_digits=8, 
+        decimal_places=2, 
+        default=0, 
+        help_text="Total hours worked by department"
+    )
+    
+    # Location utilization
+    location_utilization = models.JSONField(default=dict, help_text="Location utilization data")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ['department', 'date']
+        indexes = [
+            models.Index(fields=['department', 'date']),
+            models.Index(fields=['date', 'average_attendance_rate']),
+        ]
+    
+    def __str__(self):
+        return f"{self.department} - {self.date}"
+
+
+class SystemPerformance(models.Model):
+    """System performance metrics for monitoring"""
+    
+    date = models.DateField(help_text="Date of performance data")
+    timestamp = models.DateTimeField(auto_now_add=True, help_text="When this record was created")
+    
+    # System metrics
+    total_events_processed = models.IntegerField(default=0, help_text="Total events processed today")
+    active_users = models.IntegerField(default=0, help_text="Number of active users today")
+    api_requests = models.IntegerField(default=0, help_text="Number of API requests today")
+    average_response_time = models.DecimalField(
+        max_digits=6, 
+        decimal_places=3, 
+        default=0, 
+        help_text="Average API response time in seconds"
+    )
+    
+    # Database metrics
+    database_queries = models.IntegerField(default=0, help_text="Number of database queries today")
+    slow_queries = models.IntegerField(default=0, help_text="Number of slow queries (>1s)")
+    
+    # Cache metrics
+    cache_hit_rate = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        default=0, 
+        help_text="Cache hit rate percentage"
+    )
+    cache_misses = models.IntegerField(default=0, help_text="Number of cache misses")
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=['date']),
+            models.Index(fields=['timestamp']),
+        ]
+    
+    def __str__(self):
+        return f"System Performance - {self.date}"
