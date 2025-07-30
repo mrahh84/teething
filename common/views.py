@@ -475,6 +475,7 @@ def comprehensive_reports(request):
         "selected_period": period,
         "start_time": start_time,
         "end_time": end_time,
+        "timestamp": int(timezone.now().timestamp()),
     }
     
     return render(request, "reports/comprehensive_reports.html", context)
