@@ -28,7 +28,8 @@ from typing import Optional
 
 from .models import (
     Employee, Event, EventType, Location, AttendanceRecord, Card, Department,
-    AnalyticsCache, ReportConfiguration, EmployeeAnalytics, DepartmentAnalytics, SystemPerformance
+    AnalyticsCache, ReportConfiguration, EmployeeAnalytics, DepartmentAnalytics, SystemPerformance,
+    TaskAssignment, LocationMovement, LocationAnalytics
 )
 from .forms import AttendanceRecordForm, BulkHistoricalUpdateForm, ProgressiveEntryForm, HistoricalProgressiveEntryForm, AttendanceFilterForm
 from .serializers import (
@@ -3590,3 +3591,146 @@ def comprehensive_attendance_export_csv(request):
         ])
     
     return response
+
+def location_dashboard(request):
+    """Location dashboard view."""
+    
+    # Get current date
+    today = date.today()
+    
+    # Get all locations with analytics
+    locations = Location.objects.filter(
+        task_assignments__assigned_date=today
+    ).distinct()
+    
+    # Get current analytics
+    current_analytics = LocationAnalytics.objects.filter(
+        date=today
+    ).select_related('location')
+    
+    # Get recent assignments
+    recent_assignments = TaskAssignment.objects.filter(
+        assigned_date=today
+    ).select_related('employee', 'location')[:10]
+    
+    # Get recent movements
+    recent_movements = LocationMovement.objects.filter(
+        timestamp__date=today
+    ).select_related('employee', 'to_location')[:10]
+    
+    # Calculate summary statistics
+    total_assignments = TaskAssignment.objects.filter(
+        assigned_date=today
+    ).count()
+    
+    total_employees = TaskAssignment.objects.filter(
+        assigned_date=today
+    ).values('employee').distinct().count()
+    
+    avg_utilization = current_analytics.aggregate(
+        avg_util=Avg('utilization_rate')
+    )['avg_util'] or 0
+    
+    context = {
+        'locations': locations,
+        'current_analytics': current_analytics,
+        'recent_assignments': recent_assignments,
+        'recent_movements': recent_movements,
+        'total_assignments': total_assignments,
+        'total_employees': total_employees,
+        'avg_utilization': avg_utilization,
+        'today': today,
+    }
+    
+    return render(request, 'common/location_dashboard.html', context)
+
+def location_analytics_api(request, location_id):
+    """API endpoint for location analytics."""
+    
+    try:
+        location = Location.objects.get(id=location_id)
+        
+        # Get date range (last 30 days)
+        end_date = date.today()
+        start_date = end_date - timedelta(days=30)
+        
+        # Get analytics for the location
+        analytics = LocationAnalytics.objects.filter(
+            location=location,
+            date__range=[start_date, end_date]
+        ).order_by('date')
+        
+        # Prepare data for charts
+        dates = [a.date.isoformat() for a in analytics]
+        utilization_rates = [float(a.utilization_rate) for a in analytics]
+        occupancies = [a.current_occupancy for a in analytics]
+        
+        data = {
+            'location_name': location.name,
+            'dates': dates,
+            'utilization_rates': utilization_rates,
+            'occupancies': occupancies,
+            'current_occupancy': location.current_occupancy,
+            'utilization_rate': location.utilization_rate,
+            'capacity': location.capacity,
+        }
+        
+        return JsonResponse(data)
+        
+    except Location.DoesNotExist:
+        return JsonResponse({'error': 'Location not found'}, status=404)
+
+def employee_locations_api(request):
+    """API endpoint for current employee locations."""
+    
+    today = date.today()
+    
+    # Get current assignments
+    assignments = TaskAssignment.objects.filter(
+        assigned_date=today,
+        is_completed=False
+    ).select_related('employee', 'location')
+    
+    data = []
+    for assignment in assignments:
+        data.append({
+            'employee_name': f"{assignment.employee.given_name} {assignment.employee.surname}",
+            'location_name': assignment.location.name,
+            'task_type': assignment.task_type,
+            'assigned_date': assignment.assigned_date.isoformat(),
+        })
+    
+    return JsonResponse({'assignments': data})
+
+def location_summary_api(request):
+    """API endpoint for location summary."""
+    
+    today = date.today()
+    
+    # Get all locations with current activity
+    locations = Location.objects.filter(
+        task_assignments__assigned_date=today
+    ).distinct()
+    
+    summary = []
+    for location in locations:
+        current_assignments = TaskAssignment.objects.filter(
+            location=location,
+            assigned_date=today,
+            is_completed=False
+        ).count()
+        
+        total_assignments = TaskAssignment.objects.filter(
+            location=location,
+            assigned_date=today
+        ).count()
+        
+        summary.append({
+            'location_name': location.name,
+            'current_occupancy': current_assignments,
+            'total_assignments': total_assignments,
+            'utilization_rate': location.utilization_rate,
+            'capacity': location.capacity,
+        })
+    
+    return JsonResponse({'locations': summary})

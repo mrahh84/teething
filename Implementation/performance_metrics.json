@@ -1,0 +1,14 @@
+{
+  "total_assignments": 806,
+  "completed_assignments": 0,
+  "completion_rate": 0.0,
+  "total_movements": 0,
+  "unique_employees": 52,
+  "unique_locations": 5,
+  "avg_assignments_per_day": 19.658536585365855,
+  "avg_movements_per_day": 0.0,
+  "date_range": {
+    "start": "2025-06-20",
+    "end": "2025-07-30"
+  }
+}

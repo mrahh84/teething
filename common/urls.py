@@ -62,6 +62,11 @@ report_urls = [
     ),
 ]
 
+# Location tracking section
+location_urls = [
+    path("location-dashboard/", views.location_dashboard, name="location_dashboard"),
+]
+
 # API endpoints
 api_urls = [
     # List all events (GET)
@@ -83,6 +88,23 @@ api_urls = [
         "api/locations/<int:id>/",
         views.SingleLocationView.as_view(),
         name="api_single_location",
+    ),
+    
+    # Location tracking API endpoints
+    path(
+        "api/location-analytics/<int:location_id>/", 
+        views.location_analytics_api, 
+        name="api_location_analytics"
+    ),
+    path(
+        "api/employee-locations/", 
+        views.employee_locations_api, 
+        name="api_employee_locations"
+    ),
+    path(
+        "api/location-summary/", 
+        views.location_summary_api, 
+        name="api_location_summary"
     ),
     
     # Analytics API endpoints
@@ -146,7 +168,7 @@ system_urls = [
 ]
 
 # Combine all URL patterns
-urlpatterns = clock_in_urls + attendance_urls + report_urls + api_urls + system_urls
+urlpatterns = clock_in_urls + attendance_urls + report_urls + location_urls + api_urls + system_urls
 
 # Real-time Analytics Dashboard
 urlpatterns.append(path("realtime-analytics/", views.realtime_analytics_dashboard, name="realtime_analytics_dashboard"))
