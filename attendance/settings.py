@@ -49,8 +49,6 @@ INSTALLED_APPS = [
 
 # Redirect here if @login_required fails
 LOGIN_URL = "login"
-# Redirect here after successful login (assume 'main_security' is main page)
-LOGIN_REDIRECT_URL = "main_security"
 # Redirect here after logout
 LOGOUT_REDIRECT_URL = "login"  # Change to a better view if created
 

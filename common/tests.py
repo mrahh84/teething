@@ -5,11 +5,12 @@ from django.utils import timezone
 from django.db import connection
 from django.test.utils import override_settings
 from django.db.models import Q
-from datetime import datetime, time, timedelta
+from datetime import datetime, time, timedelta, date
 import time as time_module
 
 from .models import (
-    Employee, Card, Location, EventType, Event, AttendanceRecord
+    Employee, Card, Location, EventType, Event, AttendanceRecord, UserRole, Department,
+    AnalyticsCache, ReportConfiguration, EmployeeAnalytics, DepartmentAnalytics, SystemPerformance
 )
 
 
@@ -585,6 +586,806 @@ class TemplateFragmentCachingTestCase(TestCase):
         # The responses should be functionally equivalent (same data, different CSRF tokens)
         self.assertIn('Attendance Records', str(response1.content))
         self.assertIn('Attendance Records', str(response2.content))
+
+
+class UserRoleTestCase(TestCase):
+    def setUp(self):
+        """Create test users with different roles"""
+        # Create users
+        self.security_user = User.objects.create_user('security', 'security@test.com', 'password')
+        self.attendance_user = User.objects.create_user('attendance', 'attendance@test.com', 'password')
+        self.reporting_user = User.objects.create_user('reporting', 'reporting@test.com', 'password')
+        self.admin_user = User.objects.create_user('admin', 'admin@test.com', 'password')
+        
+        # Assign roles
+        UserRole.objects.create(user=self.security_user, role='security')
+        UserRole.objects.create(user=self.attendance_user, role='attendance')
+        UserRole.objects.create(user=self.reporting_user, role='reporting')
+        UserRole.objects.create(user=self.admin_user, role='admin')
+        
+        # Create test data
+        self.location = Location.objects.create(name='Test Location')
+        self.event_type = EventType.objects.create(name='Clock In')
+        self.employee = Employee.objects.create(
+            given_name='Test',
+            surname='Employee'
+        )
+    
+    def test_security_access(self):
+        """Test security role access"""
+        client = Client()
+        client.login(username='security', password='password')
+        
+        # Should access clock functions
+        response = client.get(reverse('main_security'))
+        self.assertEqual(response.status_code, 200)
+        
+        # Should not access attendance management
+        response = client.get(reverse('attendance_list'))
+        self.assertEqual(response.status_code, 302)  # Redirected
+        
+        # Should not access reports
+        response = client.get(reverse('reports_dashboard'))
+        self.assertEqual(response.status_code, 302)  # Redirected
+    
+    def test_attendance_access(self):
+        """Test attendance management role access"""
+        client = Client()
+        client.login(username='attendance', password='password')
+        
+        # Should access attendance functions
+        response = client.get(reverse('attendance_list'))
+        self.assertEqual(response.status_code, 200)
+        
+        # Should access clock functions
+        response = client.get(reverse('main_security'))
+        self.assertEqual(response.status_code, 200)
+        
+        # Should access reports
+        response = client.get(reverse('reports_dashboard'))
+        self.assertEqual(response.status_code, 200)
+    
+    def test_reporting_access(self):
+        """Test reporting role access"""
+        client = Client()
+        client.login(username='reporting', password='password')
+        
+        # Should access reports
+        response = client.get(reverse('reports_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        
+        # Should not access attendance management
+        response = client.get(reverse('attendance_list'))
+        self.assertEqual(response.status_code, 302)  # Redirected
+        
+        # Should not access clock functions
+        response = client.get(reverse('main_security'))
+        self.assertEqual(response.status_code, 302)  # Redirected
+    
+    def test_admin_access(self):
+        """Test admin role access"""
+        client = Client()
+        client.login(username='admin', password='password')
+        
+        # Should access everything
+        response = client.get(reverse('main_security'))
+        self.assertEqual(response.status_code, 200)
+        
+        response = client.get(reverse('attendance_list'))
+        self.assertEqual(response.status_code, 200)
+        
+        response = client.get(reverse('reports_dashboard'))
+        self.assertEqual(response.status_code, 200)
+    
+    def test_user_role_methods(self):
+        """Test User model role methods"""
+        # Test get_role
+        self.assertEqual(self.security_user.get_role(), 'security')
+        self.assertEqual(self.attendance_user.get_role(), 'attendance')
+        self.assertEqual(self.reporting_user.get_role(), 'reporting')
+        self.assertEqual(self.admin_user.get_role(), 'admin')
+        
+        # Test has_role
+        self.assertTrue(self.security_user.has_role('security'))
+        self.assertFalse(self.security_user.has_role('admin'))
+        
+        # Test has_any_role
+        self.assertTrue(self.attendance_user.has_any_role(['attendance', 'admin']))
+        self.assertFalse(self.attendance_user.has_any_role(['security', 'reporting']))
+    
+    def test_no_role_user(self):
+        """Test user without role assignment"""
+        no_role_user = User.objects.create_user('norole', 'norole@test.com', 'password')
+        client = Client()
+        client.login(username='norole', password='password')
+        
+        # Should be redirected to main_security with error message
+        response = client.get(reverse('attendance_list'))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('main_security', response.url)
+
+
+class RoleIntegrationTestCase(TestCase):
+    def setUp(self):
+        """Set up test data for integration tests"""
+        # Create users with roles
+        self.security_user = User.objects.create_user('security', 'security@test.com', 'password')
+        self.attendance_user = User.objects.create_user('attendance', 'attendance@test.com', 'password')
+        self.reporting_user = User.objects.create_user('reporting', 'reporting@test.com', 'password')
+        self.admin_user = User.objects.create_user('admin', 'admin@test.com', 'password')
+        
+        UserRole.objects.create(user=self.security_user, role='security')
+        UserRole.objects.create(user=self.attendance_user, role='attendance')
+        UserRole.objects.create(user=self.reporting_user, role='reporting')
+        UserRole.objects.create(user=self.admin_user, role='admin')
+        
+        # Create test data
+        self.location = Location.objects.create(name='Test Location')
+        self.event_type = EventType.objects.create(name='Clock In')
+        self.employee = Employee.objects.create(
+            given_name='Test',
+            surname='Employee'
+        )
+    
+    def test_api_permissions(self):
+        """Test API endpoint permissions"""
+        client = Client()
+        
+        # Test security user API access
+        client.login(username='security', password='password')
+        response = client.get(reverse('api_event_list'))
+        self.assertEqual(response.status_code, 200)
+        
+        # Test admin user API access
+        client.login(username='admin', password='password')
+        response = client.get(reverse('api_single_employee', args=[self.employee.id]))
+        self.assertEqual(response.status_code, 200)
+        
+        # Test non-admin user API access (should be denied)
+        client.login(username='security', password='password')
+        response = client.get(reverse('api_single_employee', args=[self.employee.id]))
+        self.assertEqual(response.status_code, 403)  # Forbidden
+    
+    def test_template_role_filters(self):
+        """Test template role filters"""
+        from django.template import Template, Context
+        
+        template = Template("""
+            {% load role_extras %}
+            {% if user|has_role:'security' %}Security User{% endif %}
+            {% if user|has_any_role:'attendance,admin' %}Attendance or Admin{% endif %}
+            {% if user|get_role_display %}{{ user|get_role_display }}{% endif %}
+        """)
+        
+        context = Context({'user': self.security_user})
+        result = template.render(context)
+        
+        self.assertIn('Security User', result)
+        self.assertNotIn('Attendance or Admin', result)
+        self.assertIn('Security', result)
+    
+    def test_role_based_navigation(self):
+        """Test that navigation shows correct items based on role"""
+        client = Client()
+        
+        # Test security user navigation
+        client.login(username='security', password='password')
+        response = client.get(reverse('main_security'))
+        self.assertContains(response, 'Clock-in/Out')
+        
+        # Test admin user navigation
+        client.login(username='admin', password='password')
+        response = client.get(reverse('main_security'))
+        self.assertContains(response, 'Clock-in/Out')
+        self.assertContains(response, 'Attendance')
+
+
+class RoleModelTestCase(TestCase):
+    def setUp(self):
+        """Set up test data for model tests"""
+        self.user = User.objects.create_user('testuser', 'test@test.com', 'password')
+    
+    def test_userrole_creation(self):
+        """Test UserRole model creation"""
+        user_role = UserRole.objects.create(user=self.user, role='security')
+        self.assertEqual(user_role.user, self.user)
+        self.assertEqual(user_role.role, 'security')
+        self.assertIsNotNone(user_role.created_at)
+        self.assertIsNotNone(user_role.updated_at)
+    
+    def test_userrole_str(self):
+        """Test UserRole string representation"""
+        user_role = UserRole.objects.create(user=self.user, role='attendance')
+        self.assertEqual(str(user_role), 'testuser - Attendance Management')
+    
+    def test_userrole_choices(self):
+        """Test UserRole choices"""
+        choices = UserRole.ROLE_CHOICES
+        expected_choices = [
+            ('security', 'Security'),
+            ('attendance', 'Attendance Management'),
+            ('reporting', 'Reporting'),
+            ('admin', 'Administrator'),
+        ]
+        self.assertEqual(choices, expected_choices)
+    
+    def test_user_methods(self):
+        """Test User model role methods"""
+        # Test without role
+        self.assertIsNone(self.user.get_role())
+        self.assertFalse(self.user.has_role('security'))
+        self.assertFalse(self.user.has_any_role(['security', 'admin']))
+        
+        # Test with role
+        UserRole.objects.create(user=self.user, role='security')
+        self.assertEqual(self.user.get_role(), 'security')
+        self.assertTrue(self.user.has_role('security'))
+        self.assertTrue(self.user.has_any_role(['security', 'admin']))
+        self.assertFalse(self.user.has_any_role(['attendance', 'reporting']))
+
+
+class AnalyticsModelsTestCase(TestCase):
+    """Test cases for analytics models"""
+    
+    def setUp(self):
+        """Set up test data for analytics models"""
+        # Create departments
+        self.department1 = Department.objects.create(
+            name='Test Department 1',
+            code='TEST1',
+            description='Test department 1'
+        )
+        self.department2 = Department.objects.create(
+            name='Test Department 2',
+            code='TEST2',
+            description='Test department 2'
+        )
+        
+        # Create employees
+        self.employee1 = Employee.objects.create(
+            given_name='John',
+            surname='Doe',
+            department=self.department1
+        )
+        self.employee2 = Employee.objects.create(
+            given_name='Jane',
+            surname='Smith',
+            department=self.department2
+        )
+        
+        # Create analytics cache
+        self.analytics_cache = AnalyticsCache.objects.create(
+            cache_key='test_cache_key',
+            data={'test': 'data'},
+            expires_at=timezone.now() + timedelta(hours=1),
+            cache_type='daily_summary'
+        )
+        
+        # Create report configuration
+        self.user = User.objects.create_user(
+            username='testuser',
+            password='password'
+        )
+        self.report_config = ReportConfiguration.objects.create(
+            user=self.user,
+            report_type='daily_dashboard',
+            configuration={'test': 'config'}
+        )
+        
+        # Create employee analytics
+        self.employee_analytics = EmployeeAnalytics.objects.create(
+            employee=self.employee1,
+            date=date.today(),
+            total_events=5,
+            clock_in_count=2,
+            clock_out_count=2,
+            total_hours_worked=8.5,
+            attendance_score=85.0,
+            is_anomaly=False
+        )
+        
+        # Create department analytics
+        self.department_analytics = DepartmentAnalytics.objects.create(
+            department=self.department1,
+            date=date.today(),
+            total_employees=10,
+            present_employees=8,
+            absent_employees=2,
+            average_attendance_rate=80.0,
+            average_hours_worked=7.5,
+            total_hours_worked=75.0
+        )
+        
+        # Create system performance
+        self.system_performance = SystemPerformance.objects.create(
+            date=date.today(),
+            total_events_processed=100,
+            active_users=5,
+            api_requests=50,
+            average_response_time=0.5,
+            database_queries=200,
+            slow_queries=2,
+            cache_hit_rate=85.0,
+            cache_misses=15
+        )
+    
+    def test_department_creation(self):
+        """Test department model creation"""
+        self.assertEqual(self.department1.name, 'Test Department 1')
+        self.assertEqual(self.department1.code, 'TEST1')
+        self.assertTrue(self.department1.is_active)
+        self.assertEqual(str(self.department1), 'Test Department 1')
+    
+    def test_analytics_cache_creation(self):
+        """Test analytics cache model creation"""
+        self.assertEqual(self.analytics_cache.cache_key, 'test_cache_key')
+        self.assertEqual(self.analytics_cache.cache_type, 'daily_summary')
+        self.assertFalse(self.analytics_cache.is_expired())
+        self.assertEqual(str(self.analytics_cache), 'daily_summary: test_cache_key')
+    
+    def test_report_configuration_creation(self):
+        """Test report configuration model creation"""
+        self.assertEqual(self.report_config.user, self.user)
+        self.assertEqual(self.report_config.report_type, 'daily_dashboard')
+        self.assertEqual(self.report_config.configuration, {'test': 'config'})
+        self.assertEqual(str(self.report_config), 'testuser - daily_dashboard')
+    
+    def test_employee_analytics_creation(self):
+        """Test employee analytics model creation"""
+        self.assertEqual(self.employee_analytics.employee, self.employee1)
+        self.assertEqual(self.employee_analytics.total_events, 5)
+        self.assertEqual(self.employee_analytics.total_hours_worked, 8.5)
+        self.assertEqual(self.employee_analytics.attendance_score, 85.0)
+        self.assertFalse(self.employee_analytics.is_anomaly)
+        self.assertEqual(str(self.employee_analytics), 'John Doe - 2025-07-30')
+    
+    def test_department_analytics_creation(self):
+        """Test department analytics model creation"""
+        self.assertEqual(self.department_analytics.department, self.department1)
+        self.assertEqual(self.department_analytics.total_employees, 10)
+        self.assertEqual(self.department_analytics.present_employees, 8)
+        self.assertEqual(self.department_analytics.average_attendance_rate, 80.0)
+        self.assertEqual(str(self.department_analytics), 'Test Department 1 - 2025-07-30')
+    
+    def test_system_performance_creation(self):
+        """Test system performance model creation"""
+        self.assertEqual(self.system_performance.total_events_processed, 100)
+        self.assertEqual(self.system_performance.active_users, 5)
+        self.assertEqual(self.system_performance.average_response_time, 0.5)
+        self.assertEqual(self.system_performance.cache_hit_rate, 85.0)
+        self.assertEqual(str(self.system_performance), 'System Performance - 2025-07-30')
+    
+    def test_employee_department_relationship(self):
+        """Test employee-department relationship"""
+        self.assertEqual(self.employee1.department, self.department1)
+        self.assertEqual(self.employee2.department, self.department2)
+        self.assertIn(self.employee1, self.department1.employee_set.all())
+        self.assertIn(self.employee2, self.department2.employee_set.all())
+
+
+class AnalyticsAPITestCase(TestCase):
+    """Test cases for analytics API endpoints"""
+    
+    def setUp(self):
+        """Set up test data for API tests"""
+        # Create test user with reporting role
+        self.user = User.objects.create_user(
+            username='reporting_user',
+            password='password'
+        )
+        self.user_role = UserRole.objects.create(
+            user=self.user,
+            role='reporting'
+        )
+        
+        # Create test data
+        self.department = Department.objects.create(
+            name='Test Department',
+            code='TEST',
+            description='Test department'
+        )
+        
+        self.employee = Employee.objects.create(
+            given_name='John',
+            surname='Doe',
+            department=self.department
+        )
+        
+        self.employee_analytics = EmployeeAnalytics.objects.create(
+            employee=self.employee,
+            date=date.today(),
+            total_events=5,
+            total_hours_worked=8.5,
+            attendance_score=85.0
+        )
+        
+        self.department_analytics = DepartmentAnalytics.objects.create(
+            department=self.department,
+            date=date.today(),
+            total_employees=10,
+            present_employees=8,
+            average_attendance_rate=80.0
+        )
+        
+        self.analytics_cache = AnalyticsCache.objects.create(
+            cache_key='test_cache',
+            data={'test': 'data'},
+            expires_at=timezone.now() + timedelta(hours=1),
+            cache_type='daily_summary'
+        )
+        
+        self.report_config = ReportConfiguration.objects.create(
+            user=self.user,
+            report_type='daily_dashboard',
+            configuration={'test': 'config'}
+        )
+    
+    def test_departments_api_list(self):
+        """Test departments API list endpoint"""
+        # Create admin user for this test
+        admin_user = User.objects.create_user(
+            username='admin_user',
+            password='password'
+        )
+        UserRole.objects.create(
+            user=admin_user,
+            role='admin'
+        )
+        
+        self.client.login(username='admin_user', password='password')
+        response = self.client.get('/common/api/departments/')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn('results', data)
+        self.assertGreater(len(data['results']), 0)
+    
+    def test_employee_analytics_api_list(self):
+        """Test employee analytics API list endpoint"""
+        self.client.login(username='reporting_user', password='password')
+        response = self.client.get('/common/api/employee-analytics/')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn('results', data)
+        self.assertGreater(len(data['results']), 0)
+    
+    def test_department_analytics_api_list(self):
+        """Test department analytics API list endpoint"""
+        self.client.login(username='reporting_user', password='password')
+        response = self.client.get('/common/api/department-analytics/')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn('results', data)
+        self.assertGreater(len(data['results']), 0)
+    
+    def test_analytics_cache_api_list(self):
+        """Test analytics cache API list endpoint"""
+        self.client.login(username='reporting_user', password='password')
+        response = self.client.get('/common/api/analytics-cache/')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn('results', data)
+        self.assertGreater(len(data['results']), 0)
+    
+    def test_report_configuration_api_list(self):
+        """Test report configuration API list endpoint"""
+        self.client.login(username='reporting_user', password='password')
+        response = self.client.get('/common/api/report-configurations/')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn('results', data)
+        self.assertGreater(len(data['results']), 0)
+    
+    def test_employee_analytics_filtering(self):
+        """Test employee analytics API filtering"""
+        self.client.login(username='reporting_user', password='password')
+        
+        # Test filtering by employee
+        response = self.client.get(f'/common/api/employee-analytics/?employee_id={self.employee.id}')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn('results', data)
+        
+        # Test filtering by date
+        today = date.today().isoformat()
+        response = self.client.get(f'/common/api/employee-analytics/?start_date={today}&end_date={today}')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn('results', data)
+    
+    def test_department_analytics_filtering(self):
+        """Test department analytics API filtering"""
+        self.client.login(username='reporting_user', password='password')
+        
+        # Test filtering by department
+        response = self.client.get(f'/common/api/department-analytics/?department_id={self.department.id}')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn('results', data)
+        
+        # Test filtering by date
+        today = date.today().isoformat()
+        response = self.client.get(f'/common/api/department-analytics/?start_date={today}&end_date={today}')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn('results', data)
+
+
+class AnalyticsIntegrationTestCase(TestCase):
+    """Integration tests for analytics functionality"""
+    
+    def setUp(self):
+        """Set up test data for integration tests"""
+        # Create test user
+        self.user = User.objects.create_user(
+            username='testuser',
+            password='password'
+        )
+        
+        # Create department
+        self.department = Department.objects.create(
+            name='Test Department',
+            code='TEST',
+            description='Test department'
+        )
+        
+        # Create employee
+        self.employee = Employee.objects.create(
+            given_name='John',
+            surname='Doe',
+            department=self.department
+        )
+        
+        # Create events for analytics
+        self.event_type = EventType.objects.create(name='Clock In')
+        self.location = Location.objects.create(name='Test Location')
+        
+        # Create some events
+        Event.objects.create(
+            event_type=self.event_type,
+            employee=self.employee,
+            location=self.location,
+            timestamp=timezone.now(),
+            created_by=self.user
+        )
+    
+    def test_employee_department_assignment(self):
+        """Test that employees can be assigned to departments"""
+        self.assertEqual(self.employee.department, self.department)
+        self.assertIn(self.employee, self.department.employee_set.all())
+    
+    def test_analytics_cache_functionality(self):
+        """Test analytics cache functionality"""
+        # Create cache entry
+        cache_entry = AnalyticsCache.objects.create(
+            cache_key='test_integration',
+            data={'employee_count': 1, 'department_count': 1},
+            expires_at=timezone.now() + timedelta(hours=1),
+            cache_type='daily_summary'
+        )
+        
+        # Test cache retrieval
+        retrieved_cache = AnalyticsCache.objects.get(cache_key='test_integration')
+        self.assertEqual(retrieved_cache.data['employee_count'], 1)
+        self.assertFalse(retrieved_cache.is_expired())
+    
+    def test_report_configuration_user_specific(self):
+        """Test that report configurations are user-specific"""
+        config1 = ReportConfiguration.objects.create(
+            user=self.user,
+            report_type='daily_dashboard',
+            configuration={'user': 'specific'}
+        )
+        
+        # Create another user
+        other_user = User.objects.create_user(
+            username='otheruser',
+            password='password'
+        )
+        
+        config2 = ReportConfiguration.objects.create(
+            user=other_user,
+            report_type='daily_dashboard',
+            configuration={'user': 'other'}
+        )
+        
+        # Test that configurations are separate
+        self.assertNotEqual(config1.configuration, config2.configuration)
+        self.assertEqual(config1.user, self.user)
+        self.assertEqual(config2.user, other_user)
+
+
+class RealTimeAnalyticsTestCase(TestCase):
+    """Test cases for real-time analytics API endpoints"""
+    
+    def setUp(self):
+        """Set up test data for real-time analytics"""
+        # Create test user with reporting role
+        self.reporting_user = User.objects.create_user(
+            username='realtime_test_user',
+            password='password',
+            email='realtime@test.com'
+        )
+        UserRole.objects.create(user=self.reporting_user, role='reporting')
+        
+        # Create test department
+        self.department = Department.objects.create(
+            name='Test Department',
+            code='TEST',
+            description='Test department for real-time analytics',
+            is_active=True
+        )
+        
+        # Create test employees
+        self.employee1 = Employee.objects.create(
+            given_name='John',
+            surname='Doe',
+            department=self.department,
+            is_active=True
+        )
+        
+        self.employee2 = Employee.objects.create(
+            given_name='Jane',
+            surname='Smith',
+            department=self.department,
+            is_active=True
+        )
+        
+        # Create test event types
+        self.clock_in_type = EventType.objects.create(name='Clock In')
+        self.clock_out_type = EventType.objects.create(name='Clock Out')
+        self.check_in_type = EventType.objects.create(name='Check In To Room')
+        self.check_out_type = EventType.objects.create(name='Check Out of Room')
+        
+        # Create test locations
+        self.location1 = Location.objects.create(name='Main Security')
+        self.location2 = Location.objects.create(name='Repository and Conservation')
+        
+        # Create test events
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        today = timezone.now().date()
+        yesterday = today - timedelta(days=1)
+        
+        # Employee 1: Clocked in today
+        Event.objects.create(
+            employee=self.employee1,
+            event_type=self.clock_in_type,
+            location=self.location1,
+            timestamp=timezone.now() - timedelta(hours=2)
+        )
+        
+        # Employee 2: Clocked in and out today
+        Event.objects.create(
+            employee=self.employee2,
+            event_type=self.clock_in_type,
+            location=self.location1,
+            timestamp=timezone.now() - timedelta(hours=4)
+        )
+        Event.objects.create(
+            employee=self.employee2,
+            event_type=self.clock_out_type,
+            location=self.location1,
+            timestamp=timezone.now() - timedelta(hours=1)
+        )
+        
+        # Add some movement events
+        Event.objects.create(
+            employee=self.employee1,
+            event_type=self.check_in_type,
+            location=self.location2,
+            timestamp=timezone.now() - timedelta(hours=1)
+        )
+    
+    def test_realtime_employee_status_api(self):
+        """Test real-time employee status API endpoint"""
+        self.client.login(username='realtime_test_user', password='password')
+        response = self.client.get('/common/api/realtime/employees/')
+        
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        
+        # Check that we get employee data with real-time status (paginated response)
+        self.assertIsInstance(data, dict)
+        self.assertIn('results', data)
+        self.assertIsInstance(data['results'], list)
+        self.assertEqual(len(data['results']), 2)
+        
+        # Check that employee data includes real-time fields
+        employee_data = data['results'][0]
+        self.assertIn('current_status', employee_data)
+        self.assertIn('last_activity', employee_data)
+        self.assertIn('current_location', employee_data)
+        
+        # Check specific status values
+        emp1_data = next(emp for emp in data['results'] if emp['given_name'] == 'John' and emp['surname'] == 'Doe')
+        emp2_data = next(emp for emp in data['results'] if emp['given_name'] == 'Jane' and emp['surname'] == 'Smith')
+        
+        self.assertEqual(emp1_data['current_status'], 'clocked_in')
+        self.assertEqual(emp2_data['current_status'], 'clocked_out')
+    
+    def test_live_attendance_counter_api(self):
+        """Test live attendance counter API endpoint"""
+        self.client.login(username='realtime_test_user', password='password')
+        response = self.client.get('/common/api/realtime/attendance-counter/')
+        
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        
+        # Check that we get attendance statistics
+        self.assertIn('total_employees', data)
+        self.assertIn('currently_clocked_in', data)
+        self.assertIn('currently_clocked_out', data)
+        self.assertIn('attendance_rate', data)
+        self.assertIn('last_updated', data)
+        
+        # Check specific values
+        self.assertEqual(data['total_employees'], 2)
+        self.assertEqual(data['currently_clocked_in'], 1)
+        self.assertEqual(data['currently_clocked_out'], 1)
+        self.assertEqual(data['attendance_rate'], 50.0)
+    
+    def test_attendance_heatmap_api(self):
+        """Test attendance heat map API endpoint"""
+        self.client.login(username='realtime_test_user', password='password')
+        response = self.client.get('/common/api/realtime/heatmap/?days=7')
+        
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        
+        # Check that we get heat map data
+        self.assertIn('heat_map_data', data)
+        self.assertIn('date_range', data)
+        
+        # Check data structure
+        heat_map_data = data['heat_map_data']
+        self.assertIsInstance(heat_map_data, list)
+        
+        # Check that we have data for each hour of each day
+        self.assertGreater(len(heat_map_data), 0)
+        
+        # Check individual data points
+        for item in heat_map_data:
+            self.assertIn('date', item)
+            self.assertIn('hour', item)
+            self.assertIn('count', item)
+            self.assertIn('intensity', item)
+    
+    def test_employee_movement_api(self):
+        """Test employee movement API endpoint"""
+        self.client.login(username='realtime_test_user', password='password')
+        response = self.client.get('/common/api/realtime/movements/?days=7')
+        
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        
+        # Check that we get movement data
+        self.assertIn('nodes', data)
+        self.assertIn('links', data)
+        self.assertIn('date_range', data)
+        
+        # Check data structure
+        self.assertIsInstance(data['nodes'], list)
+        self.assertIsInstance(data['links'], list)
+        
+        # Check that we have location nodes
+        self.assertGreater(len(data['nodes']), 0)
+        
+        # Check that nodes include our test locations
+        location_names = [loc.name for loc in Location.objects.all()]
+        for node in data['nodes']:
+            self.assertIn(node, location_names)
+    
+    def test_realtime_analytics_dashboard_view(self):
+        """Test real-time analytics dashboard view"""
+        self.client.login(username='realtime_test_user', password='password')
+        response = self.client.get('/common/realtime-analytics/')
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Real-Time Analytics Dashboard')
+        self.assertContains(response, 'Live Employee Status')
+        self.assertContains(response, 'Attendance Heat Map')
+        self.assertContains(response, 'Employee Movement Flow')
 
 
 if __name__ == '__main__':

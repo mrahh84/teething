@@ -17,3 +17,17 @@ backups/
 # Documentation files
 OPTIMIZATION_IMPLEMENTATION_PLAN.md
 EFFICIENCY_ANALYSIS.md
+
+# Development and analysis tools
+Garbage/
+notebooks/
+__marimo__/
+test_marimo.py
+
+# Generated files
+*.log
+*.csv
+*.html
+analysis/
+output/
+final/

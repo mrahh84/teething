@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db import connections
 from django.http import HttpResponse, HttpResponseBadRequest, StreamingHttpResponse, JsonResponse
+from rest_framework.response import Response
 from django.shortcuts import (
     get_object_or_404,
     redirect,
@@ -17,21 +18,34 @@ from django.db.models import Q, Count, Prefetch, Avg
 from datetime import datetime, timedelta, date
 from django.urls import reverse
 from django.views.decorators.clickjacking import xframe_options_sameorigin
+from django.contrib.auth import authenticate, login
+from django.contrib.auth.forms import AuthenticationForm
 import json
 import traceback
 import csv
 import re
 from typing import Optional
 
-from .models import Employee, Event, EventType, Location, AttendanceRecord, Card
+from .models import (
+    Employee, Event, EventType, Location, AttendanceRecord, Card, Department,
+    AnalyticsCache, ReportConfiguration, EmployeeAnalytics, DepartmentAnalytics, SystemPerformance
+)
 from .forms import AttendanceRecordForm, BulkHistoricalUpdateForm, ProgressiveEntryForm, HistoricalProgressiveEntryForm, AttendanceFilterForm
 from .serializers import (
     EmployeeSerializer,
     EventSerializer,
     LocationSerializer,
     SingleEventSerializer,
+    DepartmentSerializer,
+    AnalyticsCacheSerializer,
+    ReportConfigurationSerializer,
+    EmployeeAnalyticsSerializer,
+    DepartmentAnalyticsSerializer,
+    SystemPerformanceSerializer,
 )
 from .utils import performance_monitor, query_count_monitor
+from .decorators import security_required, attendance_required, reporting_required, admin_required
+from .permissions import SecurityPermission, AttendancePermission, ReportingPermission, AdminPermission
 
 # --- API Views ---
 # Apply authentication and permissions to all API views
@@ -45,7 +59,7 @@ class SingleEventView(generics.RetrieveUpdateDestroyAPIView):
     """
 
     authentication_classes = [SessionAuthentication]  # Or TokenAuthentication, etc.
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [SecurityPermission]  # Security can view events
     serializer_class = SingleEventSerializer
     queryset = Event.objects.all()
     lookup_field = "id"
@@ -65,7 +79,7 @@ class SingleLocationView(generics.RetrieveUpdateDestroyAPIView):
     """
 
     authentication_classes = [SessionAuthentication]
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [SecurityPermission]  # Security can view locations
     serializer_class = LocationSerializer
     queryset = Location.objects.all()
     lookup_field = "id"
@@ -80,7 +94,7 @@ class SingleEmployeeView(generics.RetrieveUpdateDestroyAPIView):
     """
 
     authentication_classes = [SessionAuthentication]
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [AdminPermission]  # Only admin can manage employees
     serializer_class = EmployeeSerializer
     queryset = Employee.objects.all()
     lookup_field = "id"
@@ -94,7 +108,7 @@ class ListEventsView(generics.ListAPIView):
     """
 
     authentication_classes = [SessionAuthentication]
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [SecurityPermission]  # Security can view events
     serializer_class = EventSerializer  # Use the detailed serializer for listing
     queryset = (
         Event.objects.all()
@@ -105,9 +119,224 @@ class ListEventsView(generics.ListAPIView):
     )
 
 
+class ListDepartmentsView(generics.ListAPIView):
+    """
+    API endpoint for listing all Departments.
+    Requires authentication for creating, updating or deleting.
+    """
+
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [AdminPermission]  # Only admin can view departments
+    serializer_class = DepartmentSerializer
+    queryset = Department.objects.filter(is_active=True)
+
+
+class SingleDepartmentView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    API endpoint for retrieving, updating, or deleting a single Department.
+    Requires authentication for creating, updating or deleting.
+    """
+
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [AdminPermission]  # Only admin can manage departments
+    serializer_class = DepartmentSerializer
+    queryset = Department.objects.all()
+    lookup_field = "id"
+
+
+class ListAnalyticsCacheView(generics.ListAPIView):
+    """
+    API endpoint for listing AnalyticsCache entries.
+    Requires authentication for creating, updating or deleting.
+    """
+
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [ReportingPermission]  # Reporting role can view analytics cache
+    serializer_class = AnalyticsCacheSerializer
+    queryset = AnalyticsCache.objects.all()
+
+
+class SingleAnalyticsCacheView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    API endpoint for retrieving, updating, or deleting a single AnalyticsCache entry.
+    Requires authentication for creating, updating or deleting.
+    """
+
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [ReportingPermission]  # Reporting role can manage analytics cache
+    serializer_class = AnalyticsCacheSerializer
+    queryset = AnalyticsCache.objects.all()
+    lookup_field = "id"
+
+
+class ListReportConfigurationsView(generics.ListAPIView):
+    """
+    API endpoint for listing ReportConfiguration entries.
+    Requires authentication for creating, updating or deleting.
+    """
+
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [ReportingPermission]  # Reporting role can view report configurations
+    serializer_class = ReportConfigurationSerializer
+    queryset = ReportConfiguration.objects.all()
+
+    def get_queryset(self):
+        """Filter configurations by current user."""
+        return ReportConfiguration.objects.filter(user=self.request.user)
+
+
+class SingleReportConfigurationView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    API endpoint for retrieving, updating, or deleting a single ReportConfiguration entry.
+    Requires authentication for creating, updating or deleting.
+    """
+
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [ReportingPermission]  # Reporting role can manage report configurations
+    serializer_class = ReportConfigurationSerializer
+    queryset = ReportConfiguration.objects.all()
+    lookup_field = "id"
+
+    def get_queryset(self):
+        """Filter configurations by current user."""
+        return ReportConfiguration.objects.filter(user=self.request.user)
+
+
+class ListEmployeeAnalyticsView(generics.ListAPIView):
+    """
+    API endpoint for listing EmployeeAnalytics entries.
+    Requires authentication for creating, updating or deleting.
+    """
+
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [ReportingPermission]  # Reporting role can view employee analytics
+    serializer_class = EmployeeAnalyticsSerializer
+    queryset = EmployeeAnalytics.objects.all()
+
+    def get_queryset(self):
+        """Allow filtering by employee, date range, and anomaly status."""
+        queryset = EmployeeAnalytics.objects.all()
+        
+        # Filter by employee
+        employee_id = self.request.query_params.get('employee_id')
+        if employee_id:
+            queryset = queryset.filter(employee_id=employee_id)
+        
+        # Filter by date range
+        start_date = self.request.query_params.get('start_date')
+        end_date = self.request.query_params.get('end_date')
+        if start_date:
+            queryset = queryset.filter(date__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(date__lte=end_date)
+        
+        # Filter by anomaly status
+        is_anomaly = self.request.query_params.get('is_anomaly')
+        if is_anomaly is not None:
+            queryset = queryset.filter(is_anomaly=is_anomaly.lower() == 'true')
+        
+        return queryset.order_by('-date', 'employee__surname')
+
+
+class SingleEmployeeAnalyticsView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    API endpoint for retrieving, updating, or deleting a single EmployeeAnalytics entry.
+    Requires authentication for creating, updating or deleting.
+    """
+
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [ReportingPermission]  # Reporting role can manage employee analytics
+    serializer_class = EmployeeAnalyticsSerializer
+    queryset = EmployeeAnalytics.objects.all()
+    lookup_field = "id"
+
+
+class ListDepartmentAnalyticsView(generics.ListAPIView):
+    """
+    API endpoint for listing DepartmentAnalytics entries.
+    Requires authentication for creating, updating or deleting.
+    """
+
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [ReportingPermission]  # Reporting role can view department analytics
+    serializer_class = DepartmentAnalyticsSerializer
+    queryset = DepartmentAnalytics.objects.all()
+
+    def get_queryset(self):
+        """Allow filtering by department and date range."""
+        queryset = DepartmentAnalytics.objects.all()
+        
+        # Filter by department
+        department_id = self.request.query_params.get('department_id')
+        if department_id:
+            queryset = queryset.filter(department_id=department_id)
+        
+        # Filter by date range
+        start_date = self.request.query_params.get('start_date')
+        end_date = self.request.query_params.get('end_date')
+        if start_date:
+            queryset = queryset.filter(date__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(date__lte=end_date)
+        
+        return queryset.order_by('-date', 'department__name')
+
+
+class SingleDepartmentAnalyticsView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    API endpoint for retrieving, updating, or deleting a single DepartmentAnalytics entry.
+    Requires authentication for creating, updating or deleting.
+    """
+
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [ReportingPermission]  # Reporting role can manage department analytics
+    serializer_class = DepartmentAnalyticsSerializer
+    queryset = DepartmentAnalytics.objects.all()
+    lookup_field = "id"
+
+
+class ListSystemPerformanceView(generics.ListAPIView):
+    """
+    API endpoint for listing SystemPerformance entries.
+    Requires authentication for creating, updating or deleting.
+    """
+
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [AdminPermission]  # Only admin can view system performance
+    serializer_class = SystemPerformanceSerializer
+    queryset = SystemPerformance.objects.all()
+
+    def get_queryset(self):
+        """Allow filtering by date range."""
+        queryset = SystemPerformance.objects.all()
+        
+        # Filter by date range
+        start_date = self.request.query_params.get('start_date')
+        end_date = self.request.query_params.get('end_date')
+        if start_date:
+            queryset = queryset.filter(date__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(date__lte=end_date)
+        
+        return queryset.order_by('-date')
+
+
+class SingleSystemPerformanceView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    API endpoint for retrieving, updating, or deleting a single SystemPerformance entry.
+    Requires authentication for creating, updating or deleting.
+    """
+
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [AdminPermission]  # Only admin can manage system performance
+    serializer_class = SystemPerformanceSerializer
+    queryset = SystemPerformance.objects.all()
+    lookup_field = "id"
+
+
 # --- Attendance Views ---
 
-@login_required
+@reporting_required  # Reporting role and above
 @extend_schema(exclude=True)
 def attendance_analytics(request):
     """
@@ -202,7 +431,7 @@ def attendance_analytics(request):
     return render(request, 'attendance/analytics.html', context)
 
 
-@login_required
+@reporting_required  # Reporting role and above
 @extend_schema(exclude=True)
 def comprehensive_reports(request):
     """
@@ -251,7 +480,7 @@ def comprehensive_reports(request):
     return render(request, "reports/comprehensive_reports.html", context)
 
 
-@login_required
+@attendance_required  # Attendance management role and above
 @extend_schema(exclude=True)
 def progressive_entry(request):
     """Progressive attendance entry - optimized with bulk prefetch"""
@@ -451,7 +680,7 @@ def progressive_entry(request):
     return render(request, 'attendance/progressive_entry.html', context)
 
 
-@login_required
+@attendance_required  # Attendance management role and above
 @extend_schema(exclude=True)
 def attendance_list(request):
     """
@@ -587,7 +816,7 @@ def attendance_list(request):
     return render(request, 'attendance/list.html', context)
 
 
-@login_required
+@attendance_required  # Attendance management role and above
 @extend_schema(exclude=True)
 def historical_progressive_entry(request):
     """
@@ -653,7 +882,7 @@ def historical_progressive_entry(request):
     return render(request, 'attendance/historical_progressive_entry.html', context)
 
 
-@login_required
+@attendance_required  # Attendance management role and above
 @extend_schema(exclude=True)
 def historical_progressive_results(request):
     """
@@ -850,7 +1079,7 @@ def historical_progressive_results(request):
     return render(request, 'attendance/historical_progressive_results.html', context)
 
 
-@login_required
+@reporting_required  # Reporting role and above
 @extend_schema(exclude=True)
 def attendance_export_csv(request):
     """
@@ -927,7 +1156,7 @@ def attendance_export_csv(request):
 # Apply login_required decorator
 
 
-@login_required  # Redirects to LOGIN_URL if user not authenticated
+@security_required  # Security role and above
 @extend_schema(exclude=True)
 # NOTE: Keep exclude if you don't want this in API docs
 # Link: https://drf-spectacular.readthedocs.io/en/latest/drf_spectacular.html#drf_spectacular.utils.extend_schema
@@ -1080,7 +1309,7 @@ def main_security(request):
     return render(request, "main_security.html", context)
 
 
-@login_required  # Protect this view
+@security_required  # Security role and above
 @extend_schema(exclude=True)
 def main_security_clocked_in_status_flip(request, id):
     """
@@ -1199,7 +1428,7 @@ def main_security_clocked_in_status_flip(request, id):
         return redirect(redirect_url)
 
 
-@login_required
+@security_required  # Security role and above (read-only)
 @extend_schema(exclude=True)
 def employee_events(request, id):
     """
@@ -1269,7 +1498,7 @@ def employee_events(request, id):
     return render(request, "employee_rollup.html", context)
 
 
-@login_required
+@security_required  # Security role and above
 @extend_schema(exclude=True)
 def update_event(request, employee_id):
     """
@@ -1326,7 +1555,7 @@ def update_event(request, employee_id):
     return redirect("employee_events", id=employee_id)
 
 
-@login_required
+@security_required  # Security role and above
 @extend_schema(exclude=True)
 def delete_event(request, employee_id):
     """
@@ -1355,28 +1584,17 @@ def delete_event(request, employee_id):
 
 
 # --- Reports Views ---
-@login_required
+@reporting_required  # Reporting role and above
 @extend_schema(exclude=True)
 def reports_dashboard(request):
     """
-    Main reports dashboard with links to different report types.
+    Reports dashboard - Redirect to comprehensive reports.
+    This page is now redundant with the comprehensive reports page.
     """
-    # Check if Marimo is installed
-    try:
-        import marimo
-
-        marimo_available = True
-    except ImportError:
-        marimo_available = False
-
-    context = {
-        "user": request.user,
-        "marimo_available": marimo_available,
-    }
-    return render(request, "reports/dashboard.html", context)
+    return redirect('comprehensive_reports')
 
 
-@login_required
+@reporting_required  # Reporting role and above
 @extend_schema(exclude=True)
 def daily_dashboard_report(request):
     """
@@ -1406,7 +1624,7 @@ def daily_dashboard_report(request):
     return render(request, "reports/marimo_report.html", context)
 
 
-@login_required
+@reporting_required  # Reporting role and above
 @extend_schema(exclude=True)
 def employee_history_report(request):
     """
@@ -1439,7 +1657,7 @@ def employee_history_report(request):
     return render(request, "reports/employee_history_report.html", context)
 
 
-@login_required
+@reporting_required  # Reporting role and above
 @extend_schema(exclude=True)
 def period_summary_report(request):
     """
@@ -1467,7 +1685,7 @@ def period_summary_report(request):
 
 
 
-@login_required
+@reporting_required  # Reporting role and above
 @extend_schema(exclude=True)
 @xframe_options_sameorigin
 def generate_marimo_report(request, report_type):
@@ -2773,7 +2991,7 @@ def period_summary_report_csv(request):
 
 
 
-@login_required
+@attendance_required  # Attendance management role and above
 def attendance_entry(request):
     """Single day attendance entry form"""
     if request.method == 'POST':
@@ -2790,7 +3008,7 @@ def attendance_entry(request):
     return render(request, 'attendance/entry_form.html', {'form': form})
 
 
-@login_required
+@attendance_required  # Attendance management role and above
 def attendance_edit(request, record_id):
     """Edit existing attendance record"""
     record = get_object_or_404(AttendanceRecord, id=record_id)
@@ -2807,7 +3025,7 @@ def attendance_edit(request, record_id):
     return render(request, 'attendance/edit_form.html', {'form': form, 'record': record})
 
 
-@login_required
+@attendance_required  # Attendance management role and above
 def attendance_delete(request, record_id):
     """Delete attendance record"""
     record = get_object_or_404(AttendanceRecord, id=record_id)
@@ -2822,7 +3040,7 @@ def attendance_delete(request, record_id):
     return render(request, 'attendance/delete_confirm.html', {'record': record})
 
 
-@login_required
+@attendance_required  # Attendance management role and above
 def bulk_historical_update(request):
     """Bulk update historical attendance records"""
     
@@ -2872,7 +3090,7 @@ def bulk_historical_update(request):
     return render(request, 'attendance/bulk_historical_update.html', context)
 
 
-@login_required
+@reporting_required  # Reporting role and above
 @extend_schema(exclude=True)
 @xframe_options_sameorigin
 def comprehensive_attendance_report(request):
@@ -3055,7 +3273,7 @@ def filter_employees_by_department(employees, department):
     return filtered_employees
 
 
-@login_required
+@admin_required  # Admin role only
 @extend_schema(exclude=True)
 def performance_dashboard(request):
     """Performance monitoring dashboard."""
@@ -3095,3 +3313,121 @@ def performance_dashboard(request):
     }
     
     return render(request, 'performance_dashboard.html', context)
+
+
+def custom_login(request):
+    """Custom login view that redirects users to appropriate pages based on their role"""
+    if request.user.is_authenticated:
+        # User is already logged in, redirect based on role
+        return redirect_based_on_role(request.user)
+    
+    if request.method == 'POST':
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            user = authenticate(username=username, password=password)
+            if user is not None:
+                login(request, user)
+                return redirect_based_on_role(user)
+    else:
+        form = AuthenticationForm()
+    
+    return render(request, 'registration/login.html', {'form': form})
+
+
+def redirect_based_on_role(user):
+    """Redirect user to appropriate page based on their role"""
+    try:
+        user_role = user.userrole.role
+        if user_role == 'reporting':
+            return redirect('comprehensive_reports')
+        elif user_role == 'attendance':
+            return redirect('attendance_list')
+        elif user_role == 'admin':
+            return redirect('main_security')
+        elif user_role == 'security':
+            return redirect('main_security')
+        else:
+            return redirect('main_security')
+    except:
+        # If no role is assigned, redirect to main security
+        return redirect('main_security')
+
+# Real-time Analytics API Views
+class RealTimeEmployeeStatusView(generics.ListAPIView):
+    """API endpoint for real-time employee status data"""
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [ReportingPermission]
+    serializer_class = EmployeeSerializer
+    
+    def get_queryset(self):
+        """Get current employee status with latest activity"""
+        return Employee.objects.select_related('department').prefetch_related(
+            'employee_events'
+        ).filter(is_active=True)
+    
+    def get_serializer_context(self):
+        """Add real-time context to serializer"""
+        context = super().get_serializer_context()
+        context['include_realtime_status'] = True
+        return context
+
+class LiveAttendanceCounterView(generics.RetrieveAPIView):
+    """API endpoint for live attendance counter data"""
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [ReportingPermission]
+    
+    def get_object(self):
+        """Return live attendance statistics"""
+        from django.db.models import Count, Q
+        from django.utils import timezone
+        
+        today = timezone.now().date()
+        
+        # Get total employees
+        total_employees = Employee.objects.filter(is_active=True).count()
+        
+        # Get currently clocked in (have clock in event today, no clock out)
+        clocked_in = Employee.objects.filter(
+            is_active=True,
+            employee_events__event_type__name='Clock In',
+            employee_events__timestamp__date=today
+        ).exclude(
+            employee_events__event_type__name='Clock Out',
+            employee_events__timestamp__date=today
+        ).distinct().count()
+        
+        # Get currently clocked out
+        clocked_out = total_employees - clocked_in
+        
+        # Calculate attendance rate
+        attendance_rate = (clocked_in / total_employees * 100) if total_employees > 0 else 0
+        
+        return {
+            'total_employees': total_employees,
+            'currently_clocked_in': clocked_in,
+            'currently_clocked_out': clocked_out,
+            'attendance_rate': round(attendance_rate, 1),
+            'last_updated': timezone.now()
+        }
+    
+    def retrieve(self, request, *args, **kwargs):
+        """Return live attendance data"""
+        data = self.get_object()
+        return Response(data)
+
+
+
+@reporting_required
+@extend_schema(exclude=True)
+def realtime_analytics_dashboard(request):
+    """
+    Real-time analytics dashboard with live employee status and attendance analytics.
+    This is the main dashboard for Phase 2 of the report enhancement roadmap.
+    """
+    context = {
+        'page_title': 'Real-Time Analytics Dashboard',
+        'active_tab': 'realtime_analytics',
+    }
+    return render(request, 'attendance/realtime_analytics_dashboard.html', context)

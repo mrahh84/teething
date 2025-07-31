@@ -50,6 +50,22 @@ class EventType(models.Model):
         return f"{self.name}"
 
 
+class Department(models.Model):
+    """Department classification for employees"""
+    
+    name = models.CharField(max_length=255, unique=True, help_text="Department name")
+    code = models.CharField(max_length=10, unique=True, help_text="Short department code")
+    description = models.TextField(blank=True, help_text="Department description")
+    is_active = models.BooleanField(default=True, help_text="Whether this department is active")
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['name']
+    
+    def __str__(self):
+        return self.name
+
+
 class Employee(models.Model):
     """Represents an employee who can be associated with events and cards."""
 
@@ -66,6 +82,15 @@ class Employee(models.Model):
         blank=True,
         on_delete=models.SET_NULL,
         help_text="The access card currently assigned to the employee.",
+    )
+    
+    # Department classification
+    department = models.ForeignKey(
+        Department,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        help_text="Employee's department",
     )
     
     # New fields for attendance tracking
@@ -98,104 +123,46 @@ class Employee(models.Model):
 
     def _get_clock_in_out_events(self):
         """Helper method to retrieve clock in/out events efficiently."""
-        # Use related_name 'employee_events' for efficiency
         return self.employee_events.filter(
-            Q(event_type__name="Clock In") | Q(event_type__name="Clock Out")
+            event_type__name__in=["Clock In", "Clock Out"]
         ).order_by("-timestamp")
 
     def is_clocked_in(self) -> bool:
-        """
-        Checks if the employee's last clock event was 'Clock In'.
-        Returns False if there are no clock events.
-        Uses caching to improve performance.
-        """
-        # Try to get cached status first
-        try:
-            from common.cache_utils import get_cached_employee_status, cache_employee_status
-            cached_status = get_cached_employee_status(self.id)
-            if cached_status is not None:
-                return cached_status
-        except ImportError:
-            pass  # Fall back to non-cached version if cache utils not available
-        
-        # Not cached, query database
-        last_clock_event = self._get_clock_in_out_events().first()
-
-        if not last_clock_event:
-            # NOTE: This handles our last known/stated bug on never clocked in individuals
-            is_clocked_in = False  # No clock events means not clocked in, ever
-        else:
-            is_clocked_in = last_clock_event.event_type.name == "Clock In"
-        
-        # Cache the result
-        try:
-            cache_employee_status(self.id, is_clocked_in, 
-                                last_clock_event.timestamp if last_clock_event else None)
-        except (ImportError, NameError):
-            pass  # Ignore caching errors
-        
-        return is_clocked_in
+        """Check if the employee is currently clocked in."""
+        latest_event = self._get_clock_in_out_events().first()
+        if not latest_event:
+            return False
+        return latest_event.event_type.name == "Clock In"
 
     @property  # Make it behave like a property in templates/serializers
     def last_clockinout_time(self) -> Optional[timezone.datetime]:
-        """
-        Returns the timestamp of the employee's last clock in or out event.
-        Returns None if there are no clock events.
-        Uses caching to improve performance.
-        """
-        # Try to get cached last event time first
-        try:
-            from common.cache_utils import get_cached_employee_last_event, cache_employee_status
-            cached_time = get_cached_employee_last_event(self.id)
-            if cached_time is not None:
-                return cached_time
-        except ImportError:
-            pass  # Fall back to non-cached version if cache utils not available
-        
-        # Not cached, query database
-        last_clock_event = self._get_clock_in_out_events().first()
-
-        if not last_clock_event:
-            last_time = None  # No clock events
-        else:
-            last_time = last_clock_event.timestamp
-        
-        # Cache the result along with clock status
-        try:
-            is_clocked_in = last_clock_event.event_type.name == "Clock In" if last_clock_event else False
-            cache_employee_status(self.id, is_clocked_in, last_time)
-        except (ImportError, NameError):
-            pass  # Ignore caching errors
-
-        return last_time
+        """Get the timestamp of the employee's last clock in/out event."""
+        latest_event = self._get_clock_in_out_events().first()
+        return latest_event.timestamp if latest_event else None
 
     def get_attendance_records(self, start_date=None, end_date=None):
-        """Get attendance records for this employee within a date range"""
+        """Get attendance records for this employee within a date range."""
         records = self.attendance_records.all()
         if start_date:
             records = records.filter(date__gte=start_date)
         if end_date:
             records = records.filter(date__lte=end_date)
-        return records.order_by('date')
+        return records.order_by('-date')
 
     def get_problematic_days(self, start_date=None, end_date=None):
-        """Get problematic attendance days for this employee"""
+        """Get problematic attendance days for this employee."""
         records = self.get_attendance_records(start_date, end_date)
         return [record for record in records if record.is_problematic_day()]
 
     def get_attendance_percentage(self, start_date=None, end_date=None):
-        """Calculate attendance percentage for this employee"""
+        """Calculate attendance percentage for this employee."""
         records = self.get_attendance_records(start_date, end_date)
         if not records:
             return 0.0
         
-        problematic_days = len(self.get_problematic_days(start_date, end_date))
-        total_days = len(records)
-        
-        if total_days == 0:
-            return 0.0
-        
-        return ((total_days - problematic_days) / total_days) * 100
+        total_days = records.count()
+        non_problematic_days = sum(1 for record in records if not record.is_problematic_day())
+        return (non_problematic_days / total_days) * 100 if total_days > 0 else 0.0
 
 
 class AttendanceRecord(models.Model):
@@ -273,32 +240,28 @@ class AttendanceRecord(models.Model):
         null=True, 
         blank=True,
         related_name='updated_attendance_records',
-        help_text="Last user who updated this record"
+        help_text="User who last updated this record"
     )
 
     class Meta:
         unique_together = ['employee', 'date']
         ordering = ['-date', 'employee__surname', 'employee__given_name']
         indexes = [
-            models.Index(fields=['date']),
             models.Index(fields=['employee', 'date']),
-            models.Index(fields=['status', 'date']),
-            models.Index(fields=['employee', 'status']),
+            models.Index(fields=['date', 'status']),
+            models.Index(fields=['created_by', 'created_at']),
         ]
 
     def __str__(self):
-        """Return a description of the attendance record."""
-        return f"{self.employee} - {self.date}"
+        """Return string representation."""
+        return f"{self.employee} - {self.date} ({self.status})"
 
     def is_problematic_day(self):
-        """Check if this day had problematic attendance patterns (excluding absences)"""
-        # Only count actual attendance violations, not absences
-        # This logic is based on the Garbage/analyze_attendance.py valuemap
-        problematic_values = ['NO', 'LATE']  # Removed 'ABSENT' from problematic values
-        
+        """Check if this day has multiple attendance issues."""
+        problematic_values = ['NO', 'LATE']
         issues = 0
-        if self.standup_attendance in problematic_values:
-            issues += 1
+        
+        # Check lunch-related issues
         if self.left_lunch_on_time in problematic_values:
             issues += 1
         if self.returned_on_time_after_lunch in problematic_values:
@@ -306,180 +269,131 @@ class AttendanceRecord(models.Model):
         if self.returned_after_lunch in problematic_values:
             issues += 1
         
-        return issues >= 2  # Multiple issues on same day
+        # Check stand-up meeting attendance
+        if self.standup_attendance in problematic_values:
+            issues += 1
+        
+        # Day is problematic if there are 2 or more issues
+        return issues >= 2
 
     @property
     def total_issues(self):
-        """Count total attendance issues for this day (excluding absences)"""
-        # Only count actual attendance violations, not absences
-        # This logic is based on the Garbage/analyze_attendance.py valuemap
-        problematic_values = ['NO', 'LATE']  # Removed 'ABSENT' from problematic values
+        """Count total issues for this attendance record."""
+        problematic_values = ['NO', 'LATE']
         issues = 0
         
-        for field in ['standup_attendance', 'left_lunch_on_time', 
-                     'returned_on_time_after_lunch', 'returned_after_lunch']:
-            if getattr(self, field) in problematic_values:
-                issues += 1
+        # Check lunch-related issues
+        if self.left_lunch_on_time in problematic_values:
+            issues += 1
+        if self.returned_on_time_after_lunch in problematic_values:
+            issues += 1
+        if self.returned_after_lunch in problematic_values:
+            issues += 1
+        
+        # Check stand-up meeting attendance
+        if self.standup_attendance in problematic_values:
+            issues += 1
         
         return issues
 
     @property
     def arrival_time(self):
-        """Get the arrival time from clock-in events (in local timezone)"""
-        from datetime import datetime, time
+        """Get employee's arrival time from clock-in events."""
+        clock_in_event = self.employee.employee_events.filter(
+            event_type__name="Clock In",
+            timestamp__date=self.date
+        ).order_by('timestamp').first()
         
-        # Use timezone-aware range queries to handle timezone boundaries
-        # Create range for the entire day in local timezone
-        start_of_day_local = datetime.combine(self.date, time.min)
-        end_of_day_local = datetime.combine(self.date, time.max)
-        
-        # Convert to UTC for database query
-        start_of_day_utc = timezone.make_aware(start_of_day_local)
-        end_of_day_utc = timezone.make_aware(end_of_day_local)
-        
-        # Query for events within the UTC range
-        clock_in_events = Event.objects.filter(
-            employee=self.employee,
-            event_type__name='Clock In',
-            timestamp__gte=start_of_day_utc,
-            timestamp__lte=end_of_day_utc
-        ).order_by('timestamp')
-        
-        if clock_in_events.exists():
-            # Get the earliest clock-in event (first arrival of the day)
-            earliest_event = clock_in_events.first()
-            local_timestamp = timezone.localtime(earliest_event.timestamp)
-            return local_timestamp.time()
+        if clock_in_event:
+            return clock_in_event.timestamp.time()
         return None
 
     @property
     def arrival_datetime(self):
-        """Get the arrival datetime from clock-in events"""
-        from datetime import datetime, time
+        """Get employee's arrival datetime from clock-in events."""
+        clock_in_event = self.employee.employee_events.filter(
+            event_type__name="Clock In",
+            timestamp__date=self.date
+        ).order_by('timestamp').first()
         
-        # Use timezone-aware range queries to handle timezone boundaries
-        # Create range for the entire day in local timezone
-        start_of_day_local = datetime.combine(self.date, time.min)
-        end_of_day_local = datetime.combine(self.date, time.max)
-        
-        # Convert to UTC for database query
-        start_of_day_utc = timezone.make_aware(start_of_day_local)
-        end_of_day_utc = timezone.make_aware(end_of_day_local)
-        
-        # Query for events within the UTC range
-        clock_in_events = Event.objects.filter(
-            employee=self.employee,
-            event_type__name='Clock In',
-            timestamp__gte=start_of_day_utc,
-            timestamp__lte=end_of_day_utc
-        ).order_by('timestamp')
-        
-        if clock_in_events.exists():
-            # Get the earliest clock-in event (first arrival of the day)
-            earliest_event = clock_in_events.first()
-            return earliest_event.timestamp
-        return None
+        return clock_in_event.timestamp if clock_in_event else None
 
     @property
     def departure_time(self):
-        """Get the departure time from clock-out events (in local timezone)"""
-        from datetime import datetime, time
+        """Get employee's departure time from clock-out events."""
+        clock_out_event = self.employee.employee_events.filter(
+            event_type__name="Clock Out",
+            timestamp__date=self.date
+        ).order_by('timestamp').last()
         
-        # Use timezone-aware range queries to handle timezone boundaries
-        # Create range for the entire day in local timezone
-        start_of_day_local = datetime.combine(self.date, time.min)
-        end_of_day_local = datetime.combine(self.date, time.max)
-        
-        # Convert to UTC for database query
-        start_of_day_utc = timezone.make_aware(start_of_day_local)
-        end_of_day_utc = timezone.make_aware(end_of_day_local)
-        
-        # Query for events within the UTC range
-        clock_out_events = Event.objects.filter(
-            employee=self.employee,
-            event_type__name='Clock Out',
-            timestamp__gte=start_of_day_utc,
-            timestamp__lte=end_of_day_utc
-        ).order_by('timestamp')
-        
-        if clock_out_events.exists():
-            # Get the most recent clock-out event
-            latest_event = clock_out_events.last()
-            local_timestamp = timezone.localtime(latest_event.timestamp)
-            return local_timestamp.time()
+        if clock_out_event:
+            return clock_out_event.timestamp.time()
         return None
 
     @property
     def worked_hours(self):
-        """Calculate total hours worked for this day"""
-        from datetime import datetime
+        """Calculate total hours worked for this day."""
+        arrival = self.arrival_datetime
+        departure = self.departure_time
         
-        if not self.arrival_datetime or not self.departure_time:
-            return None
-        
-        # Combine date with departure time
-        departure_datetime = timezone.make_aware(
-            datetime.combine(self.date, self.departure_time)
-        )
-        
-        # Calculate duration
-        duration = departure_datetime - self.arrival_datetime
-        return duration.total_seconds() / 3600  # Convert to hours
+        if arrival and departure:
+            # Convert departure time to datetime for calculation
+            departure_datetime = timezone.make_aware(
+                timezone.datetime.combine(self.date, departure)
+            )
+            duration = departure_datetime - arrival
+            return duration.total_seconds() / 3600  # Convert to hours
+        return 0
 
     @property
     def is_late_arrival(self):
-        """Check if employee arrived late (after 9:00 AM)"""
-        if not self.arrival_time:
-            return False
-        
-        from datetime import time
-        return self.arrival_time > time(9, 0)
+        """Check if employee arrived late (after 9:00 AM)."""
+        arrival_time = self.arrival_time
+        if arrival_time:
+            return arrival_time > timezone.datetime.strptime('09:00', '%H:%M').time()
+        return False
 
     @property
     def is_early_departure(self):
-        """Check if employee left early (before 5:00 PM)"""
-        if not self.departure_time:
-            return False
-        
-        from datetime import time
-        return self.departure_time < time(17, 0)
+        """Check if employee left early (before 5:00 PM)."""
+        departure_time = self.departure_time
+        if departure_time:
+            return departure_time < timezone.datetime.strptime('17:00', '%H:%M').time()
+        return False
 
     @property
     def completion_percentage(self):
-        """Calculate completion percentage of this attendance record"""
-        fields_to_check = [
-            'standup_attendance', 'left_lunch_on_time', 
-            'returned_on_time_after_lunch', 'returned_after_lunch'
-        ]
+        """Calculate completion percentage of this attendance record."""
+        total_fields = 4  # lunch_time, left_lunch_on_time, returned_after_lunch, standup_attendance
+        filled_fields = 0
         
-        completed_fields = 0
-        for field in fields_to_check:
-            if getattr(self, field):
-                completed_fields += 1
+        if self.lunch_time:
+            filled_fields += 1
+        if self.left_lunch_on_time:
+            filled_fields += 1
+        if self.returned_after_lunch:
+            filled_fields += 1
+        if self.standup_attendance:
+            filled_fields += 1
         
-        return (completed_fields / len(fields_to_check)) * 100
+        return (filled_fields / total_fields) * 100 if total_fields > 0 else 0
 
     def auto_update_status(self):
-        """Automatically update status based on completion"""
+        """Automatically update status based on completion."""
         completion = self.completion_percentage
         
-        new_status = 'DRAFT'
         if completion == 0:
-            new_status = 'DRAFT'
+            self.status = 'DRAFT'
         elif completion < 100:
-            new_status = 'PARTIAL'
+            self.status = 'PARTIAL'
         else:
-            new_status = 'COMPLETE'
-        
-        # Use update to avoid recursion
-        if self.status != new_status:
-            AttendanceRecord.objects.filter(id=self.id).update(status=new_status)
-            self.status = new_status
+            self.status = 'COMPLETE'
 
     def save(self, *args, **kwargs):
-        """Override save to auto-update status"""
-        super().save(*args, **kwargs)
+        """Override save to auto-update status."""
+        # Update status before saving
         self.auto_update_status()
+        super().save(*args, **kwargs)
 
 
 class Event(models.Model):
@@ -499,119 +413,324 @@ class Event(models.Model):
     # Track which logged-in user created the event (e.g., security guard)
     created_by = models.ForeignKey(
         User,
-        on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        help_text="The system user who recorded this event, if applicable.",
+        on_delete=models.SET_NULL,
+        help_text="User who recorded this event.",
     )
 
     class Meta:
         ordering = ["-timestamp"]  # Show newest events first by default
         indexes = [
-            models.Index(fields=['employee', '-timestamp'], name='idx_emp_events_emp_time'),
-            models.Index(fields=['event_type', 'timestamp'], name='idx_event_type_time'),
-            models.Index(fields=['location', 'timestamp'], name='idx_location_time'),
+            models.Index(fields=['employee', 'timestamp']),
+            models.Index(fields=['event_type', 'timestamp']),
+            models.Index(fields=['location', 'timestamp']),
+            models.Index(fields=['created_by', 'timestamp']),
         ]
 
     def __str__(self):
-        """Return a description of the event."""
-        return f"{self.event_type.name} by {self.employee} at {timezone.localtime(self.timestamp).strftime('%d-%b-%Y %I:%M %p')}"
+        """Return string representation."""
+        return f"{self.employee} - {self.event_type} at {self.location} ({self.timestamp})"
 
     def save(self, *args, **kwargs):
-        """Override save to invalidate employee cache when events are created."""
-        # Check if this is a new clock event
-        is_new_clock_in = (
-            self.pk is None and  # New record
-            self.event_type.name == "Clock In"  # Clock In event
-        )
-        is_new_clock_out = (
-            self.pk is None and  # New record
-            self.event_type.name == "Clock Out"  # Clock Out event
-        )
+        """Override save to create/update attendance records."""
+        # Check if this is a new event
+        is_new = self.pk is None
         
+        # Save the event first
         super().save(*args, **kwargs)
         
-        # If this is a new clock-in event, automatically create attendance record
-        if is_new_clock_in:
-            self._create_attendance_record()
-        elif is_new_clock_out:
-            self._update_attendance_record()
-        
-        # Invalidate cache for this employee when a new event is created
-        try:
-            from common.cache_utils import invalidate_employee_cache, invalidate_main_security_cache
-            invalidate_employee_cache(self.employee_id)
-            invalidate_main_security_cache()  # Also invalidate main security page cache
-        except ImportError:
-            # Fallback: clear Django's default cache for this employee
-            from django.core.cache import cache
-            cache.delete(f"employee_status_{self.employee_id}")
-            cache.delete(f"employee_last_event_{self.employee_id}")
-            pass  # Ignore if cache utils not available
-    
-    def _create_attendance_record(self):
-        """Automatically create attendance record when employee clocks in"""
-        from django.contrib.auth.models import User
-        
-        # Get the local date of the clock-in event (not UTC date)
-        event_local_time = timezone.localtime(self.timestamp)
-        event_date = event_local_time.date()
-        
-        # Check if attendance record already exists for this employee and date
-        existing_record = AttendanceRecord.objects.filter(
-            employee=self.employee,
-            date=event_date
-        ).first()
-        
-        if existing_record:
-            # Update existing record with arrival time (in local timezone)
-            local_time = event_local_time.time()
-            existing_record.notes = f"Updated arrival time: {local_time}"
-            existing_record.save()
-            return
-        
-        # Create new attendance record
-        admin_user = User.objects.filter(is_superuser=True).first()
-        
-        # Get local time for the note
-        local_time = event_local_time.time()
-        
-        attendance_record = AttendanceRecord.objects.create(
-            employee=self.employee,
-            date=event_date,
-            lunch_time=self.employee.assigned_lunch_time,
-            created_by=admin_user,
-            status='DRAFT',
-            notes=f"Auto-created from clock-in at {local_time}"
-        )
-    
-    def _update_attendance_record(self):
-        """Update attendance record when employee clocks out"""
-        # Get the local date of the clock-out event (not UTC date)
-        event_local_time = timezone.localtime(self.timestamp)
-        event_date = event_local_time.date()
-        
-        # Find existing attendance record for this employee and date
-        existing_record = AttendanceRecord.objects.filter(
-            employee=self.employee,
-            date=event_date
-        ).first()
-        
-        if existing_record:
-            # Update the record with departure time info (in local timezone)
-            current_notes = existing_record.notes or ""
-            local_time = event_local_time.time()
-            departure_note = f"Clock-out at {local_time}"
-            
-            if current_notes:
-                updated_notes = f"{current_notes}; {departure_note}"
+        # Only process clock in/out events for attendance records
+        if self.event_type.name in ["Clock In", "Clock Out"]:
+            if is_new:
+                self._create_attendance_record()
             else:
-                updated_notes = departure_note
-            
-            existing_record.notes = updated_notes
-            existing_record.save()
+                self._update_attendance_record()
+
+    def _create_attendance_record(self):
+        """Create a new attendance record for this event's date."""
+        # Check if attendance record already exists for this employee and date
+        attendance_record, created = AttendanceRecord.objects.get_or_create(
+            employee=self.employee,
+            date=self.timestamp.date(),
+            defaults={
+                'created_by': self.created_by,
+                'status': 'DRAFT'
+            }
+        )
+        
+        if created:
+            # Log the creation
+            print(f"Created attendance record for {self.employee} on {self.timestamp.date()}")
+        else:
+            # Update the existing record
+            attendance_record.last_updated_by = self.created_by
+            attendance_record.save()
+
+    def _update_attendance_record(self):
+        """Update existing attendance record for this event's date."""
+        try:
+            attendance_record = AttendanceRecord.objects.get(
+                employee=self.employee,
+                date=self.timestamp.date()
+            )
+            attendance_record.last_updated_by = self.created_by
+            attendance_record.save()
+        except AttendanceRecord.DoesNotExist:
+            # Create if doesn't exist
+            self._create_attendance_record()
 
 
-# NOTE:
-# See: https://django.readthedocs.io/en/1.11.x/ref/unicode.html#choosing-between-str-and-unicode
-# See above as to why I switched from __unicode__ to __str__
+class UserRole(models.Model):
+    """User roles for access control"""
+    
+    ROLE_CHOICES = [
+        ('security', 'Security'),
+        ('attendance', 'Attendance Management'),
+        ('reporting', 'Reporting'),
+        ('admin', 'Administrator'),
+    ]
+    
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "User Role"
+        verbose_name_plural = "User Roles"
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.get_role_display()}"
+
+
+# Add role methods to User model
+def User_get_role(self):
+    """Get user's role"""
+    try:
+        return self.userrole.role
+    except UserRole.DoesNotExist:
+        return None
+
+def User_has_role(self, role):
+    """Check if user has specific role"""
+    return self.get_role() == role
+
+def User_has_any_role(self, roles):
+    """Check if user has any of the specified roles"""
+    user_role = self.get_role()
+    return user_role in roles if user_role else False
+
+# Add methods to User model
+User.get_role = User_get_role
+User.has_role = User_has_role
+User.has_any_role = User_has_any_role
+
+
+class AnalyticsCache(models.Model):
+    """Cache for analytics data to improve report performance"""
+    
+    cache_key = models.CharField(max_length=255, unique=True, help_text="Unique identifier for cached data")
+    data = models.JSONField(help_text="Cached analytics data")
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(help_text="When this cache entry expires")
+    cache_type = models.CharField(
+        max_length=50, 
+        choices=[
+            ('daily_summary', 'Daily Summary'),
+            ('employee_analytics', 'Employee Analytics'),
+            ('department_analytics', 'Department Analytics'),
+            ('attendance_heatmap', 'Attendance Heatmap'),
+            ('movement_patterns', 'Movement Patterns'),
+            ('anomaly_detection', 'Anomaly Detection'),
+        ],
+        help_text="Type of cached analytics data"
+    )
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=['cache_type', 'expires_at']),
+            models.Index(fields=['cache_key']),
+        ]
+    
+    def __str__(self):
+        return f"{self.cache_type}: {self.cache_key}"
+    
+    def is_expired(self):
+        """Check if cache entry has expired"""
+        return timezone.now() > self.expires_at
+
+
+class ReportConfiguration(models.Model):
+    """User-specific report configurations and preferences"""
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='report_configurations')
+    report_type = models.CharField(
+        max_length=50,
+        choices=[
+            ('daily_dashboard', 'Daily Dashboard'),
+            ('employee_history', 'Employee History'),
+            ('period_summary', 'Period Summary'),
+            ('comprehensive_attendance', 'Comprehensive Attendance'),
+            ('real_time_analytics', 'Real-Time Analytics'),
+            ('department_performance', 'Department Performance'),
+            ('compliance_audit', 'Compliance & Audit'),
+        ],
+        help_text="Type of report"
+    )
+    configuration = models.JSONField(
+        default=dict,
+        help_text="User-specific configuration for this report type"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ['user', 'report_type']
+        indexes = [
+            models.Index(fields=['user', 'report_type']),
+        ]
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.report_type}"
+
+
+class EmployeeAnalytics(models.Model):
+    """Aggregated analytics data for employees"""
+    
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='analytics')
+    date = models.DateField(help_text="Date of analytics data")
+    
+    # Attendance metrics
+    total_events = models.IntegerField(default=0, help_text="Total events for the day")
+    clock_in_count = models.IntegerField(default=0, help_text="Number of clock-in events")
+    clock_out_count = models.IntegerField(default=0, help_text="Number of clock-out events")
+    total_hours_worked = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        default=0, 
+        help_text="Total hours worked"
+    )
+    average_arrival_time = models.TimeField(null=True, blank=True, help_text="Average arrival time")
+    average_departure_time = models.TimeField(null=True, blank=True, help_text="Average departure time")
+    
+    # Location metrics
+    locations_visited = models.JSONField(default=list, help_text="List of locations visited")
+    movement_count = models.IntegerField(default=0, help_text="Number of location movements")
+    
+    # Performance metrics
+    is_late_arrival = models.BooleanField(default=False, help_text="Was arrival late?")
+    is_early_departure = models.BooleanField(default=False, help_text="Was departure early?")
+    attendance_score = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        default=0, 
+        help_text="Attendance performance score (0-100)"
+    )
+    
+    # Anomaly detection
+    is_anomaly = models.BooleanField(default=False, help_text="Flagged as anomalous behavior")
+    anomaly_reason = models.TextField(blank=True, help_text="Reason for anomaly flag")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ['employee', 'date']
+        indexes = [
+            models.Index(fields=['employee', 'date']),
+            models.Index(fields=['date', 'is_anomaly']),
+            models.Index(fields=['employee', 'is_late_arrival']),
+        ]
+    
+    def __str__(self):
+        return f"{self.employee} - {self.date}"
+
+
+class DepartmentAnalytics(models.Model):
+    """Aggregated analytics data for departments"""
+    
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='analytics')
+    date = models.DateField(help_text="Date of analytics data")
+    
+    # Attendance metrics
+    total_employees = models.IntegerField(default=0, help_text="Total employees in department")
+    present_employees = models.IntegerField(default=0, help_text="Employees present today")
+    absent_employees = models.IntegerField(default=0, help_text="Employees absent today")
+    late_employees = models.IntegerField(default=0, help_text="Employees who arrived late")
+    
+    # Performance metrics
+    average_attendance_rate = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        default=0, 
+        help_text="Average attendance rate percentage"
+    )
+    average_hours_worked = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        default=0, 
+        help_text="Average hours worked per employee"
+    )
+    total_hours_worked = models.DecimalField(
+        max_digits=8, 
+        decimal_places=2, 
+        default=0, 
+        help_text="Total hours worked by department"
+    )
+    
+    # Location utilization
+    location_utilization = models.JSONField(default=dict, help_text="Location utilization data")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ['department', 'date']
+        indexes = [
+            models.Index(fields=['department', 'date']),
+            models.Index(fields=['date', 'average_attendance_rate']),
+        ]
+    
+    def __str__(self):
+        return f"{self.department} - {self.date}"
+
+
+class SystemPerformance(models.Model):
+    """System performance metrics for monitoring"""
+    
+    date = models.DateField(help_text="Date of performance data")
+    timestamp = models.DateTimeField(auto_now_add=True, help_text="When this record was created")
+    
+    # System metrics
+    total_events_processed = models.IntegerField(default=0, help_text="Total events processed today")
+    active_users = models.IntegerField(default=0, help_text="Number of active users today")
+    api_requests = models.IntegerField(default=0, help_text="Number of API requests today")
+    average_response_time = models.DecimalField(
+        max_digits=6, 
+        decimal_places=3, 
+        default=0, 
+        help_text="Average API response time in seconds"
+    )
+    
+    # Database metrics
+    database_queries = models.IntegerField(default=0, help_text="Number of database queries today")
+    slow_queries = models.IntegerField(default=0, help_text="Number of slow queries (>1s)")
+    
+    # Cache metrics
+    cache_hit_rate = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        default=0, 
+        help_text="Cache hit rate percentage"
+    )
+    cache_misses = models.IntegerField(default=0, help_text="Number of cache misses")
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=['date']),
+            models.Index(fields=['timestamp']),
+        ]
+    
+    def __str__(self):
+        return f"System Performance - {self.date}"
