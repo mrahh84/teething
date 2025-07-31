@@ -1,0 +1,4505 @@
+{
+  "analysis_timestamp": "2025-07-31T11:50:15.889852",
+  "file_info": {
+    "path": "Garbage/Task Splitting Sheet June 2025.xlsx",
+    "total_sheets": 34,
+    "sheet_names": [
+      "June 20",
+      "June 23",
+      "June 24",
+      "June 25",
+      "June 26",
+      "June 27",
+      "June 30",
+      "July 1",
+      "July 2",
+      "July 3",
+      "July 4",
+      "July 7 ",
+      "July 8",
+      "July 9",
+      "July 10",
+      "July 14",
+      "July 15",
+      "July 16",
+      "July 17",
+      "July 18",
+      "July 21",
+      "July 22",
+      "July 23",
+      "July 24",
+      "July 25",
+      "July 28",
+      "July 29",
+      "July 30",
+      "July 31",
+      "Roll UP ",
+      "Rollup June20-July18",
+      "Sheet1",
+      "ALL NAMES ",
+      "WorkSheet"
+    ]
+  },
+  "location_analysis": {
+    "identified_columns": {
+      "June 20": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "unique_values": {
+            "count": 6,
+            "sample_values": [
+              "Goobi",
+              "OCR4All",
+              "Transkribus",
+              "Research",
+              "Transkribus ",
+              "Versa"
+            ]
+          }
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "unique_values": {}
+        }
+      ],
+      "June 23": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "unique_values": {
+            "count": 6,
+            "sample_values": [
+              "OCR4All",
+              "Transkribus",
+              "VERSA",
+              "Goobi",
+              "OCR4ALL",
+              "Research"
+            ]
+          }
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "unique_values": {
+            "count": 7,
+            "sample_values": [
+              "MetaData ",
+              "IT Suite",
+              "VERSA",
+              "MetaData",
+              "BC100",
+              "Meeting Room",
+              "ABSENT"
+            ]
+          }
+        }
+      ],
+      "June 24": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "unique_values": {
+            "count": 5,
+            "sample_values": [
+              "Goobi",
+              "OCR4All",
+              "Research",
+              "Transkribus",
+              "Versa"
+            ]
+          }
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "unique_values": {
+            "count": 8,
+            "sample_values": [
+              "MetaData ",
+              "MetaData",
+              "IT Suite",
+              "BC100",
+              "Meeting Room",
+              "VERSA",
+              "Versa",
+              "ABSENT"
+            ]
+          }
+        }
+      ],
+      "June 25": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "unique_values": {
+            "count": 6,
+            "sample_values": [
+              "Versa",
+              "Transkribus",
+              "Research",
+              "OCR4All",
+              "Goobi",
+              "ABSENT"
+            ]
+          }
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "unique_values": {
+            "count": 11,
+            "sample_values": [
+              "Versa",
+              "BC100-1",
+              "BC100-2",
+              "MetaData",
+              "MetaData ",
+              "MetaData (and Versa AM)",
+              "MetaData (and Versa PM)",
+              "Meeting Room",
+              "BC100-3",
+              "BC100-4"
+            ]
+          }
+        }
+      ],
+      "June 26": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "unique_values": {
+            "count": 6,
+            "sample_values": [
+              "Versa",
+              "Transkribus",
+              "Research",
+              "OCR4All",
+              "Goobi",
+              "ABSENT"
+            ]
+          }
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "unique_values": {
+            "count": 11,
+            "sample_values": [
+              "Versa ",
+              "BC100-1",
+              "BC100-2",
+              "MetaData",
+              "MetaData (and Versa AM)",
+              "MetaData ",
+              "MetaData (and Versa PM)",
+              "Meeting Room",
+              "BC100-3",
+              "BC100-4"
+            ]
+          }
+        }
+      ],
+      "June 27": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "unique_values": {
+            "count": 6,
+            "sample_values": [
+              "Versa",
+              "Transkribus",
+              "Research",
+              "OCR4All",
+              "Goobi",
+              "ABSENT"
+            ]
+          }
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "unique_values": {
+            "count": 13,
+            "sample_values": [
+              "Versa ",
+              "BC100-1",
+              "MetaData  (and Versa PM)",
+              "MetaData",
+              "MetaData ",
+              "MetaData (and Versa AM)",
+              "Meeting Room",
+              "BC100-2",
+              "BC100-3",
+              "BC100-4"
+            ]
+          }
+        }
+      ],
+      "June 30": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "unique_values": {
+            "count": 5,
+            "sample_values": [
+              "OCR4All",
+              "Transkribus",
+              "Research",
+              "Goobi",
+              "ABSENT"
+            ]
+          }
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "unique_values": {
+            "count": 13,
+            "sample_values": [
+              "Versa ",
+              "BC100-1",
+              "MetaData (and Versa AM)",
+              "MetaData",
+              "MetaData ",
+              "Meeting Room",
+              "BC100-2",
+              "BC100-4",
+              "BC100-3",
+              "MetaData (NEWTON)"
+            ]
+          }
+        }
+      ],
+      "July 1": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "unique_values": {
+            "count": 5,
+            "sample_values": [
+              "Transkribus",
+              "Research",
+              "OCR4All",
+              "Goobi",
+              "ABSENT"
+            ]
+          }
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "unique_values": {
+            "count": 14,
+            "sample_values": [
+              "Versa ",
+              "MetaData ",
+              "MetaData",
+              "MetaData (and Versa PM)",
+              "Meeting Room",
+              "BC100-1",
+              "BC100-2",
+              "BC100-3",
+              "BC100-4",
+              "MetaData (and Versa AM)"
+            ]
+          }
+        }
+      ],
+      "July 2": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "unique_values": {
+            "count": 7,
+            "sample_values": [
+              "Versa",
+              "Transkribus",
+              "Newton Papers",
+              "Research",
+              "OCR4All",
+              "Goobi",
+              "ABSENT"
+            ]
+          }
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "unique_values": {
+            "count": 13,
+            "sample_values": [
+              "Versa",
+              "BC100-1",
+              "MetaData",
+              "MetaData ",
+              "BC100-2",
+              "Meeting Room",
+              "BC100-3",
+              "BC100-4",
+              "MetaData (and Versa AM)",
+              "MetaData (and Versa PM)"
+            ]
+          }
+        }
+      ],
+      "July 3": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "unique_values": {
+            "count": 7,
+            "sample_values": [
+              "Versa",
+              "Newton Papers",
+              "Transkribus",
+              "Research",
+              "OCR4All",
+              "Goobi",
+              "ABSENT"
+            ]
+          }
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "unique_values": {
+            "count": 13,
+            "sample_values": [
+              "Versa",
+              "MetaData",
+              "MetaData ",
+              "MetaData (and Versa PM)",
+              "BC100-1",
+              "BC100-2",
+              "Meeting Room",
+              "BC100-3",
+              "BC100-4",
+              "MetaData (and Versa AM)"
+            ]
+          }
+        }
+      ],
+      "July 4": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "unique_values": {
+            "count": 7,
+            "sample_values": [
+              "Versa",
+              "Newton Papers",
+              "Transkribus",
+              "Research",
+              "OCR4All",
+              "Goobi",
+              "ABSENT"
+            ]
+          }
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "unique_values": {
+            "count": 13,
+            "sample_values": [
+              "Versa",
+              "MetaData (and Versa AM)",
+              "MetaData",
+              "MetaData ",
+              "MetaData (and Versa PM)",
+              "BC100-1",
+              "BC100-2",
+              "Meeting Room",
+              "BC100-3",
+              "BC100-4"
+            ]
+          }
+        }
+      ],
+      "July 7 ": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "unique_values": {
+            "count": 7,
+            "sample_values": [
+              "Versa",
+              "Newton Papers",
+              "Transkribus",
+              "Research",
+              "OCR4All",
+              "Goobi",
+              "ABSENT"
+            ]
+          }
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "unique_values": {
+            "count": 12,
+            "sample_values": [
+              "Versa",
+              "MetaData ",
+              "MetaData",
+              "BC100-1",
+              "Meeting Room",
+              "BC100-2",
+              "BC100-3",
+              "BC100-4",
+              "MetaData (and Versa AM)",
+              "MetaData (NEWTON)"
+            ]
+          }
+        }
+      ],
+      "July 8": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "unique_values": {
+            "count": 7,
+            "sample_values": [
+              "Versa",
+              "Newton Papers",
+              "Transkribus",
+              "Research",
+              "OCR4All",
+              "Goobi",
+              "ABSENT"
+            ]
+          }
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "unique_values": {
+            "count": 13,
+            "sample_values": [
+              "Versa ",
+              "Versa",
+              "MetaData ",
+              "MetaData",
+              "MetaData(British Library) ",
+              "MetaData(British Library)",
+              "BC100-1",
+              "BC100-2",
+              "Meeting Room",
+              "BC100-3"
+            ]
+          }
+        }
+      ],
+      "July 9": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "unique_values": {
+            "count": 7,
+            "sample_values": [
+              "Versa",
+              "Newton Papers",
+              "Transkribus",
+              "Research",
+              "OCR4All",
+              "Goobi",
+              "ABSENT"
+            ]
+          }
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "unique_values": {
+            "count": 13,
+            "sample_values": [
+              "Versa ",
+              "Versa",
+              "MetaData ",
+              "MetaData",
+              "MetaData(British Library) ",
+              "MetaData(British Library)",
+              "BC100-1",
+              "BC100-2",
+              "Meeting Room",
+              "BC100-3"
+            ]
+          }
+        }
+      ],
+      "July 10": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "unique_values": {
+            "count": 6,
+            "sample_values": [
+              "Newton Papers",
+              "Transkribus",
+              "Research",
+              "Versa",
+              "Goobi",
+              "ABSENT"
+            ]
+          }
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "unique_values": {
+            "count": 15,
+            "sample_values": [
+              "MetaData ",
+              "MetaData",
+              "MetaData(British Library) ",
+              "MetaData(British Library)",
+              "Meeting Room",
+              "Versa",
+              "Versa (AM)",
+              "Versa (PM)",
+              "BC100-1",
+              "BC100-1 (AM)"
+            ]
+          }
+        }
+      ],
+      "July 14": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "unique_values": {
+            "count": 7,
+            "sample_values": [
+              "Transkribus",
+              "OCR4ALL",
+              "Research",
+              "Versa",
+              "Production ",
+              "Goobi",
+              "ABSENT"
+            ]
+          }
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "unique_values": {
+            "count": 9,
+            "sample_values": [
+              "MetaData ",
+              "MetaData",
+              "Meeting Room",
+              "Versa",
+              "BC100-1",
+              "BC100-2",
+              "BC100-3",
+              "BC100-4",
+              "ABSENT"
+            ]
+          }
+        }
+      ],
+      "July 15": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "unique_values": {
+            "count": 6,
+            "sample_values": [
+              "Transkribus",
+              "OCR4ALL",
+              "Research",
+              "Versa",
+              "Goobi",
+              "ABSENT"
+            ]
+          }
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "unique_values": {
+            "count": 10,
+            "sample_values": [
+              "MetaData ",
+              "MetaData",
+              "Meeting Room",
+              "Versa",
+              "BC100-1",
+              "BC100-2",
+              "BC100-3",
+              "BC100-4",
+              "MetaData (Review)",
+              "ABSENT"
+            ]
+          }
+        }
+      ],
+      "July 16": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "unique_values": {
+            "count": 6,
+            "sample_values": [
+              "Transkribus",
+              "OCR4ALL",
+              "Research",
+              "Production ",
+              "Goobi",
+              "ABSENT"
+            ]
+          }
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "unique_values": {
+            "count": 10,
+            "sample_values": [
+              "MetaData ",
+              "MetaData",
+              "MetaData (Review)",
+              "Meeting Room",
+              "Versa",
+              "BC100-1",
+              "BC100-2",
+              "BC100-3",
+              "BC100-4",
+              "ABSENT"
+            ]
+          }
+        }
+      ],
+      "July 17": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "unique_values": {
+            "count": 6,
+            "sample_values": [
+              "Transkribus",
+              "OCR4ALL",
+              "Research",
+              "Production ",
+              "Goobi",
+              "ABSENT"
+            ]
+          }
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "unique_values": {
+            "count": 12,
+            "sample_values": [
+              "MetaData  (AM)",
+              "MetaData ",
+              "MetaData",
+              "103C  (Training)",
+              "Meeting Room",
+              "Versa",
+              "BC100-1",
+              "BC100-2",
+              "BC100-3",
+              "BC100-4"
+            ]
+          }
+        }
+      ],
+      "July 18": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "unique_values": {
+            "count": 6,
+            "sample_values": [
+              "Transkribus",
+              "OCR4ALL",
+              "Research",
+              "Production ",
+              "Goobi",
+              "ABSENT"
+            ]
+          }
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "unique_values": {
+            "count": 11,
+            "sample_values": [
+              "MetaData (AM)",
+              "MetaData ",
+              "MetaData",
+              "Meeting Room",
+              "Versa",
+              "BC100-1",
+              "BC100-2",
+              "BC100-3",
+              "BC100-4",
+              "MetaData (Review)"
+            ]
+          }
+        },
+        {
+          "column": "Assignment Order",
+          "keyword_match": "assignment",
+          "unique_values": {
+            "count": 8,
+            "sample_values": [
+              1,
+              2,
+              3,
+              0,
+              "Assignment  Key:",
+              "1 - Prioritize 1st to selected tasks",
+              "2 - ",
+              "3 - do them last and if no laptops, double-up on transkribus"
+            ]
+          }
+        }
+      ],
+      "July 21": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "unique_values": {
+            "count": 6,
+            "sample_values": [
+              "Transkribus",
+              "OCR4ALL",
+              "Research",
+              "Production ",
+              "Goobi",
+              "ABSENT"
+            ]
+          }
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "unique_values": {
+            "count": 11,
+            "sample_values": [
+              "MetaData  (Review)",
+              "MetaData (Review)",
+              "MetaData ",
+              "MetaData",
+              "Meeting Room",
+              "Versa",
+              "BC100-1",
+              "BC100-2",
+              "BC100-3",
+              "BC100-4"
+            ]
+          }
+        }
+      ],
+      "July 22": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "unique_values": {
+            "count": 6,
+            "sample_values": [
+              "Transkribus",
+              "OCR4ALL",
+              "Research",
+              "Production ",
+              "Goobi",
+              "ABSENT"
+            ]
+          }
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "unique_values": {
+            "count": 12,
+            "sample_values": [
+              "MetaData  (Review)",
+              "MetaData (Review)",
+              "MetaData ",
+              "MetaData",
+              "BC100-1",
+              "Training Room (AM)",
+              "Meeting Room",
+              "Versa",
+              "BC100-2",
+              "BC100-3"
+            ]
+          }
+        }
+      ],
+      "July 23": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "unique_values": {
+            "count": 7,
+            "sample_values": [
+              "Transkribus",
+              "OCR4ALL",
+              "OCR4ALL (PM)",
+              "Research",
+              "Production ",
+              "Goobi",
+              "ABSENT"
+            ]
+          }
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "unique_values": {
+            "count": 14,
+            "sample_values": [
+              "MetaData  (Review)",
+              "MetaData (Review)",
+              "MetaData ",
+              "MetaData",
+              "MetaData (Versa AM)",
+              "MetaData (Versa PM)",
+              "BC100-1",
+              "Training Room (all day)",
+              "Meeting Room",
+              "Versa"
+            ]
+          }
+        }
+      ],
+      "July 24": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "unique_values": {
+            "count": 7,
+            "sample_values": [
+              "Transkribus",
+              "OCR4ALL",
+              "Research",
+              "Production ",
+              "Goobi",
+              "Newton Papers",
+              "ABSENT"
+            ]
+          }
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "unique_values": {
+            "count": 10,
+            "sample_values": [
+              "MetaData (Review)",
+              "MetaData ",
+              "MetaData",
+              "Meeting Room",
+              "Versa",
+              "BC100-1 (All Day)",
+              "BC100-2 (All Day)",
+              "BC100-3",
+              "BC100-4",
+              "ABSENT"
+            ]
+          }
+        }
+      ],
+      "July 25": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "unique_values": {
+            "count": 7,
+            "sample_values": [
+              "Transkribus",
+              "OCR4ALL",
+              "Research",
+              "Production ",
+              "Goobi",
+              "Newton Papers",
+              "ABSENT"
+            ]
+          }
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "unique_values": {
+            "count": 10,
+            "sample_values": [
+              "MetaData (PM)",
+              "MetaData ",
+              "MetaData",
+              "Meeting Room",
+              "Versa",
+              "BC100-1",
+              "BC100-2",
+              "BC100-3",
+              "BC100-4",
+              "ABSENT"
+            ]
+          }
+        }
+      ],
+      "July 28": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "unique_values": {
+            "count": 6,
+            "sample_values": [
+              "Transkribus",
+              "OCR4ALL",
+              "Research",
+              "Production ",
+              "Goobi",
+              "ABSENT"
+            ]
+          }
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "unique_values": {
+            "count": 10,
+            "sample_values": [
+              "MetaData (AM)",
+              "MetaData ",
+              "MetaData",
+              "Meeting Room",
+              "Versa",
+              "BC100-1",
+              "BC100-2",
+              "BC100-3",
+              "BC100-4",
+              "ABSENT"
+            ]
+          }
+        }
+      ],
+      "July 29": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "unique_values": {
+            "count": 6,
+            "sample_values": [
+              "Transkribus",
+              "OCR4ALL",
+              "Research",
+              "Production ",
+              "Goobi",
+              "ABSENT"
+            ]
+          }
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "unique_values": {
+            "count": 10,
+            "sample_values": [
+              "MetaData (Review)",
+              "MetaData ",
+              "MetaData",
+              "Meeting Room",
+              "Versa",
+              "BC100-1",
+              "BC100-2",
+              "BC100-3",
+              "BC100-4",
+              "ABSENT"
+            ]
+          }
+        }
+      ],
+      "July 30": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "unique_values": {
+            "count": 6,
+            "sample_values": [
+              "Transkribus",
+              "OCR4ALL",
+              "Research",
+              "Production ",
+              "Goobi",
+              "ABSENT"
+            ]
+          }
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "unique_values": {
+            "count": 9,
+            "sample_values": [
+              "MetaData (Review)",
+              "MetaData ",
+              "MetaData",
+              "Meeting Room",
+              "BC100-1",
+              "BC100-2",
+              "BC100-3",
+              "BC100-4",
+              "ABSENT"
+            ]
+          }
+        }
+      ],
+      "July 31": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "unique_values": {
+            "count": 6,
+            "sample_values": [
+              "Transkribus",
+              "OCR4ALL",
+              "Research",
+              "Production ",
+              "Goobi",
+              "ABSENT"
+            ]
+          }
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "unique_values": {
+            "count": 9,
+            "sample_values": [
+              "MetaData (Review)",
+              "MetaData ",
+              "MetaData",
+              "Meeting Room",
+              "BC100-1",
+              "BC100-2",
+              "BC100-3",
+              "BC100-4",
+              "ABSENT"
+            ]
+          }
+        }
+      ]
+    },
+    "sample_data": {
+      "June 20": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "top_values": {
+            "OCR4All": 18,
+            "Transkribus": 16,
+            "Goobi": 4,
+            "Research": 3,
+            "Versa": 2,
+            "Transkribus ": 1
+          },
+          "total_unique": 6
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "top_values": {},
+          "total_unique": 0
+        }
+      ],
+      "June 23": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "top_values": {
+            "OCR4All": 17,
+            "Transkribus": 13,
+            "Goobi": 3,
+            "Research": 3,
+            "VERSA": 2,
+            "OCR4ALL": 1
+          },
+          "total_unique": 6
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "top_values": {
+            "MetaData ": 24,
+            "BC100": 7,
+            "ABSENT": 7,
+            "VERSA": 3,
+            "Meeting Room": 3,
+            "IT Suite": 1,
+            "MetaData": 1
+          },
+          "total_unique": 7
+        }
+      ],
+      "June 24": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "top_values": {
+            "Transkribus": 16,
+            "OCR4All": 14,
+            "Goobi": 4,
+            "Research": 3,
+            "Versa": 3
+          },
+          "total_unique": 5
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "top_values": {
+            "MetaData ": 20,
+            "BC100": 10,
+            "ABSENT": 8,
+            "MetaData": 3,
+            "Meeting Room": 3,
+            "Versa": 2,
+            "IT Suite": 1,
+            "VERSA": 1
+          },
+          "total_unique": 8
+        }
+      ],
+      "June 25": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "top_values": {
+            "Transkribus": 20,
+            "OCR4All": 12,
+            "ABSENT": 10,
+            "Goobi": 6,
+            "Research": 3,
+            "Versa": 2
+          },
+          "total_unique": 6
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "top_values": {
+            "MetaData": 14,
+            "MetaData ": 11,
+            "ABSENT": 10,
+            "BC100-1": 4,
+            "BC100-2": 3,
+            "Meeting Room": 3,
+            "Versa": 2,
+            "BC100-3": 2,
+            "BC100-4": 2,
+            "MetaData (and Versa AM)": 1
+          },
+          "total_unique": 11
+        }
+      ],
+      "June 26": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "top_values": {
+            "Transkribus": 20,
+            "OCR4All": 12,
+            "Goobi": 6,
+            "ABSENT": 5,
+            "Research": 3,
+            "Versa": 2
+          },
+          "total_unique": 6
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "top_values": {
+            "MetaData": 13,
+            "MetaData ": 12,
+            "ABSENT": 5,
+            "BC100-1": 4,
+            "BC100-2": 3,
+            "Meeting Room": 3,
+            "Versa ": 2,
+            "BC100-3": 2,
+            "BC100-4": 2,
+            "MetaData (and Versa AM)": 1
+          },
+          "total_unique": 11
+        }
+      ],
+      "June 27": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "top_values": {
+            "Transkribus": 13,
+            "OCR4All": 13,
+            "Goobi": 10,
+            "ABSENT": 5,
+            "Research": 3,
+            "Versa": 2
+          },
+          "total_unique": 6
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "top_values": {
+            "MetaData ": 8,
+            "MetaData": 6,
+            "MetaData  (RB3 DEEDS)": 6,
+            "ABSENT": 5,
+            "Meeting Room": 4,
+            "MetaData (NEWTON)": 4,
+            "Versa ": 2,
+            "BC100-1": 2,
+            "MetaData (and Versa AM)": 2,
+            "BC100-2": 2
+          },
+          "total_unique": 13
+        }
+      ],
+      "June 30": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "top_values": {
+            "OCR4All": 15,
+            "Transkribus": 12,
+            "Goobi": 10,
+            "ABSENT": 9,
+            "Research": 3
+          },
+          "total_unique": 5
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "top_values": {
+            "MetaData ": 9,
+            "ABSENT": 9,
+            "MetaData": 6,
+            "MetaData  (RB3 DEEDS)": 6,
+            "Meeting Room": 4,
+            "BC100-1": 3,
+            "MetaData (NEWTON)": 3,
+            "Versa ": 2,
+            "BC100-2": 2,
+            "BC100-4": 2
+          },
+          "total_unique": 13
+        }
+      ],
+      "July 1": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "top_values": {
+            "Transkribus": 16,
+            "OCR4All": 14,
+            "ABSENT": 8,
+            "Goobi": 7,
+            "Research": 3
+          },
+          "total_unique": 5
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "top_values": {
+            "MetaData ": 13,
+            "ABSENT": 8,
+            "MetaData": 6,
+            "Meeting Room": 4,
+            "MetaData (NEWTON)": 4,
+            "Versa ": 2,
+            "BC100-1": 2,
+            "BC100-2": 2,
+            "BC100-3": 2,
+            "BC100-4": 2
+          },
+          "total_unique": 14
+        }
+      ],
+      "July 2": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "top_values": {
+            "Newton Papers": 17,
+            "OCR4All": 10,
+            "Transkribus": 6,
+            "Goobi": 6,
+            "ABSENT": 4,
+            "Research": 3,
+            "Versa": 2
+          },
+          "total_unique": 7
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "top_values": {
+            "MetaData ": 15,
+            "MetaData": 8,
+            "MetaData (NEWTON)": 5,
+            "ABSENT": 4,
+            "Meeting Room": 3,
+            "Versa": 2,
+            "BC100-1": 2,
+            "BC100-2": 2,
+            "BC100-3": 2,
+            "BC100-4": 2
+          },
+          "total_unique": 13
+        }
+      ],
+      "July 3": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "top_values": {
+            "Newton Papers": 17,
+            "OCR4All": 8,
+            "ABSENT": 8,
+            "Transkribus": 5,
+            "Goobi": 5,
+            "Research": 3,
+            "Versa": 2
+          },
+          "total_unique": 7
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "top_values": {
+            "MetaData ": 16,
+            "ABSENT": 8,
+            "MetaData": 6,
+            "MetaData (NEWTON)": 4,
+            "Meeting Room": 3,
+            "Versa": 2,
+            "BC100-1": 2,
+            "BC100-2": 2,
+            "MetaData (and Versa PM)": 1,
+            "BC100-3": 1
+          },
+          "total_unique": 13
+        }
+      ],
+      "July 4": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "top_values": {
+            "Newton Papers": 15,
+            "OCR4All": 9,
+            "ABSENT": 8,
+            "Transkribus": 6,
+            "Goobi": 5,
+            "Research": 3,
+            "Versa": 2
+          },
+          "total_unique": 7
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "top_values": {
+            "MetaData ": 15,
+            "ABSENT": 8,
+            "MetaData": 5,
+            "MetaData (NEWTON)": 4,
+            "Meeting Room": 3,
+            "Versa": 2,
+            "BC100-1": 2,
+            "BC100-2": 2,
+            "BC100-3": 2,
+            "BC100-4": 2
+          },
+          "total_unique": 13
+        }
+      ],
+      "July 7 ": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "top_values": {
+            "Newton Papers": 19,
+            "OCR4All": 9,
+            "Goobi": 6,
+            "Transkribus": 5,
+            "ABSENT": 5,
+            "Versa": 3,
+            "Research": 3
+          },
+          "total_unique": 7
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "top_values": {
+            "MetaData ": 18,
+            "MetaData": 6,
+            "MetaData (NEWTON)": 5,
+            "ABSENT": 5,
+            "Versa": 3,
+            "Meeting Room": 3,
+            "BC100-1": 2,
+            "BC100-2": 2,
+            "BC100-3": 2,
+            "BC100-4": 2
+          },
+          "total_unique": 12
+        }
+      ],
+      "July 8": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "top_values": {
+            "Transkribus": 11,
+            "OCR4All": 8,
+            "Newton Papers": 7,
+            "Goobi": 6,
+            "ABSENT": 5,
+            "Versa": 4,
+            "Research": 3
+          },
+          "total_unique": 7
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "top_values": {
+            "MetaData ": 17,
+            "ABSENT": 5,
+            "Versa": 3,
+            "MetaData": 3,
+            "Meeting Room": 3,
+            "MetaData(British Library) ": 2,
+            "BC100-1": 2,
+            "BC100-2": 2,
+            "BC100-3": 2,
+            "BC100-4": 2
+          },
+          "total_unique": 13
+        }
+      ],
+      "July 9": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "top_values": {
+            "Transkribus": 11,
+            "OCR4All": 8,
+            "Newton Papers": 6,
+            "Goobi": 6,
+            "ABSENT": 5,
+            "Versa": 4,
+            "Research": 3
+          },
+          "total_unique": 7
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "top_values": {
+            "MetaData ": 16,
+            "ABSENT": 5,
+            "Versa": 3,
+            "MetaData": 3,
+            "Meeting Room": 3,
+            "MetaData(British Library) ": 2,
+            "BC100-1": 2,
+            "BC100-2": 2,
+            "BC100-3": 2,
+            "BC100-4": 2
+          },
+          "total_unique": 13
+        }
+      ],
+      "July 10": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "top_values": {
+            "Transkribus": 16,
+            "Newton Papers": 6,
+            "Goobi": 6,
+            "ABSENT": 5,
+            "Research": 3,
+            "Versa": 2
+          },
+          "total_unique": 6
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "top_values": {
+            "MetaData ": 14,
+            "ABSENT": 5,
+            "MetaData": 3,
+            "Meeting Room": 3,
+            "BC100-3": 3,
+            "MetaData(British Library) ": 2,
+            "Versa": 2,
+            "BC100-1": 2,
+            "BC100-2": 2,
+            "BC100-4": 2
+          },
+          "total_unique": 15
+        }
+      ],
+      "July 14": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "top_values": {
+            "Transkribus": 12,
+            "OCR4ALL": 8,
+            "Production ": 8,
+            "ABSENT": 6,
+            "Goobi": 5,
+            "Research": 3,
+            "Versa": 2
+          },
+          "total_unique": 7
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "top_values": {
+            "MetaData ": 21,
+            "ABSENT": 6,
+            "MetaData": 4,
+            "Meeting Room": 3,
+            "Versa": 2,
+            "BC100-1": 2,
+            "BC100-2": 2,
+            "BC100-3": 2,
+            "BC100-4": 2
+          },
+          "total_unique": 9
+        }
+      ],
+      "July 15": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "top_values": {
+            "Transkribus": 25,
+            "OCR4ALL": 8,
+            "Goobi": 4,
+            "ABSENT": 4,
+            "Research": 3,
+            "Versa": 2
+          },
+          "total_unique": 6
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "top_values": {
+            "MetaData ": 23,
+            "MetaData (Review)": 4,
+            "ABSENT": 4,
+            "Meeting Room": 3,
+            "MetaData": 2,
+            "Versa": 2,
+            "BC100-1": 2,
+            "BC100-2": 2,
+            "BC100-3": 2,
+            "BC100-4": 2
+          },
+          "total_unique": 10
+        }
+      ],
+      "July 16": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "top_values": {
+            "Transkribus": 19,
+            "OCR4ALL": 8,
+            "Goobi": 6,
+            "Production ": 4,
+            "ABSENT": 4,
+            "Research": 3
+          },
+          "total_unique": 6
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "top_values": {
+            "MetaData ": 14,
+            "MetaData (Review)": 8,
+            "MetaData": 4,
+            "Versa": 4,
+            "ABSENT": 4,
+            "Meeting Room": 3,
+            "BC100-2": 2,
+            "BC100-3": 2,
+            "BC100-4": 2,
+            "BC100-1": 1
+          },
+          "total_unique": 10
+        }
+      ],
+      "July 17": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "top_values": {
+            "OCR4ALL": 15,
+            "Transkribus": 12,
+            "Goobi": 7,
+            "ABSENT": 4,
+            "Research": 3,
+            "Production ": 3
+          },
+          "total_unique": 6
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "top_values": {
+            "MetaData ": 12,
+            "MetaData (Review)": 7,
+            "MetaData": 4,
+            "ABSENT": 4,
+            "Meeting Room": 3,
+            "Versa": 3,
+            "MetaData  (AM)": 2,
+            "BC100-1": 2,
+            "BC100-2": 2,
+            "BC100-3": 2
+          },
+          "total_unique": 12
+        }
+      ],
+      "July 18": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "top_values": {
+            "OCR4ALL": 16,
+            "Transkribus": 13,
+            "Goobi": 6,
+            "Research": 3,
+            "Production ": 3,
+            "ABSENT": 3
+          },
+          "total_unique": 6
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "top_values": {
+            "MetaData ": 14,
+            "MetaData (AM)": 5,
+            "MetaData": 4,
+            "MetaData (Review)": 4,
+            "Meeting Room": 3,
+            "Versa": 3,
+            "ABSENT": 3,
+            "BC100-1": 2,
+            "BC100-2": 2,
+            "BC100-3": 2
+          },
+          "total_unique": 11
+        },
+        {
+          "column": "Assignment Order",
+          "keyword_match": "assignment",
+          "top_values": {
+            "1": 12,
+            "2": 11,
+            "3": 4,
+            "0": 1,
+            "Assignment  Key:": 1,
+            "1 - Prioritize 1st to selected tasks": 1,
+            "2 - ": 1,
+            "3 - do them last and if no laptops, double-up on transkribus": 1
+          },
+          "total_unique": 8
+        }
+      ],
+      "July 21": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "top_values": {
+            "Transkribus": 16,
+            "Production ": 9,
+            "OCR4ALL": 7,
+            "ABSENT": 5,
+            "Goobi": 4,
+            "Research": 3
+          },
+          "total_unique": 6
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "top_values": {
+            "MetaData ": 15,
+            "MetaData (Review)": 7,
+            "ABSENT": 5,
+            "MetaData": 4,
+            "Meeting Room": 3,
+            "Versa": 2,
+            "BC100-1": 2,
+            "BC100-2": 2,
+            "BC100-3": 2,
+            "MetaData  (Review)": 1
+          },
+          "total_unique": 11
+        }
+      ],
+      "July 22": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "top_values": {
+            "Transkribus": 18,
+            "OCR4ALL": 14,
+            "ABSENT": 6,
+            "Goobi": 4,
+            "Research": 3,
+            "Production ": 2
+          },
+          "total_unique": 6
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "top_values": {
+            "MetaData ": 16,
+            "ABSENT": 6,
+            "Training Room (AM)": 5,
+            "MetaData": 4,
+            "Meeting Room": 3,
+            "MetaData (Review)": 2,
+            "BC100-1": 2,
+            "Versa": 2,
+            "BC100-2": 2,
+            "BC100-3": 2
+          },
+          "total_unique": 12
+        }
+      ],
+      "July 23": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "top_values": {
+            "Transkribus": 18,
+            "OCR4ALL": 9,
+            "OCR4ALL (PM)": 5,
+            "Goobi": 4,
+            "Research": 3,
+            "Production ": 2,
+            "ABSENT": 2
+          },
+          "total_unique": 7
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "top_values": {
+            "MetaData ": 16,
+            "Training Room (all day)": 5,
+            "Meeting Room": 3,
+            "MetaData (Review)": 2,
+            "MetaData": 2,
+            "BC100-1": 2,
+            "Versa": 2,
+            "BC100-2": 2,
+            "BC100-3": 2,
+            "BC100-4": 2
+          },
+          "total_unique": 14
+        }
+      ],
+      "July 24": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "top_values": {
+            "Transkribus": 16,
+            "OCR4ALL": 7,
+            "Production ": 7,
+            "Goobi": 4,
+            "Research": 3,
+            "ABSENT": 3,
+            "Newton Papers": 1
+          },
+          "total_unique": 7
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "top_values": {
+            "MetaData ": 18,
+            "Meeting Room": 4,
+            "MetaData (Review)": 3,
+            "Versa": 3,
+            "ABSENT": 3,
+            "MetaData": 2,
+            "BC100-1 (All Day)": 2,
+            "BC100-2 (All Day)": 2,
+            "BC100-3": 2,
+            "BC100-4": 2
+          },
+          "total_unique": 10
+        }
+      ],
+      "July 25": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "top_values": {
+            "Transkribus": 16,
+            "OCR4ALL": 6,
+            "Goobi": 4,
+            "Research": 3,
+            "Production ": 3,
+            "ABSENT": 3,
+            "Newton Papers": 1
+          },
+          "total_unique": 7
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "top_values": {
+            "MetaData ": 17,
+            "MetaData (PM)": 5,
+            "MetaData": 4,
+            "Meeting Room": 4,
+            "Versa": 3,
+            "ABSENT": 3,
+            "BC100-1": 2,
+            "BC100-2": 2,
+            "BC100-3": 2,
+            "BC100-4": 2
+          },
+          "total_unique": 10
+        }
+      ],
+      "July 28": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "top_values": {
+            "Transkribus": 14,
+            "OCR4ALL": 7,
+            "ABSENT": 6,
+            "Goobi": 5,
+            "Research": 3,
+            "Production ": 3
+          },
+          "total_unique": 6
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "top_values": {
+            "MetaData ": 18,
+            "ABSENT": 6,
+            "MetaData (AM)": 5,
+            "Meeting Room": 3,
+            "Versa": 3,
+            "MetaData": 2,
+            "BC100-1": 2,
+            "BC100-2": 2,
+            "BC100-3": 2,
+            "BC100-4": 2
+          },
+          "total_unique": 10
+        }
+      ],
+      "July 29": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "top_values": {
+            "Transkribus": 15,
+            "OCR4ALL": 7,
+            "ABSENT": 6,
+            "Goobi": 5,
+            "Research": 3,
+            "Production ": 3
+          },
+          "total_unique": 6
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "top_values": {
+            "MetaData ": 17,
+            "ABSENT": 6,
+            "MetaData (Review)": 5,
+            "Meeting Room": 3,
+            "Versa": 3,
+            "MetaData": 2,
+            "BC100-1": 2,
+            "BC100-2": 2,
+            "BC100-3": 2,
+            "BC100-4": 2
+          },
+          "total_unique": 10
+        }
+      ],
+      "July 30": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "top_values": {
+            "Transkribus": 15,
+            "OCR4ALL": 7,
+            "Production ": 7,
+            "Goobi": 5,
+            "Research": 3,
+            "ABSENT": 3
+          },
+          "total_unique": 6
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "top_values": {
+            "MetaData ": 19,
+            "MetaData (Review)": 5,
+            "Meeting Room": 3,
+            "ABSENT": 3,
+            "MetaData": 2,
+            "BC100-2": 2,
+            "BC100-3": 2,
+            "BC100-4": 2,
+            "BC100-1": 1
+          },
+          "total_unique": 9
+        }
+      ],
+      "July 31": [
+        {
+          "column": "Assignment",
+          "keyword_match": "assignment",
+          "top_values": {
+            "Transkribus": 15,
+            "OCR4ALL": 7,
+            "Production ": 7,
+            "Goobi": 5,
+            "ABSENT": 5,
+            "Research": 3
+          },
+          "total_unique": 6
+        },
+        {
+          "column": "Room",
+          "keyword_match": "room",
+          "top_values": {
+            "MetaData ": 19,
+            "MetaData (Review)": 5,
+            "ABSENT": 5,
+            "Meeting Room": 3,
+            "MetaData": 2,
+            "BC100-2": 2,
+            "BC100-3": 2,
+            "BC100-4": 2,
+            "BC100-1": 1
+          },
+          "total_unique": 9
+        }
+      ]
+    }
+  },
+  "employee_analysis": {
+    "identified_columns": {
+      "June 20": [
+        {
+          "column": "Name",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 47,
+            "sample_values": [
+              "Allia Kellman",
+              "Angela Darlington",
+              "Ashley Edwards",
+              "Ashley Mohamed",
+              "Audrey Luke-Morris",
+              "Brittony Payne",
+              "Charnia Busby",
+              "Danea Williams",
+              "Deanndra Bryan",
+              "Erykah Holder"
+            ]
+          }
+        },
+        {
+          "column": "Unnamed: 1",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 20,
+            "sample_values": [
+              "Fiona McCollin",
+              "BC100",
+              "Shanice Mahon",
+              "Janice Belle",
+              "Saviola Thomas",
+              "Allia Leandre McCollin",
+              "Danea Williams",
+              "Vanessa Jones",
+              "Tawana Cadogan",
+              "Shania St Clair"
+            ]
+          }
+        }
+      ],
+      "June 23": [
+        {
+          "column": "Name",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 46,
+            "sample_values": [
+              "Angela Darlington",
+              "Ashley Edwards",
+              "Brittony Payne *",
+              "Kriss-lynn Leslie *",
+              "Janice Belle",
+              "Danea Williams *",
+              "Nikita Moore",
+              "Tawana Cadogan *",
+              "Deanndra Bryan",
+              "Keisha Roachford *"
+            ]
+          }
+        }
+      ],
+      "June 24": [
+        {
+          "column": "Name",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 47,
+            "sample_values": [
+              "Allia Kellman",
+              "Fiona McCollin",
+              "Shanice Mahon",
+              "Audrey Luke-Morris",
+              "Natasha Baird *",
+              "Tawana Cadogan *",
+              "Deanndra Bryan",
+              "Shananty Forde",
+              "Renika Griffith",
+              "Shalissa Thompson"
+            ]
+          }
+        }
+      ],
+      "June 25": [
+        {
+          "column": "Name",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 47,
+            "sample_values": [
+              "Renika Griffith",
+              "Shay Thomas",
+              "Ashley Mohamed",
+              "Tamisha Yearwood",
+              "Jamie-Anne Parris",
+              "Kriston Maynard",
+              "Trudi Sealy",
+              "Erykah Holder",
+              "Janice Belle",
+              "Neesa Miller"
+            ]
+          }
+        },
+        {
+          "column": "Unnamed: 5",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 1,
+            "sample_values": [
+              "(do them last and if no laptops, double-up on transkribus)"
+            ]
+          }
+        }
+      ],
+      "June 26": [
+        {
+          "column": "Name",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 46,
+            "sample_values": [
+              "Shameka Payne",
+              "Zaria Thompson",
+              "Ashley Mohamed",
+              "Tamisha Yearwood",
+              "Jamie-Anne Parris",
+              "Kriston Maynard",
+              "Trudi Sealy",
+              "Erykah Holder",
+              "Janice Belle",
+              "Neesa Miller"
+            ]
+          }
+        },
+        {
+          "column": "Unnamed: 5",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 1,
+            "sample_values": [
+              "(do them last and if no laptops, double-up on transkribus)"
+            ]
+          }
+        }
+      ],
+      "June 27": [
+        {
+          "column": "Name",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 46,
+            "sample_values": [
+              "Rasheda Parris",
+              "Trudi Sealy",
+              "Ashley Mohamed",
+              "Tamisha Yearwood",
+              "Janice Belle",
+              "Neesa Miller",
+              "Vanessa Jones",
+              "Shananty Forde",
+              "Tawana Cadogan *",
+              "Kerry-Anne Pinder"
+            ]
+          }
+        },
+        {
+          "column": "Unnamed: 5",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 1,
+            "sample_values": [
+              "(do them last and if no laptops, double-up on transkribus)"
+            ]
+          }
+        }
+      ],
+      "June 30": [
+        {
+          "column": "Name",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 46,
+            "sample_values": [
+              "Riquelme Knight",
+              "Zaria Thompson",
+              "Tamisha Yearwood",
+              "Janice Belle",
+              "Neesa Miller",
+              "Vanessa Jones",
+              "Shananty Forde",
+              "Tawana Cadogan *",
+              "Kerry-Anne Pinder",
+              "Miriam Phillips"
+            ]
+          }
+        },
+        {
+          "column": "Unnamed: 5",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 1,
+            "sample_values": [
+              "(do them last and if no laptops, double-up on transkribus)"
+            ]
+          }
+        }
+      ],
+      "July 1": [
+        {
+          "column": "Name",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 45,
+            "sample_values": [
+              "Ashley Mohamed",
+              "Tamisha Yearwood",
+              "Janice Belle",
+              "Neesa Miller",
+              "Vanessa Jones",
+              "Shananty Forde",
+              "Tawana Cadogan *",
+              "Kerry-Anne Pinder",
+              "Miriam Phillips",
+              "Natasha Baird *"
+            ]
+          }
+        },
+        {
+          "column": "Unnamed: 5",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 1,
+            "sample_values": [
+              "(do them last and if no laptops, double-up on transkribus)"
+            ]
+          }
+        }
+      ],
+      "July 2": [
+        {
+          "column": "Name",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 47,
+            "sample_values": [
+              "Rasheda Parris",
+              "Shay Thomas",
+              "Ashley Mohamed",
+              "Tamisha Yearwood",
+              "Janice Belle",
+              "Neesa Miller",
+              "Miriam Phillips",
+              "Shananty Forde",
+              "Tawana Cadogan *",
+              "Kerry-Anne Pinder"
+            ]
+          }
+        },
+        {
+          "column": "Unnamed: 5",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 1,
+            "sample_values": [
+              "(do them last and if no laptops, double-up on transkribus)"
+            ]
+          }
+        },
+        {
+          "column": "Claimed by:  \nName",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 53,
+            "sample_values": [
+              "A. Darlington",
+              "Allia Kellman",
+              "Angela Darlington",
+              "Ashley E",
+              "Ashley Edwards",
+              "Ashley Mohamed",
+              "Audrey Luke-Morris",
+              "Brittony Payne",
+              "Charnia Busby",
+              "Claimed By"
+            ]
+          }
+        },
+        {
+          "column": "Unique Names List ",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 48,
+            "sample_values": [
+              "Allia Kellman",
+              "Angela Darlington",
+              "Ashley Edwards",
+              "Ashley Mohamed",
+              "Audrey Luke-Morris",
+              "Brittony Payne",
+              "Charnia Busby",
+              "Chelsea Humphery",
+              "Danea Williams",
+              "Deanndra Bryan"
+            ]
+          }
+        }
+      ],
+      "July 3": [
+        {
+          "column": "Name",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 47,
+            "sample_values": [
+              "Renika Griffith",
+              "Shameka Payne",
+              "Janice Belle",
+              "Nesa Miller",
+              "Miriam Phillips",
+              "Shananty Forde",
+              "Tawana Cadogan *",
+              "Kerry-Anne Pinder",
+              "Natasha Baird *",
+              "Vanessa Jones"
+            ]
+          }
+        },
+        {
+          "column": "Unnamed: 5",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 1,
+            "sample_values": [
+              "(do them last and if no laptops, double-up on transkribus)"
+            ]
+          }
+        }
+      ],
+      "July 4": [
+        {
+          "column": "Name",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 46,
+            "sample_values": [
+              "Riquelme Knight",
+              "Zaria Thompson",
+              "Janice Belle",
+              "Nesa Miller",
+              "Miriam Phillips",
+              "Shananty Forde",
+              "Natasha Baird *",
+              "Vanessa Jones",
+              "Rashida Holder",
+              "Shakira Scantlebury *"
+            ]
+          }
+        },
+        {
+          "column": "Unnamed: 5",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 1,
+            "sample_values": [
+              "(do them last and if no laptops, double-up on transkribus)"
+            ]
+          }
+        }
+      ],
+      "July 7 ": [
+        {
+          "column": "Name",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 46,
+            "sample_values": [
+              "Zaria Thompson",
+              "Riquelme Knight",
+              "Trudi Sealy",
+              "Janice Belle",
+              "Tamesha Watkins",
+              "Nesa Miller",
+              "Miriam Phillips",
+              "Shananty Forde",
+              "Natasha Baird *",
+              "Keisha Roachford"
+            ]
+          }
+        },
+        {
+          "column": "Unnamed: 5",
+          "keyword_match": "name",
+          "unique_values": {}
+        },
+        {
+          "column": "Name.1",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 53,
+            "sample_values": [
+              "kerry-Ann Pinder",
+              "A. Darlington",
+              "A.Darlington",
+              "Allia Kellman",
+              "Angela Darlington",
+              "Ashley E",
+              "Ashley Edwards",
+              "Ashley Mohamed",
+              "Audrey Luke-Morris",
+              "Brittony Payne"
+            ]
+          }
+        }
+      ],
+      "July 8": [
+        {
+          "column": "Name",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 43,
+            "sample_values": [
+              "Zaria Thompson",
+              "Riquelme Knight",
+              "Rasheda Parris",
+              "Renika Griffith",
+              "Janice Belle",
+              "Miriam Phillips",
+              "Keisha Roachford",
+              "Angela Darlington",
+              "Chelsea Humphrey",
+              "Jacqueline Small"
+            ]
+          }
+        },
+        {
+          "column": "Unnamed: 5",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 1,
+            "sample_values": [
+              "(do them last and if no laptops, double-up on transkribus)"
+            ]
+          }
+        }
+      ],
+      "July 9": [
+        {
+          "column": "Name",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 43,
+            "sample_values": [
+              "Zaria Thompson",
+              "Riquelme Knight",
+              "Shameka Payne",
+              "Renika Griffith",
+              "Janice Belle",
+              "Miriam Phillips",
+              "Keisha Roachford",
+              "Angela Darlington",
+              "Chelsea Humphrey",
+              "Jacqueline Small"
+            ]
+          }
+        },
+        {
+          "column": "Unnamed: 5",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 1,
+            "sample_values": [
+              "(do them last and if no laptops, double-up on transkribus)"
+            ]
+          }
+        }
+      ],
+      "July 10": [
+        {
+          "column": "Name",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 43,
+            "sample_values": [
+              "Janice Belle",
+              "Miriam Phillips",
+              "Keisha Roachford",
+              "Angela Darlington",
+              "Chelsea Humphrey",
+              "Jacqueline Small",
+              "Shakira Scantlebury *",
+              "Tawana Cadogan*",
+              "Rashana Holder*",
+              "Shananty Forde"
+            ]
+          }
+        },
+        {
+          "column": "Unnamed: 5",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 1,
+            "sample_values": [
+              "(do them last and if no laptops, double-up on transkribus)"
+            ]
+          }
+        }
+      ],
+      "July 14": [
+        {
+          "column": "Name",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 43,
+            "sample_values": [
+              "Janice Belle",
+              "Miriam Phillips",
+              "Keisha Roachford",
+              "Shakira Scantlebury *",
+              "Portia Taitt",
+              "Rashana Holder*",
+              "Natola Marshall",
+              "Shananty Forde",
+              "Kerry-Ann Pinder",
+              "Jamie Parris"
+            ]
+          }
+        },
+        {
+          "column": "Unnamed: 5",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 1,
+            "sample_values": [
+              "(do them last and if no laptops, double-up on transkribus)"
+            ]
+          }
+        }
+      ],
+      "July 15": [
+        {
+          "column": "Name",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 44,
+            "sample_values": [
+              "Kriston Maynard",
+              "Erykah Holder",
+              "Portia Taitt",
+              "Jamie-Ann Parris",
+              "Danea Williams",
+              "Shakelia Archer ",
+              "Rashana Holder*",
+              "Kerry-Ann Pinder",
+              "Shakira Scantlebury",
+              "Natola Marshall"
+            ]
+          }
+        },
+        {
+          "column": "Unnamed: 5",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 1,
+            "sample_values": [
+              "(do them last and if no laptops, double-up on transkribus)"
+            ]
+          }
+        }
+      ],
+      "July 16": [
+        {
+          "column": "Name",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 43,
+            "sample_values": [
+              "Janice Belle",
+              "Miriam Phillips",
+              "Keisha Roachford",
+              "Shakira Scantlebury *",
+              "Tawana Cadogan*",
+              "Rashana Holder*",
+              "Natola Marshall",
+              "Shananty Forde",
+              "Kerry-Ann Pinder",
+              "Jacqueline Small"
+            ]
+          }
+        },
+        {
+          "column": "Unnamed: 5",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 1,
+            "sample_values": [
+              "(do them last and if no laptops, double-up on transkribus)"
+            ]
+          }
+        }
+      ],
+      "July 17": [
+        {
+          "column": "Name",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 43,
+            "sample_values": [
+              "Portia Taitt",
+              "Danea Williams",
+              "Janice Belle",
+              "Miriam Phillips",
+              "Keisha Roachford",
+              "Shakira Scantlebury *",
+              "Tawana Cadogan*",
+              "Rashana Holder*",
+              "Natola Marshall",
+              "Shananty Forde"
+            ]
+          }
+        },
+        {
+          "column": "Unnamed: 5",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 1,
+            "sample_values": [
+              "(do them last and if no laptops, double-up on transkribus)"
+            ]
+          }
+        }
+      ],
+      "July 18": [
+        {
+          "column": "Name",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 43,
+            "sample_values": [
+              "Kriston Maynard",
+              "Erykah Holder",
+              "Jamie-Ann Parris",
+              "Janice Belle",
+              "Miriam Phillips",
+              "Keisha Roachford",
+              "Shakira Scantlebury *",
+              "Tawana Cadogan*",
+              "Rashana Holder*",
+              "Natola Marshall"
+            ]
+          }
+        },
+        {
+          "column": "Unnamed: 5",
+          "keyword_match": "name",
+          "unique_values": {}
+        },
+        {
+          "column": "Claimed by:  \nName",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 49,
+            "sample_values": [
+              "kerry-Ann Pinder",
+              "Allia Kellman",
+              "Angela Darlington",
+              "Ashley Edwards",
+              "Ashley Mohamed",
+              "Audrey Luke-Morris",
+              "Brittony Payne",
+              "Charnia Busby",
+              "chelsea humphrey",
+              "Danea Williams"
+            ]
+          }
+        },
+        {
+          "column": "Unique Names List ",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 49,
+            "sample_values": [
+              "kerry-Ann Pinder",
+              "Allia Kellman",
+              "Angela Darlington",
+              "Ashley Edwards",
+              "Ashley Mohamed",
+              "Audrey Luke-Morris",
+              "Brittony Payne",
+              "Charnia Busby",
+              "chelsea humphrey",
+              "Danea Williams"
+            ]
+          }
+        }
+      ],
+      "July 21": [
+        {
+          "column": "Name",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 43,
+            "sample_values": [
+              "Portia Taitt",
+              "Kriston Maynard",
+              "Erykah Holder",
+              "Jamie-Ann Parris",
+              "Danea Williams",
+              "Janice Belle",
+              "Miriam Phillips",
+              "Keisha Roachford",
+              "Shakira Scantlebury *",
+              "Tawana Cadogan*"
+            ]
+          }
+        },
+        {
+          "column": "Unnamed: 5",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 1,
+            "sample_values": [
+              "(do them last and if no laptops, double-up on transkribus)"
+            ]
+          }
+        }
+      ],
+      "July 22": [
+        {
+          "column": "Name",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 46,
+            "sample_values": [
+              "Portia Taitt",
+              "Kriston Maynard",
+              "Ashley Edwards*",
+              "Jamie-Ann Parris",
+              "Danea Williams",
+              "Janice Belle",
+              "Miriam Phillips",
+              "Keisha Roachford",
+              "Shakira Scantlebury *",
+              "Tawana Cadogan*"
+            ]
+          }
+        }
+      ],
+      "July 23": [
+        {
+          "column": "Name",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 43,
+            "sample_values": [
+              "Portia Taitt",
+              "Kriston Maynard",
+              "Ashley Edwards*",
+              "Jamie-Ann Parris",
+              "Danea Williams",
+              "Janice Belle",
+              "Miriam Phillips",
+              "Keisha Roachford",
+              "Shakira Scantlebury *",
+              "Tawana Cadogan*"
+            ]
+          }
+        }
+      ],
+      "July 24": [
+        {
+          "column": "Name",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 40,
+            "sample_values": [
+              "Portia Taitt",
+              "Kriston Maynard",
+              "Jamie-Ann Parris",
+              "Danea Williams",
+              "Janice Belle",
+              "Miriam Phillips",
+              "Keisha Roachford",
+              "Shakira Scantlebury *",
+              "Tawana Cadogan*",
+              "Rashana Holder*"
+            ]
+          }
+        }
+      ],
+      "July 25": [
+        {
+          "column": "Name",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 43,
+            "sample_values": [
+              "Kriston Maynard",
+              "Erykah Holder",
+              "Jamie-Ann Parris",
+              "Danea Williams",
+              "Portia Taitt",
+              "Janice Belle",
+              "Miriam Phillips",
+              "Keisha Roachford",
+              "Shakira Scantlebury *",
+              "Tawana Cadogan*"
+            ]
+          }
+        }
+      ],
+      "July 28": [
+        {
+          "column": "Name",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 43,
+            "sample_values": [
+              "Kriston Maynard",
+              "Erykah Holder",
+              "Jamie-Ann Parris",
+              "Danea Williams",
+              "Portia Taitt",
+              "Janice Belle",
+              "Miriam Phillips",
+              "Keisha Roachford",
+              "Rashana Holder*",
+              "Natola Marshall"
+            ]
+          }
+        }
+      ],
+      "July 29": [
+        {
+          "column": "Name",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 43,
+            "sample_values": [
+              "Kriston Maynard",
+              "Erykah Holder",
+              "Jamie-Ann Parris",
+              "Danea Williams",
+              "Portia Taitt",
+              "Angela Darlington",
+              "Jacqueline Small",
+              "Janice Belle",
+              "Miriam Phillips",
+              "Keisha Roachford"
+            ]
+          }
+        }
+      ],
+      "July 30": [
+        {
+          "column": "Name",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 39,
+            "sample_values": [
+              "Kriston Maynard",
+              "Erykah Holder",
+              "Jamie-Ann Parris",
+              "Danea Williams",
+              "Portia Taitt",
+              "Angela Darlington",
+              "Jacqueline Small",
+              "Janice Belle",
+              "Miriam Phillips",
+              "Vanessa Jones"
+            ]
+          }
+        }
+      ],
+      "July 31": [
+        {
+          "column": "Name",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 41,
+            "sample_values": [
+              "Kriston Maynard",
+              "Erykah Holder",
+              "Jamie-Ann Parris",
+              "Danea Williams",
+              "Portia Taitt",
+              "Angela Darlington",
+              "Jacqueline Small",
+              "Janice Belle",
+              "Miriam Phillips",
+              "Vanessa Jones"
+            ]
+          }
+        }
+      ],
+      "Roll UP ": [
+        {
+          "column": "Claimed by:  \nName",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 53,
+            "sample_values": [
+              "A. Darlington",
+              "Allia Kellman",
+              "Angela Darlington",
+              "Ashley E",
+              "Ashley Edwards",
+              "Ashley Mohamed",
+              "Audrey Luke-Morris",
+              "Brittony Payne",
+              "Charnia Busby",
+              "Claimed By"
+            ]
+          }
+        },
+        {
+          "column": "Unique Names List ",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 47,
+            "sample_values": [
+              "Allia Kellman",
+              "Angela Darlington",
+              "Ashley Edwards",
+              "Ashley Mohamed",
+              "Audrey Luke-Morris",
+              "Brittony Payne",
+              "Charnia Busby",
+              "Danea Williams",
+              "Deanndra Bryan",
+              "Erykah Holder"
+            ]
+          }
+        },
+        {
+          "column": "Unnamed: 5",
+          "keyword_match": "name",
+          "unique_values": {}
+        },
+        {
+          "column": "Unique Names List .1",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 47,
+            "sample_values": [
+              "Allia Kellman",
+              "Angela Darlington",
+              "Ashley Edwards",
+              "Ashley Mohamed",
+              "Audrey Luke-Morris",
+              "Brittony Payne",
+              "Charnia Busby",
+              "Danea Williams",
+              "Deanndra Bryan",
+              "Erykah Holder"
+            ]
+          }
+        },
+        {
+          "column": "Unnamed: 10",
+          "keyword_match": "name",
+          "unique_values": {}
+        },
+        {
+          "column": "Claimed by:  \nName.1",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 53,
+            "sample_values": [
+              "kerry-Ann Pinder",
+              "A. Darlington",
+              "A.Darlington",
+              "Allia Kellman",
+              "Angela Darlington",
+              "Ashley E",
+              "Ashley Edwards",
+              "Ashley Mohamed",
+              "Audrey Luke-Morris",
+              "Brittony Payne"
+            ]
+          }
+        },
+        {
+          "column": "Unique Names List .2",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 52,
+            "sample_values": [
+              "kerry-Ann Pinder",
+              "A. Darlington",
+              "A.Darlington",
+              "Allia Kellman",
+              "Angela Darlington",
+              "Ashley E",
+              "Ashley Edwards",
+              "Ashley Mohamed",
+              "Audrey Luke-Morris",
+              "Brittony Payne"
+            ]
+          }
+        },
+        {
+          "column": "Unnamed: 16",
+          "keyword_match": "name",
+          "unique_values": {}
+        },
+        {
+          "column": "Claimed by:  \nName.2",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 49,
+            "sample_values": [
+              "kerry-Ann Pinder",
+              "Allia Kellman",
+              "Angela Darlington",
+              "Ashley Edwards",
+              "Ashley Mohamed",
+              "Audrey Luke-Morris",
+              "Brittony Payne",
+              "Charnia Busby",
+              "chelsea humphrey",
+              "Danea Williams"
+            ]
+          }
+        },
+        {
+          "column": "Unique Names List .3",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 49,
+            "sample_values": [
+              "kerry-Ann Pinder",
+              "Allia Kellman",
+              "Angela Darlington",
+              "Ashley Edwards",
+              "Ashley Mohamed",
+              "Audrey Luke-Morris",
+              "Brittony Payne",
+              "Charnia Busby",
+              "chelsea humphrey",
+              "Danea Williams"
+            ]
+          }
+        },
+        {
+          "column": "Unnamed: 23",
+          "keyword_match": "name",
+          "unique_values": {}
+        },
+        {
+          "column": "Claimed by:  \nNames List",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 54,
+            "sample_values": [
+              "Kerry-Ann Pinder",
+              "Akeem McCollin",
+              "Allia Kellman",
+              "Angela Darlington",
+              "Ashley Edwards",
+              "Ashley Mohamed",
+              "Audrey Luke-Morris",
+              "Brittony Payne",
+              "Charnia Busby",
+              "Chelsea humphrey"
+            ]
+          }
+        },
+        {
+          "column": "Unique Names List .4",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 53,
+            "sample_values": [
+              "Kerry-Ann Pinder",
+              "Akeem McCollin",
+              "Allia Kellman",
+              "Angela Darlington",
+              "Ashley Edwards",
+              "Ashley Mohamed",
+              "Audrey Luke-Morris",
+              "Brittony Payne",
+              "Charnia Busby",
+              "Chelsea humphrey"
+            ]
+          }
+        },
+        {
+          "column": "Unnamed: 30",
+          "keyword_match": "name",
+          "unique_values": {}
+        },
+        {
+          "column": "Completed by:  \nNames List",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 46,
+            "sample_values": [
+              "Akeem McCollin",
+              "Allia Kellman",
+              "Angela Darlington",
+              "Ashley Edwards",
+              "Ashley Mohamed",
+              "Brittony Payne",
+              "Charnia Busby",
+              "Chelsea humphrey",
+              "Deanndra Bryan",
+              "Erykah Holder"
+            ]
+          }
+        },
+        {
+          "column": "Unique Names List .5",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 47,
+            "sample_values": [
+              "Akeem McCollin",
+              "Allia Kellman",
+              "Angela Darlington",
+              "Ashley Edwards",
+              "Ashley Mohamed",
+              "Brittony Payne",
+              "Charnia Busby",
+              "Chelsea humphrey",
+              "Deanndra Bryan",
+              "Erykah Holder"
+            ]
+          }
+        }
+      ],
+      "Rollup June20-July18": [
+        {
+          "column": "Unique Names List ",
+          "keyword_match": "name",
+          "unique_values": {
+            "count": 48,
+            "sample_values": [
+              "Ashley Edwards",
+              "Saviola Thomas",
+              "Brittony Payne",
+              "Shania St.Clair",
+              "Angela Darlington",
+              "Kriss-lynn Leslie",
+              "Shameka Payne",
+              "Shay Thomas",
+              "Rasheda Parris",
+              "Renika Griffith"
+            ]
+          }
+        }
+      ]
+    },
+    "mapping_results": {
+      "June 20": [
+        {
+          "column": "Name",
+          "total_unique": 47,
+          "direct_matches": 10,
+          "potential_matches": 0,
+          "no_matches": 0,
+          "match_rate": 21.27659574468085,
+          "sample_matches": [
+            "Allia Kellman",
+            "Angela Darlington",
+            "Ashley Edwards",
+            "Ashley Mohamed",
+            "Audrey Luke-Morris"
+          ],
+          "sample_potential": [],
+          "sample_no_matches": []
+        },
+        {
+          "column": "Unnamed: 1",
+          "total_unique": 20,
+          "direct_matches": 6,
+          "potential_matches": 0,
+          "no_matches": 4,
+          "match_rate": 30.0,
+          "sample_matches": [
+            "Fiona McCollin",
+            "Janice Belle",
+            "Saviola Thomas",
+            "Danea Williams",
+            "Vanessa Jones"
+          ],
+          "sample_potential": [],
+          "sample_no_matches": [
+            "BC100",
+            "Shanice Mahon",
+            "Allia Leandre McCollin",
+            "Shania St Clair"
+          ]
+        }
+      ],
+      "June 23": [
+        {
+          "column": "Name",
+          "total_unique": 46,
+          "direct_matches": 5,
+          "potential_matches": 5,
+          "no_matches": 0,
+          "match_rate": 10.869565217391305,
+          "sample_matches": [
+            "Angela Darlington",
+            "Ashley Edwards",
+            "Janice Belle",
+            "Nikita Moore",
+            "Deanndra Bryan"
+          ],
+          "sample_potential": [
+            "Brittony Payne *",
+            "Kriss-lynn Leslie *",
+            "Danea Williams *",
+            "Tawana Cadogan *",
+            "Keisha Roachford *"
+          ],
+          "sample_no_matches": []
+        }
+      ],
+      "June 24": [
+        {
+          "column": "Name",
+          "total_unique": 47,
+          "direct_matches": 7,
+          "potential_matches": 2,
+          "no_matches": 1,
+          "match_rate": 14.893617021276595,
+          "sample_matches": [
+            "Allia Kellman",
+            "Fiona McCollin",
+            "Audrey Luke-Morris",
+            "Deanndra Bryan",
+            "Shananty Forde"
+          ],
+          "sample_potential": [
+            "Natasha Baird *",
+            "Tawana Cadogan *"
+          ],
+          "sample_no_matches": [
+            "Shanice Mahon"
+          ]
+        }
+      ],
+      "June 25": [
+        {
+          "column": "Name",
+          "total_unique": 47,
+          "direct_matches": 8,
+          "potential_matches": 0,
+          "no_matches": 2,
+          "match_rate": 17.02127659574468,
+          "sample_matches": [
+            "Renika Griffith",
+            "Shay Thomas",
+            "Ashley Mohamed",
+            "Tamisha Yearwood",
+            "Kriston Maynard"
+          ],
+          "sample_potential": [],
+          "sample_no_matches": [
+            "Jamie-Anne Parris",
+            "Neesa Miller"
+          ]
+        },
+        {
+          "column": "Unnamed: 5",
+          "total_unique": 1,
+          "direct_matches": 0,
+          "potential_matches": 0,
+          "no_matches": 1,
+          "match_rate": 0.0,
+          "sample_matches": [],
+          "sample_potential": [],
+          "sample_no_matches": [
+            "(do them last and if no laptops, double-up on transkribus)"
+          ]
+        }
+      ],
+      "June 26": [
+        {
+          "column": "Name",
+          "total_unique": 46,
+          "direct_matches": 8,
+          "potential_matches": 0,
+          "no_matches": 2,
+          "match_rate": 17.391304347826086,
+          "sample_matches": [
+            "Shameka Payne",
+            "Zaria Thompson",
+            "Ashley Mohamed",
+            "Tamisha Yearwood",
+            "Kriston Maynard"
+          ],
+          "sample_potential": [],
+          "sample_no_matches": [
+            "Jamie-Anne Parris",
+            "Neesa Miller"
+          ]
+        },
+        {
+          "column": "Unnamed: 5",
+          "total_unique": 1,
+          "direct_matches": 0,
+          "potential_matches": 0,
+          "no_matches": 1,
+          "match_rate": 0.0,
+          "sample_matches": [],
+          "sample_potential": [],
+          "sample_no_matches": [
+            "(do them last and if no laptops, double-up on transkribus)"
+          ]
+        }
+      ],
+      "June 27": [
+        {
+          "column": "Name",
+          "total_unique": 46,
+          "direct_matches": 7,
+          "potential_matches": 1,
+          "no_matches": 2,
+          "match_rate": 15.217391304347828,
+          "sample_matches": [
+            "Rasheda Parris",
+            "Trudi Sealy",
+            "Ashley Mohamed",
+            "Tamisha Yearwood",
+            "Janice Belle"
+          ],
+          "sample_potential": [
+            "Tawana Cadogan *"
+          ],
+          "sample_no_matches": [
+            "Neesa Miller",
+            "Kerry-Anne Pinder"
+          ]
+        },
+        {
+          "column": "Unnamed: 5",
+          "total_unique": 1,
+          "direct_matches": 0,
+          "potential_matches": 0,
+          "no_matches": 1,
+          "match_rate": 0.0,
+          "sample_matches": [],
+          "sample_potential": [],
+          "sample_no_matches": [
+            "(do them last and if no laptops, double-up on transkribus)"
+          ]
+        }
+      ],
+      "June 30": [
+        {
+          "column": "Name",
+          "total_unique": 46,
+          "direct_matches": 6,
+          "potential_matches": 1,
+          "no_matches": 3,
+          "match_rate": 13.043478260869565,
+          "sample_matches": [
+            "Riquelme Knight",
+            "Zaria Thompson",
+            "Tamisha Yearwood",
+            "Janice Belle",
+            "Vanessa Jones"
+          ],
+          "sample_potential": [
+            "Tawana Cadogan *"
+          ],
+          "sample_no_matches": [
+            "Neesa Miller",
+            "Kerry-Anne Pinder",
+            "Miriam Phillips"
+          ]
+        },
+        {
+          "column": "Unnamed: 5",
+          "total_unique": 1,
+          "direct_matches": 0,
+          "potential_matches": 0,
+          "no_matches": 1,
+          "match_rate": 0.0,
+          "sample_matches": [],
+          "sample_potential": [],
+          "sample_no_matches": [
+            "(do them last and if no laptops, double-up on transkribus)"
+          ]
+        }
+      ],
+      "July 1": [
+        {
+          "column": "Name",
+          "total_unique": 45,
+          "direct_matches": 5,
+          "potential_matches": 2,
+          "no_matches": 3,
+          "match_rate": 11.11111111111111,
+          "sample_matches": [
+            "Ashley Mohamed",
+            "Tamisha Yearwood",
+            "Janice Belle",
+            "Vanessa Jones",
+            "Shananty Forde"
+          ],
+          "sample_potential": [
+            "Tawana Cadogan *",
+            "Natasha Baird *"
+          ],
+          "sample_no_matches": [
+            "Neesa Miller",
+            "Kerry-Anne Pinder",
+            "Miriam Phillips"
+          ]
+        },
+        {
+          "column": "Unnamed: 5",
+          "total_unique": 1,
+          "direct_matches": 0,
+          "potential_matches": 0,
+          "no_matches": 1,
+          "match_rate": 0.0,
+          "sample_matches": [],
+          "sample_potential": [],
+          "sample_no_matches": [
+            "(do them last and if no laptops, double-up on transkribus)"
+          ]
+        }
+      ],
+      "July 2": [
+        {
+          "column": "Name",
+          "total_unique": 47,
+          "direct_matches": 6,
+          "potential_matches": 1,
+          "no_matches": 3,
+          "match_rate": 12.76595744680851,
+          "sample_matches": [
+            "Rasheda Parris",
+            "Shay Thomas",
+            "Ashley Mohamed",
+            "Tamisha Yearwood",
+            "Janice Belle"
+          ],
+          "sample_potential": [
+            "Tawana Cadogan *"
+          ],
+          "sample_no_matches": [
+            "Neesa Miller",
+            "Miriam Phillips",
+            "Kerry-Anne Pinder"
+          ]
+        },
+        {
+          "column": "Unnamed: 5",
+          "total_unique": 1,
+          "direct_matches": 0,
+          "potential_matches": 0,
+          "no_matches": 1,
+          "match_rate": 0.0,
+          "sample_matches": [],
+          "sample_potential": [],
+          "sample_no_matches": [
+            "(do them last and if no laptops, double-up on transkribus)"
+          ]
+        },
+        {
+          "column": "Claimed by:  \nName",
+          "total_unique": 53,
+          "direct_matches": 7,
+          "potential_matches": 1,
+          "no_matches": 2,
+          "match_rate": 13.20754716981132,
+          "sample_matches": [
+            "Allia Kellman",
+            "Angela Darlington",
+            "Ashley Edwards",
+            "Ashley Mohamed",
+            "Audrey Luke-Morris"
+          ],
+          "sample_potential": [
+            "Ashley E"
+          ],
+          "sample_no_matches": [
+            "A. Darlington",
+            "Claimed By"
+          ]
+        },
+        {
+          "column": "Unique Names List ",
+          "total_unique": 48,
+          "direct_matches": 9,
+          "potential_matches": 0,
+          "no_matches": 1,
+          "match_rate": 18.75,
+          "sample_matches": [
+            "Allia Kellman",
+            "Angela Darlington",
+            "Ashley Edwards",
+            "Ashley Mohamed",
+            "Audrey Luke-Morris"
+          ],
+          "sample_potential": [],
+          "sample_no_matches": [
+            "Chelsea Humphery"
+          ]
+        }
+      ],
+      "July 3": [
+        {
+          "column": "Name",
+          "total_unique": 47,
+          "direct_matches": 6,
+          "potential_matches": 2,
+          "no_matches": 2,
+          "match_rate": 12.76595744680851,
+          "sample_matches": [
+            "Renika Griffith",
+            "Shameka Payne",
+            "Janice Belle",
+            "Nesa Miller",
+            "Shananty Forde"
+          ],
+          "sample_potential": [
+            "Tawana Cadogan *",
+            "Natasha Baird *"
+          ],
+          "sample_no_matches": [
+            "Miriam Phillips",
+            "Kerry-Anne Pinder"
+          ]
+        },
+        {
+          "column": "Unnamed: 5",
+          "total_unique": 1,
+          "direct_matches": 0,
+          "potential_matches": 0,
+          "no_matches": 1,
+          "match_rate": 0.0,
+          "sample_matches": [],
+          "sample_potential": [],
+          "sample_no_matches": [
+            "(do them last and if no laptops, double-up on transkribus)"
+          ]
+        }
+      ],
+      "July 4": [
+        {
+          "column": "Name",
+          "total_unique": 46,
+          "direct_matches": 7,
+          "potential_matches": 2,
+          "no_matches": 1,
+          "match_rate": 15.217391304347828,
+          "sample_matches": [
+            "Riquelme Knight",
+            "Zaria Thompson",
+            "Janice Belle",
+            "Nesa Miller",
+            "Shananty Forde"
+          ],
+          "sample_potential": [
+            "Natasha Baird *",
+            "Shakira Scantlebury *"
+          ],
+          "sample_no_matches": [
+            "Miriam Phillips"
+          ]
+        },
+        {
+          "column": "Unnamed: 5",
+          "total_unique": 1,
+          "direct_matches": 0,
+          "potential_matches": 0,
+          "no_matches": 1,
+          "match_rate": 0.0,
+          "sample_matches": [],
+          "sample_potential": [],
+          "sample_no_matches": [
+            "(do them last and if no laptops, double-up on transkribus)"
+          ]
+        }
+      ],
+      "July 7 ": [
+        {
+          "column": "Name",
+          "total_unique": 46,
+          "direct_matches": 8,
+          "potential_matches": 1,
+          "no_matches": 1,
+          "match_rate": 17.391304347826086,
+          "sample_matches": [
+            "Zaria Thompson",
+            "Riquelme Knight",
+            "Trudi Sealy",
+            "Janice Belle",
+            "Tamesha Watkins"
+          ],
+          "sample_potential": [
+            "Natasha Baird *"
+          ],
+          "sample_no_matches": [
+            "Miriam Phillips"
+          ]
+        },
+        {
+          "column": "Unnamed: 5",
+          "total_unique": 0,
+          "direct_matches": 0,
+          "potential_matches": 0,
+          "no_matches": 0,
+          "match_rate": 0.0,
+          "sample_matches": [],
+          "sample_potential": [],
+          "sample_no_matches": []
+        },
+        {
+          "column": "Name.1",
+          "total_unique": 53,
+          "direct_matches": 7,
+          "potential_matches": 1,
+          "no_matches": 2,
+          "match_rate": 13.20754716981132,
+          "sample_matches": [
+            "kerry-Ann Pinder",
+            "Allia Kellman",
+            "Angela Darlington",
+            "Ashley Edwards",
+            "Ashley Mohamed"
+          ],
+          "sample_potential": [
+            "Ashley E"
+          ],
+          "sample_no_matches": [
+            "A. Darlington",
+            "A.Darlington"
+          ]
+        }
+      ],
+      "July 8": [
+        {
+          "column": "Name",
+          "total_unique": 43,
+          "direct_matches": 9,
+          "potential_matches": 0,
+          "no_matches": 1,
+          "match_rate": 20.930232558139537,
+          "sample_matches": [
+            "Zaria Thompson",
+            "Riquelme Knight",
+            "Rasheda Parris",
+            "Renika Griffith",
+            "Janice Belle"
+          ],
+          "sample_potential": [],
+          "sample_no_matches": [
+            "Miriam Phillips"
+          ]
+        },
+        {
+          "column": "Unnamed: 5",
+          "total_unique": 1,
+          "direct_matches": 0,
+          "potential_matches": 0,
+          "no_matches": 1,
+          "match_rate": 0.0,
+          "sample_matches": [],
+          "sample_potential": [],
+          "sample_no_matches": [
+            "(do them last and if no laptops, double-up on transkribus)"
+          ]
+        }
+      ],
+      "July 9": [
+        {
+          "column": "Name",
+          "total_unique": 43,
+          "direct_matches": 9,
+          "potential_matches": 0,
+          "no_matches": 1,
+          "match_rate": 20.930232558139537,
+          "sample_matches": [
+            "Zaria Thompson",
+            "Riquelme Knight",
+            "Shameka Payne",
+            "Renika Griffith",
+            "Janice Belle"
+          ],
+          "sample_potential": [],
+          "sample_no_matches": [
+            "Miriam Phillips"
+          ]
+        },
+        {
+          "column": "Unnamed: 5",
+          "total_unique": 1,
+          "direct_matches": 0,
+          "potential_matches": 0,
+          "no_matches": 1,
+          "match_rate": 0.0,
+          "sample_matches": [],
+          "sample_potential": [],
+          "sample_no_matches": [
+            "(do them last and if no laptops, double-up on transkribus)"
+          ]
+        }
+      ],
+      "July 10": [
+        {
+          "column": "Name",
+          "total_unique": 43,
+          "direct_matches": 6,
+          "potential_matches": 3,
+          "no_matches": 1,
+          "match_rate": 13.953488372093023,
+          "sample_matches": [
+            "Janice Belle",
+            "Keisha Roachford",
+            "Angela Darlington",
+            "Chelsea Humphrey",
+            "Jacqueline Small"
+          ],
+          "sample_potential": [
+            "Shakira Scantlebury *",
+            "Tawana Cadogan*",
+            "Rashana Holder*"
+          ],
+          "sample_no_matches": [
+            "Miriam Phillips"
+          ]
+        },
+        {
+          "column": "Unnamed: 5",
+          "total_unique": 1,
+          "direct_matches": 0,
+          "potential_matches": 0,
+          "no_matches": 1,
+          "match_rate": 0.0,
+          "sample_matches": [],
+          "sample_potential": [],
+          "sample_no_matches": [
+            "(do them last and if no laptops, double-up on transkribus)"
+          ]
+        }
+      ],
+      "July 14": [
+        {
+          "column": "Name",
+          "total_unique": 43,
+          "direct_matches": 6,
+          "potential_matches": 2,
+          "no_matches": 2,
+          "match_rate": 13.953488372093023,
+          "sample_matches": [
+            "Janice Belle",
+            "Keisha Roachford",
+            "Portia Taitt",
+            "Natola Marshall",
+            "Shananty Forde"
+          ],
+          "sample_potential": [
+            "Shakira Scantlebury *",
+            "Rashana Holder*"
+          ],
+          "sample_no_matches": [
+            "Miriam Phillips",
+            "Jamie Parris"
+          ]
+        },
+        {
+          "column": "Unnamed: 5",
+          "total_unique": 1,
+          "direct_matches": 0,
+          "potential_matches": 0,
+          "no_matches": 1,
+          "match_rate": 0.0,
+          "sample_matches": [],
+          "sample_potential": [],
+          "sample_no_matches": [
+            "(do them last and if no laptops, double-up on transkribus)"
+          ]
+        }
+      ],
+      "July 15": [
+        {
+          "column": "Name",
+          "total_unique": 44,
+          "direct_matches": 8,
+          "potential_matches": 2,
+          "no_matches": 0,
+          "match_rate": 18.181818181818183,
+          "sample_matches": [
+            "Kriston Maynard",
+            "Erykah Holder",
+            "Portia Taitt",
+            "Jamie-Ann Parris",
+            "Danea Williams"
+          ],
+          "sample_potential": [
+            "Shakelia Archer ",
+            "Rashana Holder*"
+          ],
+          "sample_no_matches": []
+        },
+        {
+          "column": "Unnamed: 5",
+          "total_unique": 1,
+          "direct_matches": 0,
+          "potential_matches": 0,
+          "no_matches": 1,
+          "match_rate": 0.0,
+          "sample_matches": [],
+          "sample_potential": [],
+          "sample_no_matches": [
+            "(do them last and if no laptops, double-up on transkribus)"
+          ]
+        }
+      ],
+      "July 16": [
+        {
+          "column": "Name",
+          "total_unique": 43,
+          "direct_matches": 6,
+          "potential_matches": 3,
+          "no_matches": 1,
+          "match_rate": 13.953488372093023,
+          "sample_matches": [
+            "Janice Belle",
+            "Keisha Roachford",
+            "Natola Marshall",
+            "Shananty Forde",
+            "Kerry-Ann Pinder"
+          ],
+          "sample_potential": [
+            "Shakira Scantlebury *",
+            "Tawana Cadogan*",
+            "Rashana Holder*"
+          ],
+          "sample_no_matches": [
+            "Miriam Phillips"
+          ]
+        },
+        {
+          "column": "Unnamed: 5",
+          "total_unique": 1,
+          "direct_matches": 0,
+          "potential_matches": 0,
+          "no_matches": 1,
+          "match_rate": 0.0,
+          "sample_matches": [],
+          "sample_potential": [],
+          "sample_no_matches": [
+            "(do them last and if no laptops, double-up on transkribus)"
+          ]
+        }
+      ],
+      "July 17": [
+        {
+          "column": "Name",
+          "total_unique": 43,
+          "direct_matches": 6,
+          "potential_matches": 3,
+          "no_matches": 1,
+          "match_rate": 13.953488372093023,
+          "sample_matches": [
+            "Portia Taitt",
+            "Danea Williams",
+            "Janice Belle",
+            "Keisha Roachford",
+            "Natola Marshall"
+          ],
+          "sample_potential": [
+            "Shakira Scantlebury *",
+            "Tawana Cadogan*",
+            "Rashana Holder*"
+          ],
+          "sample_no_matches": [
+            "Miriam Phillips"
+          ]
+        },
+        {
+          "column": "Unnamed: 5",
+          "total_unique": 1,
+          "direct_matches": 0,
+          "potential_matches": 0,
+          "no_matches": 1,
+          "match_rate": 0.0,
+          "sample_matches": [],
+          "sample_potential": [],
+          "sample_no_matches": [
+            "(do them last and if no laptops, double-up on transkribus)"
+          ]
+        }
+      ],
+      "July 18": [
+        {
+          "column": "Name",
+          "total_unique": 43,
+          "direct_matches": 6,
+          "potential_matches": 3,
+          "no_matches": 1,
+          "match_rate": 13.953488372093023,
+          "sample_matches": [
+            "Kriston Maynard",
+            "Erykah Holder",
+            "Jamie-Ann Parris",
+            "Janice Belle",
+            "Keisha Roachford"
+          ],
+          "sample_potential": [
+            "Shakira Scantlebury *",
+            "Tawana Cadogan*",
+            "Rashana Holder*"
+          ],
+          "sample_no_matches": [
+            "Miriam Phillips"
+          ]
+        },
+        {
+          "column": "Unnamed: 5",
+          "total_unique": 0,
+          "direct_matches": 0,
+          "potential_matches": 0,
+          "no_matches": 0,
+          "match_rate": 0.0,
+          "sample_matches": [],
+          "sample_potential": [],
+          "sample_no_matches": []
+        },
+        {
+          "column": "Claimed by:  \nName",
+          "total_unique": 49,
+          "direct_matches": 10,
+          "potential_matches": 0,
+          "no_matches": 0,
+          "match_rate": 20.408163265306122,
+          "sample_matches": [
+            "kerry-Ann Pinder",
+            "Allia Kellman",
+            "Angela Darlington",
+            "Ashley Edwards",
+            "Ashley Mohamed"
+          ],
+          "sample_potential": [],
+          "sample_no_matches": []
+        },
+        {
+          "column": "Unique Names List ",
+          "total_unique": 49,
+          "direct_matches": 10,
+          "potential_matches": 0,
+          "no_matches": 0,
+          "match_rate": 20.408163265306122,
+          "sample_matches": [
+            "kerry-Ann Pinder",
+            "Allia Kellman",
+            "Angela Darlington",
+            "Ashley Edwards",
+            "Ashley Mohamed"
+          ],
+          "sample_potential": [],
+          "sample_no_matches": []
+        }
+      ],
+      "July 21": [
+        {
+          "column": "Name",
+          "total_unique": 43,
+          "direct_matches": 7,
+          "potential_matches": 2,
+          "no_matches": 1,
+          "match_rate": 16.27906976744186,
+          "sample_matches": [
+            "Portia Taitt",
+            "Kriston Maynard",
+            "Erykah Holder",
+            "Jamie-Ann Parris",
+            "Danea Williams"
+          ],
+          "sample_potential": [
+            "Shakira Scantlebury *",
+            "Tawana Cadogan*"
+          ],
+          "sample_no_matches": [
+            "Miriam Phillips"
+          ]
+        },
+        {
+          "column": "Unnamed: 5",
+          "total_unique": 1,
+          "direct_matches": 0,
+          "potential_matches": 0,
+          "no_matches": 1,
+          "match_rate": 0.0,
+          "sample_matches": [],
+          "sample_potential": [],
+          "sample_no_matches": [
+            "(do them last and if no laptops, double-up on transkribus)"
+          ]
+        }
+      ],
+      "July 22": [
+        {
+          "column": "Name",
+          "total_unique": 46,
+          "direct_matches": 6,
+          "potential_matches": 3,
+          "no_matches": 1,
+          "match_rate": 13.043478260869565,
+          "sample_matches": [
+            "Portia Taitt",
+            "Kriston Maynard",
+            "Jamie-Ann Parris",
+            "Danea Williams",
+            "Janice Belle"
+          ],
+          "sample_potential": [
+            "Ashley Edwards*",
+            "Shakira Scantlebury *",
+            "Tawana Cadogan*"
+          ],
+          "sample_no_matches": [
+            "Miriam Phillips"
+          ]
+        }
+      ],
+      "July 23": [
+        {
+          "column": "Name",
+          "total_unique": 43,
+          "direct_matches": 6,
+          "potential_matches": 3,
+          "no_matches": 1,
+          "match_rate": 13.953488372093023,
+          "sample_matches": [
+            "Portia Taitt",
+            "Kriston Maynard",
+            "Jamie-Ann Parris",
+            "Danea Williams",
+            "Janice Belle"
+          ],
+          "sample_potential": [
+            "Ashley Edwards*",
+            "Shakira Scantlebury *",
+            "Tawana Cadogan*"
+          ],
+          "sample_no_matches": [
+            "Miriam Phillips"
+          ]
+        }
+      ],
+      "July 24": [
+        {
+          "column": "Name",
+          "total_unique": 40,
+          "direct_matches": 6,
+          "potential_matches": 3,
+          "no_matches": 1,
+          "match_rate": 15.0,
+          "sample_matches": [
+            "Portia Taitt",
+            "Kriston Maynard",
+            "Jamie-Ann Parris",
+            "Danea Williams",
+            "Janice Belle"
+          ],
+          "sample_potential": [
+            "Shakira Scantlebury *",
+            "Tawana Cadogan*",
+            "Rashana Holder*"
+          ],
+          "sample_no_matches": [
+            "Miriam Phillips"
+          ]
+        }
+      ],
+      "July 25": [
+        {
+          "column": "Name",
+          "total_unique": 43,
+          "direct_matches": 7,
+          "potential_matches": 2,
+          "no_matches": 1,
+          "match_rate": 16.27906976744186,
+          "sample_matches": [
+            "Kriston Maynard",
+            "Erykah Holder",
+            "Jamie-Ann Parris",
+            "Danea Williams",
+            "Portia Taitt"
+          ],
+          "sample_potential": [
+            "Shakira Scantlebury *",
+            "Tawana Cadogan*"
+          ],
+          "sample_no_matches": [
+            "Miriam Phillips"
+          ]
+        }
+      ],
+      "July 28": [
+        {
+          "column": "Name",
+          "total_unique": 43,
+          "direct_matches": 8,
+          "potential_matches": 1,
+          "no_matches": 1,
+          "match_rate": 18.6046511627907,
+          "sample_matches": [
+            "Kriston Maynard",
+            "Erykah Holder",
+            "Jamie-Ann Parris",
+            "Danea Williams",
+            "Portia Taitt"
+          ],
+          "sample_potential": [
+            "Rashana Holder*"
+          ],
+          "sample_no_matches": [
+            "Miriam Phillips"
+          ]
+        }
+      ],
+      "July 29": [
+        {
+          "column": "Name",
+          "total_unique": 43,
+          "direct_matches": 9,
+          "potential_matches": 0,
+          "no_matches": 1,
+          "match_rate": 20.930232558139537,
+          "sample_matches": [
+            "Kriston Maynard",
+            "Erykah Holder",
+            "Jamie-Ann Parris",
+            "Danea Williams",
+            "Portia Taitt"
+          ],
+          "sample_potential": [],
+          "sample_no_matches": [
+            "Miriam Phillips"
+          ]
+        }
+      ],
+      "July 30": [
+        {
+          "column": "Name",
+          "total_unique": 39,
+          "direct_matches": 9,
+          "potential_matches": 0,
+          "no_matches": 1,
+          "match_rate": 23.076923076923077,
+          "sample_matches": [
+            "Kriston Maynard",
+            "Erykah Holder",
+            "Jamie-Ann Parris",
+            "Danea Williams",
+            "Portia Taitt"
+          ],
+          "sample_potential": [],
+          "sample_no_matches": [
+            "Miriam Phillips"
+          ]
+        }
+      ],
+      "July 31": [
+        {
+          "column": "Name",
+          "total_unique": 41,
+          "direct_matches": 9,
+          "potential_matches": 0,
+          "no_matches": 1,
+          "match_rate": 21.951219512195124,
+          "sample_matches": [
+            "Kriston Maynard",
+            "Erykah Holder",
+            "Jamie-Ann Parris",
+            "Danea Williams",
+            "Portia Taitt"
+          ],
+          "sample_potential": [],
+          "sample_no_matches": [
+            "Miriam Phillips"
+          ]
+        }
+      ],
+      "Roll UP ": [
+        {
+          "column": "Claimed by:  \nName",
+          "total_unique": 53,
+          "direct_matches": 7,
+          "potential_matches": 1,
+          "no_matches": 2,
+          "match_rate": 13.20754716981132,
+          "sample_matches": [
+            "Allia Kellman",
+            "Angela Darlington",
+            "Ashley Edwards",
+            "Ashley Mohamed",
+            "Audrey Luke-Morris"
+          ],
+          "sample_potential": [
+            "Ashley E"
+          ],
+          "sample_no_matches": [
+            "A. Darlington",
+            "Claimed By"
+          ]
+        },
+        {
+          "column": "Unique Names List ",
+          "total_unique": 47,
+          "direct_matches": 10,
+          "potential_matches": 0,
+          "no_matches": 0,
+          "match_rate": 21.27659574468085,
+          "sample_matches": [
+            "Allia Kellman",
+            "Angela Darlington",
+            "Ashley Edwards",
+            "Ashley Mohamed",
+            "Audrey Luke-Morris"
+          ],
+          "sample_potential": [],
+          "sample_no_matches": []
+        },
+        {
+          "column": "Unnamed: 5",
+          "total_unique": 0,
+          "direct_matches": 0,
+          "potential_matches": 0,
+          "no_matches": 0,
+          "match_rate": 0.0,
+          "sample_matches": [],
+          "sample_potential": [],
+          "sample_no_matches": []
+        },
+        {
+          "column": "Unique Names List .1",
+          "total_unique": 47,
+          "direct_matches": 10,
+          "potential_matches": 0,
+          "no_matches": 0,
+          "match_rate": 21.27659574468085,
+          "sample_matches": [
+            "Allia Kellman",
+            "Angela Darlington",
+            "Ashley Edwards",
+            "Ashley Mohamed",
+            "Audrey Luke-Morris"
+          ],
+          "sample_potential": [],
+          "sample_no_matches": []
+        },
+        {
+          "column": "Unnamed: 10",
+          "total_unique": 0,
+          "direct_matches": 0,
+          "potential_matches": 0,
+          "no_matches": 0,
+          "match_rate": 0.0,
+          "sample_matches": [],
+          "sample_potential": [],
+          "sample_no_matches": []
+        },
+        {
+          "column": "Claimed by:  \nName.1",
+          "total_unique": 53,
+          "direct_matches": 7,
+          "potential_matches": 1,
+          "no_matches": 2,
+          "match_rate": 13.20754716981132,
+          "sample_matches": [
+            "kerry-Ann Pinder",
+            "Allia Kellman",
+            "Angela Darlington",
+            "Ashley Edwards",
+            "Ashley Mohamed"
+          ],
+          "sample_potential": [
+            "Ashley E"
+          ],
+          "sample_no_matches": [
+            "A. Darlington",
+            "A.Darlington"
+          ]
+        },
+        {
+          "column": "Unique Names List .2",
+          "total_unique": 52,
+          "direct_matches": 7,
+          "potential_matches": 1,
+          "no_matches": 2,
+          "match_rate": 13.461538461538462,
+          "sample_matches": [
+            "kerry-Ann Pinder",
+            "Allia Kellman",
+            "Angela Darlington",
+            "Ashley Edwards",
+            "Ashley Mohamed"
+          ],
+          "sample_potential": [
+            "Ashley E"
+          ],
+          "sample_no_matches": [
+            "A. Darlington",
+            "A.Darlington"
+          ]
+        },
+        {
+          "column": "Unnamed: 16",
+          "total_unique": 0,
+          "direct_matches": 0,
+          "potential_matches": 0,
+          "no_matches": 0,
+          "match_rate": 0.0,
+          "sample_matches": [],
+          "sample_potential": [],
+          "sample_no_matches": []
+        },
+        {
+          "column": "Claimed by:  \nName.2",
+          "total_unique": 49,
+          "direct_matches": 10,
+          "potential_matches": 0,
+          "no_matches": 0,
+          "match_rate": 20.408163265306122,
+          "sample_matches": [
+            "kerry-Ann Pinder",
+            "Allia Kellman",
+            "Angela Darlington",
+            "Ashley Edwards",
+            "Ashley Mohamed"
+          ],
+          "sample_potential": [],
+          "sample_no_matches": []
+        },
+        {
+          "column": "Unique Names List .3",
+          "total_unique": 49,
+          "direct_matches": 10,
+          "potential_matches": 0,
+          "no_matches": 0,
+          "match_rate": 20.408163265306122,
+          "sample_matches": [
+            "kerry-Ann Pinder",
+            "Allia Kellman",
+            "Angela Darlington",
+            "Ashley Edwards",
+            "Ashley Mohamed"
+          ],
+          "sample_potential": [],
+          "sample_no_matches": []
+        },
+        {
+          "column": "Unnamed: 23",
+          "total_unique": 0,
+          "direct_matches": 0,
+          "potential_matches": 0,
+          "no_matches": 0,
+          "match_rate": 0.0,
+          "sample_matches": [],
+          "sample_potential": [],
+          "sample_no_matches": []
+        },
+        {
+          "column": "Claimed by:  \nNames List",
+          "total_unique": 54,
+          "direct_matches": 10,
+          "potential_matches": 0,
+          "no_matches": 0,
+          "match_rate": 18.51851851851852,
+          "sample_matches": [
+            "Kerry-Ann Pinder",
+            "Akeem McCollin",
+            "Allia Kellman",
+            "Angela Darlington",
+            "Ashley Edwards"
+          ],
+          "sample_potential": [],
+          "sample_no_matches": []
+        },
+        {
+          "column": "Unique Names List .4",
+          "total_unique": 53,
+          "direct_matches": 10,
+          "potential_matches": 0,
+          "no_matches": 0,
+          "match_rate": 18.867924528301888,
+          "sample_matches": [
+            "Kerry-Ann Pinder",
+            "Akeem McCollin",
+            "Allia Kellman",
+            "Angela Darlington",
+            "Ashley Edwards"
+          ],
+          "sample_potential": [],
+          "sample_no_matches": []
+        },
+        {
+          "column": "Unnamed: 30",
+          "total_unique": 0,
+          "direct_matches": 0,
+          "potential_matches": 0,
+          "no_matches": 0,
+          "match_rate": 0.0,
+          "sample_matches": [],
+          "sample_potential": [],
+          "sample_no_matches": []
+        },
+        {
+          "column": "Completed by:  \nNames List",
+          "total_unique": 46,
+          "direct_matches": 10,
+          "potential_matches": 0,
+          "no_matches": 0,
+          "match_rate": 21.73913043478261,
+          "sample_matches": [
+            "Akeem McCollin",
+            "Allia Kellman",
+            "Angela Darlington",
+            "Ashley Edwards",
+            "Ashley Mohamed"
+          ],
+          "sample_potential": [],
+          "sample_no_matches": []
+        },
+        {
+          "column": "Unique Names List .5",
+          "total_unique": 47,
+          "direct_matches": 10,
+          "potential_matches": 0,
+          "no_matches": 0,
+          "match_rate": 21.27659574468085,
+          "sample_matches": [
+            "Akeem McCollin",
+            "Allia Kellman",
+            "Angela Darlington",
+            "Ashley Edwards",
+            "Ashley Mohamed"
+          ],
+          "sample_potential": [],
+          "sample_no_matches": []
+        }
+      ],
+      "Rollup June20-July18": [
+        {
+          "column": "Unique Names List ",
+          "total_unique": 48,
+          "direct_matches": 9,
+          "potential_matches": 0,
+          "no_matches": 1,
+          "match_rate": 18.75,
+          "sample_matches": [
+            "Ashley Edwards",
+            "Saviola Thomas",
+            "Brittony Payne",
+            "Angela Darlington",
+            "Kriss-lynn Leslie"
+          ],
+          "sample_potential": [],
+          "sample_no_matches": [
+            "Shania St.Clair"
+          ]
+        }
+      ]
+    }
+  },
+  "recommendations": [
+    {
+      "type": "employee_mapping",
+      "message": "Overall employee match rate: 16.8%",
+      "priority": "medium"
+    },
+    {
+      "type": "location_data",
+      "message": "Found 29 sheets with potential location data",
+      "priority": "high"
+    }
+  ]
+}
