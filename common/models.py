@@ -305,7 +305,9 @@ class AttendanceRecord(models.Model):
         ).order_by('timestamp').first()
         
         if clock_in_event:
-            return clock_in_event.timestamp.time()
+            # Convert to local timezone before extracting time
+            local_timestamp = timezone.localtime(clock_in_event.timestamp)
+            return local_timestamp.time()
         return None
 
     @property
@@ -316,7 +318,10 @@ class AttendanceRecord(models.Model):
             timestamp__date=self.date
         ).order_by('timestamp').first()
         
-        return clock_in_event.timestamp if clock_in_event else None
+        if clock_in_event:
+            # Convert to local timezone
+            return timezone.localtime(clock_in_event.timestamp)
+        return None
 
     @property
     def departure_time(self):
@@ -327,7 +332,9 @@ class AttendanceRecord(models.Model):
         ).order_by('timestamp').last()
         
         if clock_out_event:
-            return clock_out_event.timestamp.time()
+            # Convert to local timezone before extracting time
+            local_timestamp = timezone.localtime(clock_out_event.timestamp)
+            return local_timestamp.time()
         return None
 
     @property
@@ -338,6 +345,7 @@ class AttendanceRecord(models.Model):
         
         if arrival and departure:
             # Convert departure time to datetime for calculation
+            # departure is already in local timezone from the property
             departure_datetime = timezone.make_aware(
                 timezone.datetime.combine(self.date, departure)
             )
@@ -450,9 +458,11 @@ class Event(models.Model):
     def _create_attendance_record(self):
         """Create a new attendance record for this event's date."""
         # Check if attendance record already exists for this employee and date
+        # Convert to local timezone for date calculation
+        local_timestamp = timezone.localtime(self.timestamp)
         attendance_record, created = AttendanceRecord.objects.get_or_create(
             employee=self.employee,
-            date=self.timestamp.date(),
+            date=local_timestamp.date(),
             defaults={
                 'created_by': self.created_by,
                 'status': 'DRAFT'
@@ -461,7 +471,7 @@ class Event(models.Model):
         
         if created:
             # Log the creation
-            print(f"Created attendance record for {self.employee} on {self.timestamp.date()}")
+            print(f"Created attendance record for {self.employee} on {local_timestamp.date()}")
         else:
             # Update the existing record
             attendance_record.last_updated_by = self.created_by
@@ -469,10 +479,12 @@ class Event(models.Model):
 
     def _update_attendance_record(self):
         """Update existing attendance record for this event's date."""
+        # Convert to local timezone for date calculation
+        local_timestamp = timezone.localtime(self.timestamp)
         try:
             attendance_record = AttendanceRecord.objects.get(
                 employee=self.employee,
-                date=self.timestamp.date()
+                date=local_timestamp.date()
             )
             attendance_record.last_updated_by = self.created_by
             attendance_record.save()

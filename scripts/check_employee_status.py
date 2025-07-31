@@ -21,7 +21,12 @@ for employee in Employee.objects.all().order_by('surname', 'given_name'):
     if is_clocked_in:
         clocked_in_count += 1
         
-    last_time = employee.last_clockinout_time.strftime("%Y-%m-%d %H:%M") if employee.last_clockinout_time else "Never"
+    if employee.last_clockinout_time:
+        from django.utils import timezone
+        local_time = timezone.localtime(employee.last_clockinout_time)
+        last_time = local_time.strftime("%Y-%m-%d %H:%M")
+    else:
+        last_time = "Never"
     
     print(f"{name:<30} {card:<15} {status:<15} {last_time}")
 

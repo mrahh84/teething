@@ -475,6 +475,7 @@ def comprehensive_reports(request):
         "selected_period": period,
         "start_time": start_time,
         "end_time": end_time,
+        "timestamp": int(timezone.now().timestamp()),
     }
     
     return render(request, "reports/comprehensive_reports.html", context)
@@ -1904,7 +1905,9 @@ def generate_daily_dashboard_html(request, selected_date):
     # Count clock-ins by hour and department
     for event in clock_events:
         if event.event_type.name == "Clock In":
-            hour = event.timestamp.hour
+            # Convert to local timezone for hour calculation
+            local_timestamp = timezone.localtime(event.timestamp)
+            hour = local_timestamp.hour
             if 7 <= hour <= 18:  # Only count hours in our range
                 dept = employee_departments.get(event.employee.id, "Administration")
                 dept_idx = departments.index(dept)
@@ -1971,7 +1974,9 @@ def generate_employee_history_html(request, employee_id, start_date, end_date):
         total_hours = 0
 
         for event in events:
-            event_date = event.timestamp.date()
+            # Convert to local timezone for date calculation
+            local_timestamp = timezone.localtime(event.timestamp)
+            event_date = local_timestamp.date()
             if event_date not in event_days:
                 event_days[event_date] = {
                     "date": event_date,
@@ -2230,8 +2235,10 @@ def generate_period_summary_html(
         for event in events:
             employee_id = event.employee.id
             employee_name = f"{event.employee.given_name} {event.employee.surname}"
-            event_date = event.timestamp.date()
-            event_time = timezone.localtime(event.timestamp).time()
+            # Convert to local timezone for date and time calculations
+            local_timestamp = timezone.localtime(event.timestamp)
+            event_date = local_timestamp.date()
+            event_time = local_timestamp.time()
 
             # Determine which period this event belongs to
             if period_type == "day":
@@ -2845,7 +2852,9 @@ def employee_history_report_csv(request):
         event_days = {}
         clock_in_time = None
         for event in events:
-            event_date = event.timestamp.date()
+            # Convert to local timezone for date calculation
+            local_timestamp = timezone.localtime(event.timestamp)
+            event_date = local_timestamp.date()
             if event_date not in event_days:
                 event_days[event_date] = {
                     "clock_in": None,
@@ -2926,7 +2935,9 @@ def period_summary_report_csv(request):
     for event in events:
         employee_id = event.employee.id
         employee_name = f"{event.employee.given_name} {event.employee.surname}"
-        event_date = event.timestamp.date()
+        # Convert to local timezone for date calculation
+        local_timestamp = timezone.localtime(event.timestamp)
+        event_date = local_timestamp.date()
         if period == "day":
             period_key = event_date
         elif period == "week":
@@ -3172,8 +3183,22 @@ def comprehensive_attendance_report(request):
             'total_individual_issues': total_individual_issues,
         })
     
-    # Sort by problematic percentage (highest first)
-    employee_data.sort(key=lambda x: x['problematic_percentage'], reverse=True)
+    # Get sorting parameters
+    sort_by = request.GET.get('sort', 'problematic_percentage')
+    sort_direction = request.GET.get('direction', 'desc')
+    
+    # Sort data based on parameters
+    reverse_sort = sort_direction == 'desc'
+    if sort_by == 'name':
+        employee_data.sort(key=lambda x: x['name'], reverse=reverse_sort)
+    elif sort_by == 'total_working_days':
+        employee_data.sort(key=lambda x: x['total_working_days'], reverse=reverse_sort)
+    elif sort_by == 'problematic_days':
+        employee_data.sort(key=lambda x: x['problematic_days'], reverse=reverse_sort)
+    elif sort_by == 'total_individual_issues':
+        employee_data.sort(key=lambda x: x['total_individual_issues'], reverse=reverse_sort)
+    else:  # Default to problematic_percentage
+        employee_data.sort(key=lambda x: x['problematic_percentage'], reverse=reverse_sort)
     
     # Calculate summary statistics
     total_employees = len(employee_data)
@@ -3431,3 +3456,147 @@ def realtime_analytics_dashboard(request):
         'active_tab': 'realtime_analytics',
     }
     return render(request, 'attendance/realtime_analytics_dashboard.html', context)
+
+@reporting_required  # Reporting role and above
+@extend_schema(exclude=True)
+def comprehensive_attendance_export_csv(request):
+    """Export comprehensive attendance report data to CSV with sorting capabilities"""
+    today = timezone.now().date()
+    
+    # Get parameters
+    start_date = request.GET.get('start_date', (today - timedelta(days=30)).isoformat())
+    end_date = request.GET.get('end_date', today.isoformat())
+    department_filter = request.GET.get('department', 'Digitization Tech')
+    sort_by = request.GET.get('sort', 'problematic_percentage')
+    sort_direction = request.GET.get('direction', 'desc')
+    
+    try:
+        start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+    except ValueError:
+        start_date = today - timedelta(days=30)
+        end_date = today
+    
+    # Get all employees
+    employees = Employee.objects.filter(is_active=True).order_by('surname', 'given_name')
+    
+    # Apply department filter
+    if department_filter:
+        employees = filter_employees_by_department(employees, department_filter)
+    
+    # Calculate comprehensive attendance data for each employee
+    employee_data = []
+    
+    for employee in employees:
+        # Get attendance records for the date range
+        records = AttendanceRecord.objects.filter(
+            employee=employee,
+            date__range=[start_date, end_date]
+        )
+        
+        total_working_days = records.count()
+        
+        if total_working_days == 0:
+            continue
+        
+        # Calculate problematic days (days with issues)
+        problematic_days = 0
+        standup_issues = 0
+        return_lunch_issues = 0
+        early_departure_issues = 0
+        
+        for record in records:
+            # Check for problematic values
+            problematic_values = ['NO', 'LATE']
+            
+            if record.standup_attendance in problematic_values:
+                standup_issues += 1
+            
+            if record.returned_on_time_after_lunch in problematic_values:
+                return_lunch_issues += 1
+            
+            if record.is_early_departure:
+                early_departure_issues += 1
+            
+            # Count problematic days
+            if record.is_problematic_day():
+                problematic_days += 1
+        
+        non_problematic_days = total_working_days - problematic_days
+        problematic_percentage = (problematic_days / total_working_days * 100) if total_working_days > 0 else 0
+        non_problematic_percentage = (non_problematic_days / total_working_days * 100) if total_working_days > 0 else 0
+        total_individual_issues = standup_issues + return_lunch_issues + early_departure_issues
+        
+        employee_data.append({
+            'name': f"{employee.given_name} {employee.surname}",
+            'department': employee.department.name if employee.department else 'N/A',
+            'total_working_days': total_working_days,
+            'problematic_days': problematic_days,
+            'problematic_percentage': round(problematic_percentage, 2),
+            'non_problematic_days': non_problematic_days,
+            'non_problematic_percentage': round(non_problematic_percentage, 2),
+            'standup_issues': standup_issues,
+            'return_lunch_issues': return_lunch_issues,
+            'early_departure_issues': early_departure_issues,
+            'total_individual_issues': total_individual_issues,
+        })
+    
+    # Sort data based on parameters
+    reverse_sort = sort_direction == 'desc'
+    if sort_by == 'name':
+        employee_data.sort(key=lambda x: x['name'], reverse=reverse_sort)
+    elif sort_by == 'department':
+        employee_data.sort(key=lambda x: x['department'], reverse=reverse_sort)
+    elif sort_by == 'total_working_days':
+        employee_data.sort(key=lambda x: x['total_working_days'], reverse=reverse_sort)
+    elif sort_by == 'problematic_days':
+        employee_data.sort(key=lambda x: x['problematic_days'], reverse=reverse_sort)
+    elif sort_by == 'total_individual_issues':
+        employee_data.sort(key=lambda x: x['total_individual_issues'], reverse=reverse_sort)
+    else:  # Default to problematic_percentage
+        employee_data.sort(key=lambda x: x['problematic_percentage'], reverse=reverse_sort)
+    
+    # Create CSV response
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="comprehensive_attendance_report_{start_date}_{end_date}_{department_filter}.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow([
+        'Employee Name',
+        'Department',
+        'Total Working Days',
+        'Problematic Days',
+        'Problematic Percentage (%)',
+        'Non-Problematic Days',
+        'Non-Problematic Percentage (%)',
+        'Standup Issues',
+        'Return Lunch Issues',
+        'Early Departure Issues',
+        'Total Individual Issues',
+        'Risk Level'
+    ])
+    
+    for data in employee_data:
+        # Determine risk level
+        risk_level = 'Low'
+        if data['problematic_percentage'] >= 50:
+            risk_level = 'High'
+        elif data['problematic_percentage'] >= 25:
+            risk_level = 'Medium'
+        
+        writer.writerow([
+            data['name'],
+            data['department'],
+            data['total_working_days'],
+            data['problematic_days'],
+            data['problematic_percentage'],
+            data['non_problematic_days'],
+            data['non_problematic_percentage'],
+            data['standup_issues'],
+            data['return_lunch_issues'],
+            data['early_departure_issues'],
+            data['total_individual_issues'],
+            risk_level
+        ])
+    
+    return response

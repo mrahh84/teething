@@ -112,7 +112,9 @@ for i in range(1, 21):
                 created_by=admin_user
             )
             
-            print(f"  Created {event_type.name} event for {employee.given_name} at {event_time.strftime('%Y-%m-%d %H:%M')}")
+            # Convert to local timezone for display
+            local_event_time = timezone.localtime(event_time)
+            print(f"  Created {event_type.name} event for {employee.given_name} at {local_event_time.strftime('%Y-%m-%d %H:%M')}")
 
 total_employees = Employee.objects.count()
 total_cards = Card.objects.count()
