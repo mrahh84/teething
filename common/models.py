@@ -25,16 +25,77 @@ class Card(models.Model):
 class Location(models.Model):
     """Represents a physical location where events can occur."""
 
+    LOCATION_TYPE_CHOICES = [
+        ('SECURITY', 'Security Checkpoint'),
+        ('WORKSTATION', 'Workstation Area'),
+        ('LUNCH', 'Lunch Area'),
+        ('MEETING', 'Meeting Room'),
+        ('STORAGE', 'Storage Area'),
+        ('TASK', 'Task Assignment Area'),
+        ('ROOM', 'Physical Room'),
+    ]
+
     name = models.CharField(
         max_length=255,
         null=False,
         unique=True,
         help_text="Name of the location (e.g., 'Main Security', 'Repository and Conservation').",
     )
+    
+    # Enhanced location tracking fields
+    location_type = models.CharField(
+        max_length=20,
+        choices=LOCATION_TYPE_CHOICES,
+        default='WORKSTATION',
+        help_text="Type of location"
+    )
+    
+    capacity = models.IntegerField(
+        default=0,
+        help_text="Maximum number of employees that can be at this location"
+    )
+    
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Whether this location is currently active"
+    )
+    
+    description = models.TextField(
+        blank=True,
+        help_text="Additional description of the location"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+        indexes = [
+            models.Index(fields=['location_type', 'is_active']),
+            models.Index(fields=['is_active', 'name']),
+        ]
 
     def __str__(self):
         """Return the location's name."""
-        return f"{self.name}"
+        return f"{self.name} ({self.get_location_type_display()})"
+    
+    @property
+    def current_occupancy(self):
+        """Get current number of employees at this location."""
+        from django.utils import timezone
+        today = timezone.now().date()
+        return Event.objects.filter(
+            location=self,
+            timestamp__date=today,
+            event_type__name__in=['Clock In', 'Task Assignment']
+        ).values('employee').distinct().count()
+    
+    @property
+    def utilization_rate(self):
+        """Calculate utilization rate as percentage."""
+        if self.capacity == 0:
+            return 0
+        return (self.current_occupancy / self.capacity) * 100
 
 
 class EventType(models.Model):
@@ -734,3 +795,148 @@ class SystemPerformance(models.Model):
     
     def __str__(self):
         return f"System Performance - {self.date}"
+
+
+class TaskAssignment(models.Model):
+    """Represents task assignments for employees at specific locations"""
+    
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='task_assignments')
+    location = models.ForeignKey(Location, on_delete=models.CASCADE, related_name='task_assignments')
+    task_type = models.CharField(max_length=100, help_text="Type of task (e.g., Goobi, OCR4All, Transkribus)")
+    assigned_date = models.DateField(help_text="Date of assignment")
+    start_time = models.TimeField(null=True, blank=True, help_text="Scheduled start time")
+    end_time = models.TimeField(null=True, blank=True, help_text="Scheduled end time")
+    is_completed = models.BooleanField(default=False, help_text="Whether the task is completed")
+    notes = models.TextField(blank=True, help_text="Additional notes about the assignment")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['employee', 'location', 'assigned_date']
+        ordering = ['-assigned_date', 'employee__surname', 'employee__given_name']
+        indexes = [
+            models.Index(fields=['employee', 'assigned_date']),
+            models.Index(fields=['location', 'assigned_date']),
+            models.Index(fields=['task_type', 'assigned_date']),
+            models.Index(fields=['is_completed', 'assigned_date']),
+        ]
+
+    def __str__(self):
+        return f"{self.employee} - {self.task_type} at {self.location} ({self.assigned_date})"
+
+
+class LocationMovement(models.Model):
+    """Tracks employee movements between locations"""
+    
+    MOVEMENT_TYPE_CHOICES = [
+        ('TASK_ASSIGNMENT', 'Task Assignment'),
+        ('BREAK', 'Break Time'),
+        ('LUNCH', 'Lunch Break'),
+        ('MEETING', 'Meeting'),
+        ('SECURITY_CHECK', 'Security Check'),
+        ('CLOCK_IN', 'Clock In'),
+        ('CLOCK_OUT', 'Clock Out'),
+    ]
+
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='location_movements')
+    from_location = models.ForeignKey(
+        Location, 
+        on_delete=models.CASCADE, 
+        related_name='departures',
+        null=True,
+        blank=True,
+        help_text="Location employee moved from (null for initial entry)"
+    )
+    to_location = models.ForeignKey(
+        Location, 
+        on_delete=models.CASCADE, 
+        related_name='arrivals',
+        help_text="Location employee moved to"
+    )
+    timestamp = models.DateTimeField(auto_now_add=True, help_text="When the movement occurred")
+    movement_type = models.CharField(
+        max_length=20,
+        choices=MOVEMENT_TYPE_CHOICES,
+        default='TASK_ASSIGNMENT',
+        help_text="Type of movement"
+    )
+    duration_minutes = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Duration at previous location in minutes"
+    )
+    notes = models.TextField(blank=True, help_text="Additional notes about the movement")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['employee', 'timestamp']),
+            models.Index(fields=['from_location', 'timestamp']),
+            models.Index(fields=['to_location', 'timestamp']),
+            models.Index(fields=['movement_type', 'timestamp']),
+        ]
+
+    def __str__(self):
+        if self.from_location:
+            return f"{self.employee}: {self.from_location} → {self.to_location} ({self.timestamp})"
+        else:
+            return f"{self.employee}: → {self.to_location} ({self.timestamp})"
+
+
+class LocationAnalytics(models.Model):
+    """Aggregated analytics data for locations"""
+    
+    location = models.ForeignKey(Location, on_delete=models.CASCADE, related_name='analytics')
+    date = models.DateField(help_text="Date of analytics data")
+    
+    # Occupancy metrics
+    current_occupancy = models.IntegerField(default=0, help_text="Current number of employees at location")
+    peak_occupancy = models.IntegerField(default=0, help_text="Peak occupancy during the day")
+    average_occupancy = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        default=0, 
+        help_text="Average occupancy throughout the day"
+    )
+    utilization_rate = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        default=0, 
+        help_text="Utilization rate as percentage"
+    )
+    
+    # Movement metrics
+    total_movements = models.IntegerField(default=0, help_text="Total movements in/out of location")
+    arrivals = models.IntegerField(default=0, help_text="Number of arrivals")
+    departures = models.IntegerField(default=0, help_text="Number of departures")
+    
+    # Task metrics
+    active_tasks = models.IntegerField(default=0, help_text="Number of active tasks")
+    completed_tasks = models.IntegerField(default=0, help_text="Number of completed tasks")
+    
+    # Performance metrics
+    average_stay_duration = models.DecimalField(
+        max_digits=6, 
+        decimal_places=2, 
+        default=0, 
+        help_text="Average duration employees stay at location (minutes)"
+    )
+    
+    # Peak hours analysis
+    peak_hours = models.JSONField(default=dict, help_text="Peak usage hours and occupancy")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['location', 'date']
+        indexes = [
+            models.Index(fields=['location', 'date']),
+            models.Index(fields=['date', 'utilization_rate']),
+            models.Index(fields=['location', 'utilization_rate']),
+        ]
+
+    def __str__(self):
+        return f"{self.location} - {self.date} (Utilization: {self.utilization_rate}%)"
