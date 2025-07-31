@@ -1,0 +1,182 @@
+{% extends "main_security.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h3 mb-4">Location Dashboard</h1>
+            <p class="text-muted">Real-time location tracking and analytics</p>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Assignments</h5>
+                    <h2 class="card-text text-primary">{{ total_assignments }}</h2>
+                    <small class="text-muted">Today's assignments</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Active Employees</h5>
+                    <h2 class="card-text text-success">{{ total_employees }}</h2>
+                    <small class="text-muted">Currently assigned</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Avg Utilization</h5>
+                    <h2 class="card-text text-warning">{{ avg_utilization|floatformat:1 }}%</h2>
+                    <small class="text-muted">Across all locations</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Active Locations</h5>
+                    <h2 class="card-text text-info">{{ locations.count }}</h2>
+                    <small class="text-muted">With assignments today</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Location Status -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Location Status</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for location in locations %}
+                        <div class="col-md-4 mb-3">
+                            <div class="border rounded p-3">
+                                <h6 class="mb-2">{{ location.name }}</h6>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">Current:</span>
+                                    <span class="fw-bold">{{ location.current_occupancy }}/{{ location.capacity }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">Utilization:</span>
+                                    <span class="fw-bold">{{ location.utilization_rate|floatformat:1 }}%</span>
+                                </div>
+                                <div class="progress mt-2" style="height: 8px;">
+                                    <div class="progress-bar {% if location.utilization_rate > 100 %}bg-danger{% elif location.utilization_rate > 80 %}bg-warning{% else %}bg-success{% endif %}" 
+                                         style="width: {{ location.utilization_rate|floatformat:0 }}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="col-12">
+                            <p class="text-muted text-center">No active locations today</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Recent Assignments</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_assignments %}
+                    <div class="list-group list-group-flush">
+                        {% for assignment in recent_assignments %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">{{ assignment.employee.given_name }} {{ assignment.employee.surname }}</h6>
+                                <small class="text-muted">{{ assignment.location.name }} - {{ assignment.task_type }}</small>
+                            </div>
+                            <span class="badge bg-primary rounded-pill">{{ assignment.assigned_date }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center">No recent assignments</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Recent Movements</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_movements %}
+                    <div class="list-group list-group-flush">
+                        {% for movement in recent_movements %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">{{ movement.employee.given_name }} {{ movement.employee.surname }}</h6>
+                                <small class="text-muted">{{ movement.movement_type }} → {{ movement.to_location.name }}</small>
+                            </div>
+                            <span class="badge bg-secondary rounded-pill">{{ movement.timestamp|time }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center">No recent movements</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Charts -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Location Analytics</h5>
+                </div>
+                <div class="card-body">
+                    <div id="analytics-chart" style="height: 400px;">
+                        <p class="text-muted text-center">Analytics chart will be loaded here</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for real-time updates -->
+<script>
+// Function to update location data
+function updateLocationData() {
+    fetch('/common/api/location-summary/')
+        .then(response => response.json())
+        .then(data => {
+            console.log('Location data updated:', data);
+            // Update the UI with new data
+        })
+        .catch(error => {
+            console.error('Error updating location data:', error);
+        });
+}
+
+// Update data every 30 seconds
+setInterval(updateLocationData, 30000);
+
+// Initial load
+document.addEventListener('DOMContentLoaded', function() {
+    updateLocationData();
+});
+</script>
+{% endblock %} 
