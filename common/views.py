@@ -1905,7 +1905,9 @@ def generate_daily_dashboard_html(request, selected_date):
     # Count clock-ins by hour and department
     for event in clock_events:
         if event.event_type.name == "Clock In":
-            hour = event.timestamp.hour
+            # Convert to local timezone for hour calculation
+            local_timestamp = timezone.localtime(event.timestamp)
+            hour = local_timestamp.hour
             if 7 <= hour <= 18:  # Only count hours in our range
                 dept = employee_departments.get(event.employee.id, "Administration")
                 dept_idx = departments.index(dept)
@@ -1972,7 +1974,9 @@ def generate_employee_history_html(request, employee_id, start_date, end_date):
         total_hours = 0
 
         for event in events:
-            event_date = event.timestamp.date()
+            # Convert to local timezone for date calculation
+            local_timestamp = timezone.localtime(event.timestamp)
+            event_date = local_timestamp.date()
             if event_date not in event_days:
                 event_days[event_date] = {
                     "date": event_date,
@@ -2231,8 +2235,10 @@ def generate_period_summary_html(
         for event in events:
             employee_id = event.employee.id
             employee_name = f"{event.employee.given_name} {event.employee.surname}"
-            event_date = event.timestamp.date()
-            event_time = timezone.localtime(event.timestamp).time()
+            # Convert to local timezone for date and time calculations
+            local_timestamp = timezone.localtime(event.timestamp)
+            event_date = local_timestamp.date()
+            event_time = local_timestamp.time()
 
             # Determine which period this event belongs to
             if period_type == "day":
@@ -2846,7 +2852,9 @@ def employee_history_report_csv(request):
         event_days = {}
         clock_in_time = None
         for event in events:
-            event_date = event.timestamp.date()
+            # Convert to local timezone for date calculation
+            local_timestamp = timezone.localtime(event.timestamp)
+            event_date = local_timestamp.date()
             if event_date not in event_days:
                 event_days[event_date] = {
                     "clock_in": None,
@@ -2927,7 +2935,9 @@ def period_summary_report_csv(request):
     for event in events:
         employee_id = event.employee.id
         employee_name = f"{event.employee.given_name} {event.employee.surname}"
-        event_date = event.timestamp.date()
+        # Convert to local timezone for date calculation
+        local_timestamp = timezone.localtime(event.timestamp)
+        event_date = local_timestamp.date()
         if period == "day":
             period_key = event_date
         elif period == "week":

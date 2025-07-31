@@ -458,9 +458,11 @@ class Event(models.Model):
     def _create_attendance_record(self):
         """Create a new attendance record for this event's date."""
         # Check if attendance record already exists for this employee and date
+        # Convert to local timezone for date calculation
+        local_timestamp = timezone.localtime(self.timestamp)
         attendance_record, created = AttendanceRecord.objects.get_or_create(
             employee=self.employee,
-            date=self.timestamp.date(),
+            date=local_timestamp.date(),
             defaults={
                 'created_by': self.created_by,
                 'status': 'DRAFT'
@@ -469,7 +471,7 @@ class Event(models.Model):
         
         if created:
             # Log the creation
-            print(f"Created attendance record for {self.employee} on {self.timestamp.date()}")
+            print(f"Created attendance record for {self.employee} on {local_timestamp.date()}")
         else:
             # Update the existing record
             attendance_record.last_updated_by = self.created_by
@@ -477,10 +479,12 @@ class Event(models.Model):
 
     def _update_attendance_record(self):
         """Update existing attendance record for this event's date."""
+        # Convert to local timezone for date calculation
+        local_timestamp = timezone.localtime(self.timestamp)
         try:
             attendance_record = AttendanceRecord.objects.get(
                 employee=self.employee,
-                date=self.timestamp.date()
+                date=local_timestamp.date()
             )
             attendance_record.last_updated_by = self.created_by
             attendance_record.save()

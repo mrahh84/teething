@@ -85,7 +85,9 @@ def clock_employee(card_designation, action='in'):
         created_by=admin_user
     )
     
-    print(f"  Successfully {event_type_name.lower()}ed {employee.given_name} {employee.surname} at {event.timestamp.strftime('%Y-%m-%d %H:%M:%S')}.")
+    # Convert to local timezone for display
+    local_timestamp = timezone.localtime(event.timestamp)
+    print(f"  Successfully {event_type_name.lower()}ed {employee.given_name} {employee.surname} at {local_timestamp.strftime('%Y-%m-%d %H:%M:%S')}.")
     return True
 
 
