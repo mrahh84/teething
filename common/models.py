@@ -305,7 +305,9 @@ class AttendanceRecord(models.Model):
         ).order_by('timestamp').first()
         
         if clock_in_event:
-            return clock_in_event.timestamp.time()
+            # Convert to local timezone before extracting time
+            local_timestamp = timezone.localtime(clock_in_event.timestamp)
+            return local_timestamp.time()
         return None
 
     @property
@@ -316,7 +318,10 @@ class AttendanceRecord(models.Model):
             timestamp__date=self.date
         ).order_by('timestamp').first()
         
-        return clock_in_event.timestamp if clock_in_event else None
+        if clock_in_event:
+            # Convert to local timezone
+            return timezone.localtime(clock_in_event.timestamp)
+        return None
 
     @property
     def departure_time(self):
@@ -327,7 +332,9 @@ class AttendanceRecord(models.Model):
         ).order_by('timestamp').last()
         
         if clock_out_event:
-            return clock_out_event.timestamp.time()
+            # Convert to local timezone before extracting time
+            local_timestamp = timezone.localtime(clock_out_event.timestamp)
+            return local_timestamp.time()
         return None
 
     @property
@@ -338,6 +345,7 @@ class AttendanceRecord(models.Model):
         
         if arrival and departure:
             # Convert departure time to datetime for calculation
+            # departure is already in local timezone from the property
             departure_datetime = timezone.make_aware(
                 timezone.datetime.combine(self.date, departure)
             )
