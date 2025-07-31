@@ -89,6 +89,7 @@
     
     {% if user|has_any_role:"reporting,attendance,admin" %}
         <a href="{% url 'comprehensive_reports' %}" class="nav-link {% if request.resolver_match.url_name == 'comprehensive_reports' or request.resolver_match.url_name == 'attendance_analytics' %}active{% endif %}">Analytics & Reports</a>
+        <a href="{% url 'location_dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'location_dashboard' %}active{% endif %}">📍 Location Dashboard</a>
     {% endif %}
 </div>
 {% block attendance_content %}{% endblock %}

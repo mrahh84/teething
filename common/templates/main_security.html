@@ -227,6 +227,7 @@
                 
                 {% if user|has_any_role:"reporting,attendance,admin" %}
                     <a href="{% url 'reports_dashboard' %}" class="btn">📊 Reports</a>
+                    <a href="{% url 'location_dashboard' %}" class="btn">📍 Location Dashboard</a>
                 {% endif %}
                 
                 <form action="{% url 'logout' %}" method="post" style="display:inline;">
