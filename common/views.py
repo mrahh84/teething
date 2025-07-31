@@ -31,7 +31,11 @@ from .models import (
     AnalyticsCache, ReportConfiguration, EmployeeAnalytics, DepartmentAnalytics, SystemPerformance,
     TaskAssignment, LocationMovement, LocationAnalytics
 )
-from .forms import AttendanceRecordForm, BulkHistoricalUpdateForm, ProgressiveEntryForm, HistoricalProgressiveEntryForm, AttendanceFilterForm
+from .forms import (
+    AttendanceRecordForm, BulkHistoricalUpdateForm, ProgressiveEntryForm, 
+    HistoricalProgressiveEntryForm, AttendanceFilterForm,
+    TaskAssignmentForm, BulkTaskAssignmentForm, LocationAssignmentFilterForm
+)
 from .serializers import (
     EmployeeSerializer,
     EventSerializer,
@@ -3734,3 +3738,244 @@ def location_summary_api(request):
         })
     
     return JsonResponse({'locations': summary})
+
+def location_assignment_list(request):
+    """List and filter location assignments."""
+    
+    # Get filter parameters
+    form = LocationAssignmentFilterForm(request.GET)
+    assignments = TaskAssignment.objects.select_related('employee', 'location').all()
+    
+    if form.is_valid():
+        # Apply filters
+        if form.cleaned_data.get('date_from'):
+            assignments = assignments.filter(assigned_date__gte=form.cleaned_data['date_from'])
+        
+        if form.cleaned_data.get('date_to'):
+            assignments = assignments.filter(assigned_date__lte=form.cleaned_data['date_to'])
+        
+        if form.cleaned_data.get('employee'):
+            assignments = assignments.filter(employee=form.cleaned_data['employee'])
+        
+        if form.cleaned_data.get('location'):
+            assignments = assignments.filter(location=form.cleaned_data['location'])
+        
+        if form.cleaned_data.get('task_type'):
+            assignments = assignments.filter(task_type__icontains=form.cleaned_data['task_type'])
+        
+        if form.cleaned_data.get('is_completed') == 'yes':
+            assignments = assignments.filter(is_completed=True)
+        elif form.cleaned_data.get('is_completed') == 'no':
+            assignments = assignments.filter(is_completed=False)
+    
+    # Pagination
+    paginator = Paginator(assignments, 25)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'form': form,
+        'total_assignments': assignments.count(),
+        'completed_assignments': assignments.filter(is_completed=True).count(),
+        'pending_assignments': assignments.filter(is_completed=False).count(),
+    }
+    
+    return render(request, 'common/location_assignment_list.html', context)
+
+
+def location_assignment_create(request):
+    """Create a new location assignment."""
+    
+    if request.method == 'POST':
+        form = TaskAssignmentForm(request.POST)
+        if form.is_valid():
+            assignment = form.save(commit=False)
+            assignment.created_by = request.user
+            assignment.save()
+            
+            # Create location movement record
+            LocationMovement.objects.create(
+                employee=assignment.employee,
+                to_location=assignment.location,
+                movement_type='TASK_ASSIGNMENT',
+                notes=f'Assignment created: {assignment.task_type}',
+                created_by=request.user
+            )
+            
+            messages.success(request, f'Assignment created for {assignment.employee} at {assignment.location}')
+            return redirect('location_assignment_list')
+    else:
+        form = TaskAssignmentForm()
+    
+    context = {
+        'form': form,
+        'title': 'Create Location Assignment',
+        'submit_text': 'Create Assignment'
+    }
+    
+    return render(request, 'common/location_assignment_form.html', context)
+
+
+def location_assignment_edit(request, assignment_id):
+    """Edit an existing location assignment."""
+    
+    try:
+        assignment = TaskAssignment.objects.get(id=assignment_id)
+    except TaskAssignment.DoesNotExist:
+        messages.error(request, 'Assignment not found')
+        return redirect('location_assignment_list')
+    
+    if request.method == 'POST':
+        form = TaskAssignmentForm(request.POST, instance=assignment)
+        if form.is_valid():
+            old_location = assignment.location
+            assignment = form.save()
+            
+            # Create movement record if location changed
+            if old_location != assignment.location:
+                LocationMovement.objects.create(
+                    employee=assignment.employee,
+                    from_location=old_location,
+                    to_location=assignment.location,
+                    movement_type='TASK_ASSIGNMENT',
+                    notes=f'Assignment moved from {old_location} to {assignment.location}',
+                    created_by=request.user
+                )
+            
+            messages.success(request, f'Assignment updated for {assignment.employee}')
+            return redirect('location_assignment_list')
+    else:
+        form = TaskAssignmentForm(instance=assignment)
+    
+    context = {
+        'form': form,
+        'assignment': assignment,
+        'title': 'Edit Location Assignment',
+        'submit_text': 'Update Assignment'
+    }
+    
+    return render(request, 'common/location_assignment_form.html', context)
+
+
+def location_assignment_delete(request, assignment_id):
+    """Delete a location assignment."""
+    
+    try:
+        assignment = TaskAssignment.objects.get(id=assignment_id)
+    except TaskAssignment.DoesNotExist:
+        messages.error(request, 'Assignment not found')
+        return redirect('location_assignment_list')
+    
+    if request.method == 'POST':
+        employee_name = f"{assignment.employee.given_name} {assignment.employee.surname}"
+        location_name = assignment.location.name
+        assignment.delete()
+        
+        messages.success(request, f'Assignment for {employee_name} at {location_name} deleted')
+        return redirect('location_assignment_list')
+    
+    context = {
+        'assignment': assignment,
+        'title': 'Delete Location Assignment'
+    }
+    
+    return render(request, 'common/location_assignment_confirm_delete.html', context)
+
+
+def bulk_location_assignment(request):
+    """Bulk assign employees to a location."""
+    
+    if request.method == 'POST':
+        form = BulkTaskAssignmentForm(request.POST)
+        if form.is_valid():
+            assigned_date = form.cleaned_data['assigned_date']
+            location = form.cleaned_data['location']
+            task_type = form.cleaned_data['task_type']
+            start_time = form.cleaned_data.get('start_time')
+            end_time = form.cleaned_data.get('end_time')
+            
+            assignments_created = 0
+            employees_assigned = []
+            
+            for field_name, value in form.cleaned_data.items():
+                if field_name.startswith('assign_') and value:
+                    employee_id = field_name.replace('assign_', '')
+                    try:
+                        employee = Employee.objects.get(id=employee_id)
+                        
+                        # Check if assignment already exists
+                        assignment, created = TaskAssignment.objects.get_or_create(
+                            employee=employee,
+                            location=location,
+                            assigned_date=assigned_date,
+                            defaults={
+                                'task_type': task_type,
+                                'start_time': start_time,
+                                'end_time': end_time,
+                                'created_by': request.user
+                            }
+                        )
+                        
+                        if created:
+                            assignments_created += 1
+                            employees_assigned.append(employee)
+                            
+                            # Create movement record
+                            LocationMovement.objects.create(
+                                employee=employee,
+                                to_location=location,
+                                movement_type='TASK_ASSIGNMENT',
+                                notes=f'Bulk assignment: {task_type}',
+                                created_by=request.user
+                            )
+                    
+                    except Employee.DoesNotExist:
+                        continue
+            
+            if assignments_created > 0:
+                messages.success(
+                    request, 
+                    f'Created {assignments_created} assignments for {location.name}'
+                )
+            else:
+                messages.warning(request, 'No new assignments created (may already exist)')
+            
+            return redirect('location_assignment_list')
+    else:
+        form = BulkTaskAssignmentForm()
+    
+    context = {
+        'form': form,
+        'title': 'Bulk Location Assignment',
+        'submit_text': 'Create Assignments'
+    }
+    
+    return render(request, 'common/bulk_location_assignment_form.html', context)
+
+
+def location_assignment_complete(request, assignment_id):
+    """Mark an assignment as completed."""
+    
+    try:
+        assignment = TaskAssignment.objects.get(id=assignment_id)
+    except TaskAssignment.DoesNotExist:
+        messages.error(request, 'Assignment not found')
+        return redirect('location_assignment_list')
+    
+    if request.method == 'POST':
+        assignment.is_completed = True
+        assignment.save()
+        
+        messages.success(
+            request, 
+            f'Assignment for {assignment.employee} at {assignment.location} marked as completed'
+        )
+        return redirect('location_assignment_list')
+    
+    context = {
+        'assignment': assignment,
+        'title': 'Complete Assignment'
+    }
+    
+    return render(request, 'common/location_assignment_confirm_complete.html', context)

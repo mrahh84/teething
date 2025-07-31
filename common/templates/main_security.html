@@ -225,10 +225,11 @@
                     <a href="{% url 'progressive_entry' %}" class="btn">📝 Progressive Entry</a>
                 {% endif %}
                 
-                {% if user|has_any_role:"reporting,attendance,admin" %}
-                    <a href="{% url 'reports_dashboard' %}" class="btn">📊 Reports</a>
-                    <a href="{% url 'location_dashboard' %}" class="btn">📍 Location Dashboard</a>
-                {% endif %}
+                                      {% if user|has_any_role:"reporting,attendance,admin" %}
+                          <a href="{% url 'reports_dashboard' %}" class="btn">📊 Reports</a>
+                          <a href="{% url 'location_dashboard' %}" class="btn">📍 Location Dashboard</a>
+                          <a href="{% url 'location_assignment_list' %}" class="btn">📋 Assignments</a>
+                      {% endif %}
                 
                 <form action="{% url 'logout' %}" method="post" style="display:inline;">
                   {% csrf_token %}

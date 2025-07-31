@@ -65,6 +65,12 @@ report_urls = [
 # Location tracking section
 location_urls = [
     path("location-dashboard/", views.location_dashboard, name="location_dashboard"),
+    path("location-assignments/", views.location_assignment_list, name="location_assignment_list"),
+    path("location-assignments/create/", views.location_assignment_create, name="location_assignment_create"),
+    path("location-assignments/<int:assignment_id>/edit/", views.location_assignment_edit, name="location_assignment_edit"),
+    path("location-assignments/<int:assignment_id>/delete/", views.location_assignment_delete, name="location_assignment_delete"),
+    path("location-assignments/<int:assignment_id>/complete/", views.location_assignment_complete, name="location_assignment_complete"),
+    path("location-assignments/bulk/", views.bulk_location_assignment, name="bulk_location_assignment"),
 ]
 
 # API endpoints
