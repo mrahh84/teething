@@ -3297,9 +3297,9 @@ def get_department_from_designation(designation):
         dept = raw_dept.lower()
         
         # Map to main departments
-        if 'digitization' in dept and 'tech' in dept:
+        if ('digitization' in dept or 'digitzation' in dept) and 'tech' in dept:
             return 'Digitization Tech'
-        elif 'digitization' in dept:
+        elif 'digitization' in dept or 'digitzation' in dept:
             return 'Digitization Tech'
         elif 'tech' in dept and 'compute' in dept:
             return 'Tech Compute'
