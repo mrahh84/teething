@@ -29,7 +29,7 @@ DEBUG = config("DEBUG", default=False, cast=bool)
 
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv())
 
-STATIC_ROOT = "static"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Application definition
 
@@ -175,6 +175,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = "static/"
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
 
 # Security settings
 # Allow same-origin iframe loading for reports
