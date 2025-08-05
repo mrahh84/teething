@@ -810,7 +810,7 @@ def attendance_list(request):
     display_records.sort(key=lambda x: (x.employee.surname, x.employee.given_name))
     
     # Pagination
-    paginator = Paginator(display_records, 25)  # Show 25 records per page
+    paginator = Paginator(display_records, 50)  # Show 50 records per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
