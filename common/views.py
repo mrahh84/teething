@@ -705,12 +705,12 @@ def attendance_list(request):
     
     # Default to today if no date specified
     if not date_filter:
-        date_filter = timezone.now().date().isoformat()
+        date_filter = timezone.localtime(timezone.now()).date().isoformat()
     
     try:
         target_date = datetime.strptime(date_filter, '%Y-%m-%d').date()
     except ValueError:
-        target_date = timezone.now().date()
+        target_date = timezone.localtime(timezone.now()).date()
     
     # Get all active employees with optimized prefetch
     all_employees = Employee.objects.filter(is_active=True).select_related('card_number').order_by('surname', 'given_name')
@@ -743,8 +743,13 @@ def attendance_list(request):
     
     # Identify absent employees (those who didn't clock in) - OPTIMIZED
     from datetime import time
-    start_of_day = timezone.make_aware(datetime.combine(target_date, time.min))
-    end_of_day = timezone.make_aware(datetime.combine(target_date, time.max))
+    # Convert local date to UTC for proper timezone handling
+    start_of_day_local = timezone.make_aware(datetime.combine(target_date, time.min))
+    end_of_day_local = timezone.make_aware(datetime.combine(target_date, time.max))
+    
+    # Convert to UTC for database query
+    start_of_day = start_of_day_local.astimezone(timezone.utc)
+    end_of_day = end_of_day_local.astimezone(timezone.utc)
     
     # Single optimized query to get all clocked-in employee IDs
     clocked_in_employees = set(
@@ -863,7 +868,7 @@ def historical_progressive_entry(request):
                 if date_from_param.startswith('-') and date_to_param.startswith('-'):
                     days_from = int(date_from_param)
                     days_to = int(date_to_param)
-                    today = timezone.now().date()
+                    today = timezone.localtime(timezone.now()).date()
                     date_from = today + timedelta(days=days_from)
                     date_to = today + timedelta(days=days_to)
                 else:
@@ -3101,7 +3106,7 @@ def bulk_historical_update(request):
 @xframe_options_sameorigin
 def comprehensive_attendance_report(request):
     """Comprehensive attendance report based on the CSV analysis format"""
-    today = timezone.now().date()
+    today = timezone.localtime(timezone.now()).date()
     
     # Get date range parameters
     start_date = request.GET.get('start_date', (today - timedelta(days=30)).isoformat())
@@ -3404,7 +3409,7 @@ class LiveAttendanceCounterView(generics.RetrieveAPIView):
         from django.db.models import Count, Q
         from django.utils import timezone
         
-        today = timezone.now().date()
+        today = timezone.localtime(timezone.now()).date()
         
         # Get total employees
         total_employees = Employee.objects.filter(is_active=True).count()
@@ -3457,7 +3462,7 @@ def realtime_analytics_dashboard(request):
 @extend_schema(exclude=True)
 def comprehensive_attendance_export_csv(request):
     """Export comprehensive attendance report data to CSV with sorting capabilities"""
-    today = timezone.now().date()
+    today = timezone.localtime(timezone.now()).date()
     
     # Get parameters
     start_date = request.GET.get('start_date', (today - timedelta(days=30)).isoformat())
