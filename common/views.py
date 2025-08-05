@@ -1033,7 +1033,27 @@ def historical_progressive_results(request):
         for emp in present_employee_objects:
             # Find existing record for this employee on this date
             existing_record = existing_records.filter(employee=emp).first()
+            
+            # Get clock in/out events for this employee on this date
+            clock_events = Event.objects.filter(
+                employee=emp,
+                timestamp__date=date_key,
+                event_type__name__in=['Clock In', 'Clock Out']
+            ).select_related('event_type').order_by('timestamp')
+            
+            # Extract clock in/out times
+            clock_in_time = None
+            clock_out_time = None
+            for event in clock_events:
+                if event.event_type.name == 'Clock In':
+                    clock_in_time = event.timestamp
+                elif event.event_type.name == 'Clock Out':
+                    clock_out_time = event.timestamp
+            
             if existing_record:
+                # Add clock times to existing record
+                existing_record.clock_in_time = clock_in_time
+                existing_record.clock_out_time = clock_out_time
                 employee_records.append(existing_record)
             else:
                 # Create a dummy record object for present employees without attendance records
@@ -1052,6 +1072,8 @@ def historical_progressive_results(request):
                     'last_updated_by': None,
                     'updated_at': None,
                     'notes': '',
+                    'clock_in_time': clock_in_time,
+                    'clock_out_time': clock_out_time,
                 })()
                 employee_records.append(dummy_record)
         

@@ -66,6 +66,9 @@ class DatabaseOptimizationTestCase(TestCase):
                     'created_by': self.user
                 }
             )
+        
+        # Create attendance role for the test user
+        UserRole.objects.create(user=self.user, role='attendance')
     
     def test_progressive_entry_query_optimization(self):
         """Test that progressive_entry view uses optimized queries."""
@@ -278,6 +281,47 @@ class DatabaseOptimizationTestCase(TestCase):
         record = AttendanceRecord.objects.filter(employee=employee, date=timezone.now().date()).first()
         self.assertIsNotNone(record)
         self.assertEqual(record.standup_attendance, 'YES')
+
+    def test_historical_progressive_results_with_clock_times(self):
+        """Test that historical progressive results include clock in/out times."""
+        client = Client()
+        client.force_login(self.user)
+        
+        # Create test data with clock in/out events
+        today = timezone.now().date()
+        start_of_day = timezone.make_aware(datetime.combine(today, time.min))
+        
+        # Create clock in/out events for test employee
+        test_employee = self.employees[0]
+        clock_in_event = Event.objects.create(
+            employee=test_employee,
+            event_type=self.clock_in_type,
+            location=self.location,
+            timestamp=start_of_day + timedelta(hours=9, minutes=30),  # 9:30 AM
+            created_by=self.user
+        )
+        clock_out_event = Event.objects.create(
+            employee=test_employee,
+            event_type=self.clock_out_type,
+            location=self.location,
+            timestamp=start_of_day + timedelta(hours=17, minutes=30),  # 5:30 PM
+            created_by=self.user
+        )
+        
+        # Test the historical progressive results view
+        response = client.get(
+            reverse('historical_progressive_results'),
+            {
+                'date_from': today.isoformat(),
+                'date_to': today.isoformat(),
+                'department': 'All Departments'
+            }
+        )
+        
+        self.assertEqual(response.status_code, 200)
+        # Verify that clock times are included in the response
+        self.assertContains(response, '09:30')  # Clock in time
+        self.assertContains(response, '17:30')  # Clock out time
 
 
 class PerformanceMonitoringTestCase(TestCase):
@@ -1386,6 +1430,8 @@ class RealTimeAnalyticsTestCase(TestCase):
         self.assertContains(response, 'Live Employee Status')
         self.assertContains(response, 'Attendance Heat Map')
         self.assertContains(response, 'Employee Movement Flow')
+
+
 
 
 if __name__ == '__main__':
