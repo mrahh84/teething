@@ -15,7 +15,8 @@ from rest_framework import generics
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from django.db.models import Q, Count, Prefetch, Avg
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, timezone
+import datetime as dt
 from django.urls import reverse
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.contrib.auth import authenticate, login
@@ -619,8 +620,8 @@ def progressive_entry(request):
     end_of_day_local = timezone.make_aware(datetime.combine(today, time.max))
     
     # Convert to UTC for database query
-    start_of_day_utc = start_of_day_local.astimezone(datetime.timezone.utc)
-    end_of_day_utc = end_of_day_local.astimezone(datetime.timezone.utc)
+    start_of_day_utc = start_of_day_local.astimezone(dt.timezone.utc)
+    end_of_day_utc = end_of_day_local.astimezone(dt.timezone.utc)
     
     # Get employees who clocked in today (using UTC timestamps)
     present_employees = Event.objects.filter(
@@ -748,8 +749,8 @@ def attendance_list(request):
     end_of_day_local = timezone.make_aware(datetime.combine(target_date, time.max))
     
     # Convert to UTC for database query
-    start_of_day = start_of_day_local.astimezone(datetime.timezone.utc)
-    end_of_day = end_of_day_local.astimezone(datetime.timezone.utc)
+    start_of_day = start_of_day_local.astimezone(dt.timezone.utc)
+    end_of_day = end_of_day_local.astimezone(dt.timezone.utc)
     
     # Single optimized query to get all clocked-in employee IDs
     clocked_in_employees = set(
