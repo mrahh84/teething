@@ -9,13 +9,13 @@ from django.shortcuts import (
     redirect,
     render,
 )
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from django.db.models import Q, Count, Prefetch, Avg
-from datetime import datetime, timedelta, date, timezone
+from datetime import datetime, timedelta, date
 import datetime as dt
 from django.urls import reverse
 from django.views.decorators.clickjacking import xframe_options_sameorigin
@@ -355,16 +355,16 @@ def attendance_analytics(request):
     
     # Default to last 30 days if no dates provided
     if not start_date:
-        start_date = (timezone.now() - timedelta(days=30)).date().isoformat()
+        start_date = (django_timezone.now() - timedelta(days=30)).date().isoformat()
     if not end_date:
-        end_date = timezone.now().date().isoformat()
+        end_date = django_timezone.now().date().isoformat()
     
     try:
         start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
         end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
     except ValueError:
-        start_date = (timezone.now() - timedelta(days=30)).date()
-        end_date = timezone.now().date()
+        start_date = (django_timezone.now() - timedelta(days=30)).date()
+        end_date = django_timezone.now().date()
     
     # Get all employees
     employees = Employee.objects.filter(is_active=True).order_by('surname', 'given_name')
@@ -451,8 +451,8 @@ def comprehensive_reports(request):
 
     active_tab = request.GET.get('tab', 'comprehensive_attendance')
     
-    start_date = request.GET.get('start_date', timezone.now().date().replace(day=1).isoformat())
-    end_date = request.GET.get('end_date', timezone.now().date().isoformat())
+    start_date = request.GET.get('start_date', django_timezone.now().date().replace(day=1).isoformat())
+    end_date = request.GET.get('end_date', django_timezone.now().date().isoformat())
     department_filter = request.GET.get('department', 'Digitization Tech')  # Default to Digitization Tech
     
     employee_id = request.GET.get("employee_id")
@@ -481,7 +481,7 @@ def comprehensive_reports(request):
         "selected_period": period,
         "start_time": start_time,
         "end_time": end_time,
-        "timestamp": int(timezone.now().timestamp()),
+        "timestamp": int(django_timezone.now().timestamp()),
     }
     
     return render(request, "reports/comprehensive_reports.html", context)
@@ -491,7 +491,7 @@ def comprehensive_reports(request):
 @extend_schema(exclude=True)
 def progressive_entry(request):
     """Progressive attendance entry - optimized with bulk prefetch"""
-    today = timezone.localtime(timezone.now()).date()
+    today = django_timezone.localtime(django_timezone.now()).date()
     
     # Get request parameters for filtering
     start_letter = request.GET.get("start_letter", "")
@@ -616,8 +616,8 @@ def progressive_entry(request):
     # Get employees who were actually present (had clock-in events) today
     from datetime import time
     # Convert today to UTC for proper timezone handling
-    start_of_day_local = timezone.make_aware(datetime.combine(today, time.min))
-    end_of_day_local = timezone.make_aware(datetime.combine(today, time.max))
+    start_of_day_local = django_timezone.make_aware(datetime.combine(today, time.min))
+    end_of_day_local = django_timezone.make_aware(datetime.combine(today, time.max))
     
     # Convert to UTC for database query
     start_of_day_utc = start_of_day_local.astimezone(dt.timezone.utc)
@@ -706,12 +706,12 @@ def attendance_list(request):
     
     # Default to today if no date specified
     if not date_filter:
-        date_filter = timezone.localtime(timezone.now()).date().isoformat()
+        date_filter = django_timezone.localtime(django_timezone.now()).date().isoformat()
     
     try:
         target_date = datetime.strptime(date_filter, '%Y-%m-%d').date()
     except ValueError:
-        target_date = timezone.localtime(timezone.now()).date()
+        target_date = django_timezone.localtime(django_timezone.now()).date()
     
     # Get all active employees with optimized prefetch
     all_employees = Employee.objects.filter(is_active=True).select_related('card_number').order_by('surname', 'given_name')
@@ -745,8 +745,8 @@ def attendance_list(request):
     # Identify absent employees (those who didn't clock in) - OPTIMIZED
     from datetime import time
     # Convert local date to UTC for proper timezone handling
-    start_of_day_local = timezone.make_aware(datetime.combine(target_date, time.min))
-    end_of_day_local = timezone.make_aware(datetime.combine(target_date, time.max))
+    start_of_day_local = django_timezone.make_aware(datetime.combine(target_date, time.min))
+    end_of_day_local = django_timezone.make_aware(datetime.combine(target_date, time.max))
     
     # Convert to UTC for database query
     start_of_day = start_of_day_local.astimezone(dt.timezone.utc)
@@ -869,7 +869,7 @@ def historical_progressive_entry(request):
                 if date_from_param.startswith('-') and date_to_param.startswith('-'):
                     days_from = int(date_from_param)
                     days_to = int(date_to_param)
-                    today = timezone.localtime(timezone.now()).date()
+                    today = django_timezone.localtime(django_timezone.now()).date()
                     date_from = today + timedelta(days=days_from)
                     date_to = today + timedelta(days=days_to)
                 else:
@@ -1131,16 +1131,16 @@ def attendance_export_csv(request):
     
     # Default to last 30 days if no dates provided
     if not start_date:
-        start_date = (timezone.now() - timedelta(days=30)).date().isoformat()
+        start_date = (django_timezone.now() - timedelta(days=30)).date().isoformat()
     if not end_date:
-        end_date = timezone.now().date().isoformat()
+        end_date = django_timezone.now().date().isoformat()
     
     try:
         start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
         end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
     except ValueError:
-        start_date = (timezone.now() - timedelta(days=30)).date()
-        end_date = timezone.now().date()
+        start_date = (django_timezone.now() - timedelta(days=30)).date()
+        end_date = django_timezone.now().date()
     
     # Get attendance records
     records = AttendanceRecord.objects.filter(
@@ -1256,7 +1256,7 @@ def main_security(request):
 
     # Prefetch related events with only the latest clock in/out events to improve performance
     # This optimizes the is_clocked_in calculation
-    one_month_ago = timezone.now() - timedelta(days=30)
+    one_month_ago = django_timezone.now() - timedelta(days=30)
     latest_events = (
         Event.objects.filter(
             timestamp__gte=one_month_ago, event_type__name__in=["Clock In", "Clock Out"]
@@ -1387,7 +1387,7 @@ def main_security_clocked_in_status_flip(request, id):
     if recent_events.exists():
         most_recent_event = recent_events.first()
         # Simplified timezone handling - Django handles timezone conversion automatically
-        current_time = timezone.now()
+        current_time = django_timezone.now()
         event_time = most_recent_event.timestamp
         
         # Simple time difference calculation
@@ -1442,7 +1442,7 @@ def main_security_clocked_in_status_flip(request, id):
         event_type=event_type,
         location=location,
         created_by=request.user,  # Record which logged-in user performed the action
-        timestamp=timezone.localtime(timezone.now())  # Use local timezone instead of UTC
+        timestamp=django_timezone.localtime(django_timezone.now())  # Use local timezone instead of UTC
     )
 
     # Optional: Add a success message with time and date
@@ -1507,7 +1507,7 @@ def employee_events(request, id):
     locations = Location.objects.all()
 
     # Get some statistics for the employee
-    today = timezone.now().date()
+    today = django_timezone.now().date()
     week_ago = today - timedelta(days=7)
 
     today_events_count = Event.objects.filter(
@@ -1574,7 +1574,7 @@ def update_event(request, employee_id):
         # Parse date and time
         date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
         time_obj = datetime.strptime(time_str, "%H:%M:%S").time()
-        timestamp = timezone.make_aware(datetime.combine(date_obj, time_obj))
+        timestamp = django_timezone.make_aware(datetime.combine(date_obj, time_obj))
 
         # Update event
         event.event_type = event_type
@@ -1635,7 +1635,7 @@ def daily_dashboard_report(request):
     Display the daily attendance dashboard using Marimo.
     """
     # Get today's date in local timezone
-    today_local = timezone.localtime().date()
+    today_local = django_timezone.localtime().date()
 
     # Get filter parameters
     date_str = request.GET.get("date", today_local.isoformat())
@@ -1667,9 +1667,9 @@ def employee_history_report(request):
     # Get filter parameters
     employee_id = request.GET.get("employee_id")
     start_date = request.GET.get(
-        "start_date", timezone.now().date().replace(day=1).isoformat()
+        "start_date", django_timezone.now().date().replace(day=1).isoformat()
     )
-    end_date = request.GET.get("end_date", timezone.now().date().isoformat())
+    end_date = request.GET.get("end_date", django_timezone.now().date().isoformat())
 
     # Get all employees for the dropdown
     employees = Employee.objects.all().order_by("surname", "given_name")
@@ -1699,7 +1699,7 @@ def period_summary_report(request):
     """
     # Get filter parameters
     period = request.GET.get("period", "day")
-    start_date = request.GET.get("start_date", timezone.now().date().isoformat())
+    start_date = request.GET.get("start_date", django_timezone.now().date().isoformat())
     start_time = request.GET.get("start_time", "09:00")
     end_time = request.GET.get("end_time", "17:00")
 
@@ -1737,9 +1737,9 @@ def generate_marimo_report(request, report_type):
 
         # Get filter parameters
         start_date_str = request.GET.get(
-            "start", timezone.now().date().replace(day=1).isoformat()
+            "start", django_timezone.now().date().replace(day=1).isoformat()
         )
-        end_date_str = request.GET.get("end", timezone.now().date().isoformat())
+        end_date_str = request.GET.get("end", django_timezone.now().date().isoformat())
 
         # Convert string dates to datetime objects
         try:
@@ -1757,11 +1757,11 @@ def generate_marimo_report(request, report_type):
         # For now, use fallback HTML reports for all report types
         # This ensures users see something while we resolve Marimo integration issues
         if report_type == "daily_dashboard":
-            date_str = request.GET.get("date", timezone.now().date().isoformat())
+            date_str = request.GET.get("date", django_timezone.now().date().isoformat())
             try:
                 selected_date = datetime.fromisoformat(date_str).date()
             except ValueError:
-                selected_date = timezone.now().date()
+                selected_date = django_timezone.now().date()
 
             return generate_daily_dashboard_html(request, selected_date)
 
@@ -1803,10 +1803,10 @@ def generate_marimo_report(request, report_type):
 def generate_daily_dashboard_html(request, selected_date):
     """Generate HTML report for daily dashboard"""
     # Calculate start and end of selected date
-    start_of_day = timezone.make_aware(
+    start_of_day = django_timezone.make_aware(
         datetime.combine(selected_date, datetime.min.time())
     )
-    end_of_day = timezone.make_aware(
+    end_of_day = django_timezone.make_aware(
         datetime.combine(selected_date, datetime.max.time())
     )
 
@@ -1897,7 +1897,7 @@ def generate_daily_dashboard_html(request, selected_date):
         )
 
         last_event_info = (
-            f"{last_event.event_type.name} at {timezone.localtime(last_event.timestamp).strftime('%H:%M')} on {timezone.localtime(last_event.timestamp).strftime('%Y-%m-%d')}"
+            f"{last_event.event_type.name} at {django_timezone.localtime(last_event.timestamp).strftime('%H:%M')} on {django_timezone.localtime(last_event.timestamp).strftime('%Y-%m-%d')}"
             if last_event
             else "No events recorded"
         )
@@ -1939,7 +1939,7 @@ def generate_daily_dashboard_html(request, selected_date):
     for event in clock_events:
         if event.event_type.name == "Clock In":
             # Convert to local timezone for hour calculation
-            local_timestamp = timezone.localtime(event.timestamp)
+            local_timestamp = django_timezone.localtime(event.timestamp)
             hour = local_timestamp.hour
             if 7 <= hour <= 18:  # Only count hours in our range
                 dept = employee_departments.get(event.employee.id, "Administration")
@@ -1985,10 +1985,10 @@ def generate_employee_history_html(request, employee_id, start_date, end_date):
         employee = get_object_or_404(Employee, id=employee_id)
 
         # Convert to datetime objects for filtering
-        start_datetime = timezone.make_aware(
+        start_datetime = django_timezone.make_aware(
             datetime.combine(start_date, datetime.min.time())
         )
-        end_datetime = timezone.make_aware(
+        end_datetime = django_timezone.make_aware(
             datetime.combine(end_date, datetime.min.time())
         )
 
@@ -2008,7 +2008,7 @@ def generate_employee_history_html(request, employee_id, start_date, end_date):
 
         for event in events:
             # Convert to local timezone for date calculation
-            local_timestamp = timezone.localtime(event.timestamp)
+            local_timestamp = django_timezone.localtime(event.timestamp)
             event_date = local_timestamp.date()
             if event_date not in event_days:
                 event_days[event_date] = {
@@ -2213,10 +2213,10 @@ def generate_period_summary_html(
             end_time = datetime.strptime("17:00", "%H:%M").time()
 
         # Full date range
-        start_datetime = timezone.make_aware(
+        start_datetime = django_timezone.make_aware(
             datetime.combine(start_date, datetime.min.time())
         )
-        end_datetime = timezone.make_aware(
+        end_datetime = django_timezone.make_aware(
             datetime.combine(end_date, datetime.min.time())
         )
 
@@ -2269,7 +2269,7 @@ def generate_period_summary_html(
             employee_id = event.employee.id
             employee_name = f"{event.employee.given_name} {event.employee.surname}"
             # Convert to local timezone for date and time calculations
-            local_timestamp = timezone.localtime(event.timestamp)
+            local_timestamp = django_timezone.localtime(event.timestamp)
             event_date = local_timestamp.date()
             event_time = local_timestamp.time()
 
@@ -2484,12 +2484,12 @@ def generate_period_summary_html(
                 period["employees"].items(), key=lambda x: x[1]["name"]
             ):
                 first_in = (
-                    timezone.localtime(emp_data["first_clock_in"]).strftime("%Y-%m-%d %H:%M")
+                    django_timezone.localtime(emp_data["first_clock_in"]).strftime("%Y-%m-%d %H:%M")
                     if emp_data["first_clock_in"]
                     else "—"
                 )
                 last_out = (
-                    timezone.localtime(emp_data["last_clock_out"]).strftime("%Y-%m-%d %H:%M")
+                    django_timezone.localtime(emp_data["last_clock_out"]).strftime("%Y-%m-%d %H:%M")
                     if emp_data["last_clock_out"]
                     else "—"
                 )
@@ -2555,10 +2555,10 @@ def generate_period_summary_html(
             end_time = datetime.strptime("17:00", "%H:%M").time()
 
         # Full date range
-        start_datetime = timezone.make_aware(
+        start_datetime = django_timezone.make_aware(
             datetime.combine(start_date, datetime.min.time())
         )
-        end_datetime = timezone.make_aware(
+        end_datetime = django_timezone.make_aware(
             datetime.combine(end_date, datetime.min.time())
         )
 
@@ -2573,7 +2573,7 @@ def generate_period_summary_html(
         early_departures = []
 
         for event in events:
-            local_timestamp = timezone.localtime(event.timestamp)
+            local_timestamp = django_timezone.localtime(event.timestamp)
             event_time = local_timestamp.time()
             employee_name = f"{event.employee.given_name} {event.employee.surname}"
 
@@ -2857,9 +2857,9 @@ def employee_history_report_csv(request):
     """Download employee attendance history as CSV"""
     employee_id = request.GET.get("employee_id")
     start_date = request.GET.get(
-        "start_date", (timezone.now() - timedelta(days=30)).date().isoformat()
+        "start_date", (django_timezone.now() - timedelta(days=30)).date().isoformat()
     )
-    end_date = request.GET.get("end_date", timezone.now().date().isoformat())
+    end_date = request.GET.get("end_date", django_timezone.now().date().isoformat())
     if not employee_id:
         return HttpResponseBadRequest("Employee ID is required")
     try:
@@ -2868,10 +2868,10 @@ def employee_history_report_csv(request):
     except ValueError:
         return HttpResponseBadRequest("Invalid date format")
     employee = get_object_or_404(Employee, id=employee_id)
-    start_datetime = timezone.make_aware(
+    start_datetime = django_timezone.make_aware(
         datetime.combine(start_date, datetime.min.time())
     )
-    end_datetime = timezone.make_aware(datetime.combine(end_date, datetime.min.time()))
+    end_datetime = django_timezone.make_aware(datetime.combine(end_date, datetime.min.time()))
     events = (
         Event.objects.filter(
             employee=employee, timestamp__range=(start_datetime, end_datetime)
@@ -2886,7 +2886,7 @@ def employee_history_report_csv(request):
         clock_in_time = None
         for event in events:
             # Convert to local timezone for date calculation
-            local_timestamp = timezone.localtime(event.timestamp)
+            local_timestamp = django_timezone.localtime(event.timestamp)
             event_date = local_timestamp.date()
             if event_date not in event_days:
                 event_days[event_date] = {
@@ -2906,8 +2906,8 @@ def employee_history_report_csv(request):
             day = event_days[date_key]
             yield [
                 date_key.strftime("%Y-%m-%d"),
-                timezone.localtime(day["clock_in"]).strftime("%H:%M") if day["clock_in"] else "",
-                timezone.localtime(day["clock_out"]).strftime("%H:%M") if day["clock_out"] else "",
+                django_timezone.localtime(day["clock_in"]).strftime("%H:%M") if day["clock_in"] else "",
+                django_timezone.localtime(day["clock_out"]).strftime("%H:%M") if day["clock_out"] else "",
                 day["hours"],
             ]
 
@@ -2923,12 +2923,12 @@ def employee_history_report_csv(request):
 def period_summary_report_csv(request):
     """Download period summary as CSV"""
     period = request.GET.get("period", "day")
-    start_date = request.GET.get("start_date", timezone.now().date().isoformat())
+    start_date = request.GET.get("start_date", django_timezone.now().date().isoformat())
     start_time = request.GET.get("start_time", "09:00")
     end_time = request.GET.get("end_time", "17:00")
     try:
         start_date = datetime.fromisoformat(start_date).date()
-        end_date = timezone.now().date()
+        end_date = django_timezone.now().date()
     except ValueError:
         return HttpResponseBadRequest("Invalid date format")
     end_date = request.GET.get("end_date", end_date.isoformat())
@@ -2936,10 +2936,10 @@ def period_summary_report_csv(request):
         end_date = datetime.fromisoformat(end_date).date()
     except ValueError:
         return HttpResponseBadRequest("Invalid end date format")
-    start_datetime = timezone.make_aware(
+    start_datetime = django_timezone.make_aware(
         datetime.combine(start_date, datetime.min.time())
     )
-    end_datetime = timezone.make_aware(datetime.combine(end_date, datetime.min.time()))
+    end_datetime = django_timezone.make_aware(datetime.combine(end_date, datetime.min.time()))
     events = Event.objects.filter(
         timestamp__range=(start_datetime, end_datetime),
         event_type__name__in=["Clock In", "Clock Out"],
@@ -2969,7 +2969,7 @@ def period_summary_report_csv(request):
         employee_id = event.employee.id
         employee_name = f"{event.employee.given_name} {event.employee.surname}"
         # Convert to local timezone for date calculation
-        local_timestamp = timezone.localtime(event.timestamp)
+        local_timestamp = django_timezone.localtime(event.timestamp)
         event_date = local_timestamp.date()
         if period == "day":
             period_key = event_date
@@ -3014,10 +3014,10 @@ def period_summary_report_csv(request):
                 yield [
                     str(period_key),
                     emp_data["name"],
-                    timezone.localtime(emp_data["first_clock_in"]).strftime("%Y-%m-%d %H:%M")
+                    django_timezone.localtime(emp_data["first_clock_in"]).strftime("%Y-%m-%d %H:%M")
                     if emp_data["first_clock_in"]
                     else "",
-                    timezone.localtime(emp_data["last_clock_out"]).strftime("%Y-%m-%d %H:%M")
+                    django_timezone.localtime(emp_data["last_clock_out"]).strftime("%Y-%m-%d %H:%M")
                     if emp_data["last_clock_out"]
                     else "",
                     emp_data["hours"],
@@ -3139,7 +3139,7 @@ def bulk_historical_update(request):
 @xframe_options_sameorigin
 def comprehensive_attendance_report(request):
     """Comprehensive attendance report based on the CSV analysis format"""
-    today = timezone.localtime(timezone.now()).date()
+    today = django_timezone.localtime(django_timezone.now()).date()
     
     # Get date range parameters
     start_date = request.GET.get('start_date', (today - timedelta(days=30)).isoformat())
@@ -3440,9 +3440,8 @@ class LiveAttendanceCounterView(generics.RetrieveAPIView):
     def get_object(self):
         """Return live attendance statistics"""
         from django.db.models import Count, Q
-        from django.utils import timezone
         
-        today = timezone.localtime(timezone.now()).date()
+        today = django_timezone.localtime(django_timezone.now()).date()
         
         # Get total employees
         total_employees = Employee.objects.filter(is_active=True).count()
@@ -3468,7 +3467,7 @@ class LiveAttendanceCounterView(generics.RetrieveAPIView):
             'currently_clocked_in': clocked_in,
             'currently_clocked_out': clocked_out,
             'attendance_rate': round(attendance_rate, 1),
-            'last_updated': timezone.now()
+            'last_updated': django_timezone.now()
         }
     
     def retrieve(self, request, *args, **kwargs):
@@ -3495,7 +3494,7 @@ def realtime_analytics_dashboard(request):
 @extend_schema(exclude=True)
 def comprehensive_attendance_export_csv(request):
     """Export comprehensive attendance report data to CSV with sorting capabilities"""
-    today = timezone.localtime(timezone.now()).date()
+    today = django_timezone.localtime(django_timezone.now()).date()
     
     # Get parameters
     start_date = request.GET.get('start_date', (today - timedelta(days=30)).isoformat())
