@@ -245,9 +245,9 @@
             {% if user|has_any_role:"reporting,attendance,admin" %}
             <div class="nav-group">
                 <div class="nav-dropdown">
-                    <button class="nav-dropdown-btn">📊 Analytics</button>
+                    <button class="nav-dropdown-btn">📊 Reports</button>
                     <div class="nav-dropdown-content">
-                        <a href="{% url 'reports_dashboard' %}">Basic Reports</a>
+                        <a href="{% url 'comprehensive_reports' %}">Comprehensive Reports</a>
                         <a href="{% url 'realtime_analytics_dashboard' %}">Real-Time Analytics</a>
                         <a href="{% url 'pattern_recognition_dashboard' %}">Pattern Recognition</a>
                         <a href="{% url 'predictive_analytics_dashboard' %}">Predictive Analytics</a>
