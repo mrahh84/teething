@@ -490,7 +490,7 @@ def comprehensive_reports(request):
 @extend_schema(exclude=True)
 def progressive_entry(request):
     """Progressive attendance entry - optimized with bulk prefetch"""
-    today = timezone.now().date()
+    today = timezone.localtime(timezone.now()).date()
     
     # Get request parameters for filtering
     start_letter = request.GET.get("start_letter", "")
@@ -614,14 +614,19 @@ def progressive_entry(request):
     
     # Get employees who were actually present (had clock-in events) today
     from datetime import time
-    start_of_day = timezone.make_aware(datetime.combine(today, time.min))
-    end_of_day = timezone.make_aware(datetime.combine(today, time.max))
+    # Convert today to UTC for proper timezone handling
+    start_of_day_local = timezone.make_aware(datetime.combine(today, time.min))
+    end_of_day_local = timezone.make_aware(datetime.combine(today, time.max))
     
-    # Get employees who clocked in today
+    # Convert to UTC for database query
+    start_of_day_utc = start_of_day_local.astimezone(timezone.utc)
+    end_of_day_utc = end_of_day_local.astimezone(timezone.utc)
+    
+    # Get employees who clocked in today (using UTC timestamps)
     present_employees = Event.objects.filter(
         event_type__name='Clock In',
-        timestamp__gte=start_of_day,
-        timestamp__lte=end_of_day
+        timestamp__gte=start_of_day_utc,
+        timestamp__lte=end_of_day_utc
     ).values_list('employee', flat=True).distinct()
     
     # Get the actual employee objects for present employees
