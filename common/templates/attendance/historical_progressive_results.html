@@ -128,6 +128,8 @@
                     <thead>
                         <tr>
                             <th>Employee</th>
+                            <th>Clock In</th>
+                            <th>Clock Out</th>
                             <th>Stand-up</th>
                             <th>Lunch Time</th>
                             <th>Left On Time</th>
@@ -147,6 +149,30 @@
                                 </small>
                                 {% elif not record.id %}
                                 <br><small class="new-record-indicator">📝 New Record</small>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Clock In Time -->
+                            <td class="clock-time">
+                                {% if record.clock_in_time %}
+                                    <span class="time-display clock-in-time">
+                                        {{ record.clock_in_time|time:"H:i" }}
+                                    </span>
+                                    <br><small class="time-label">📅 {{ record.clock_in_time|date:"M d" }}</small>
+                                {% else %}
+                                    <span class="no-time">-</span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Clock Out Time -->
+                            <td class="clock-time">
+                                {% if record.clock_out_time %}
+                                    <span class="time-display clock-out-time">
+                                        {{ record.clock_out_time|time:"H:i" }}
+                                    </span>
+                                    <br><small class="time-label">📅 {{ record.clock_out_time|date:"M d" }}</small>
+                                {% else %}
+                                    <span class="no-time">-</span>
                                 {% endif %}
                             </td>
                             
@@ -472,13 +498,53 @@
     background: #f8f9fa;
 }
 
+/* Clock Time Display */
+.clock-time {
+    text-align: center;
+    vertical-align: middle;
+}
+
+.time-display {
+    font-weight: 600;
+    font-size: 1.1em;
+    display: block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-bottom: 2px;
+}
+
+.clock-in-time {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.clock-out-time {
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+.time-label {
+    color: #6c757d;
+    font-size: 0.8em;
+    display: block;
+}
+
+.no-time {
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* Employee name column */
 .employee-name {
-    min-width: 150px;
+    min-width: 200px;
 }
 
 .last-updated {
     color: #6c757d;
-    font-size: 0.8rem;
+    font-size: 0.8em;
+    font-style: italic;
 }
 
 /* Inline Selects */
