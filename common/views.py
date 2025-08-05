@@ -1445,6 +1445,23 @@ def main_security_clocked_in_status_flip(request, id):
         timestamp=django_timezone.localtime(django_timezone.now())  # Use local timezone instead of UTC
     )
 
+    # Clear relevant caches to ensure real-time updates
+    try:
+        from django.core.cache import cache
+        # Clear employee-specific caches
+        cache.delete(f"employee_status_{employee.id}")
+        cache.delete(f"employee_last_event_{employee.id}")
+        
+        # Clear main security page caches
+        cache.delete_pattern("main_security_*")
+        cache.delete_pattern("employee_status_*")
+        
+        # Clear template caches
+        from django.core.cache import cache as template_cache
+        template_cache.delete_pattern("main_security_*")
+    except Exception:
+        pass  # Ignore cache clearing errors
+
     # Optional: Add a success message with time and date
     # event_time = event.timestamp.strftime("%H:%M:%S on %d %b %Y")
     event_time = str(event)

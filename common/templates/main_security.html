@@ -374,8 +374,7 @@
     </div>
     {% endcache %}
 
-    <!-- Employee Table - Cache for 2 minutes -->
-            {% cache 120 'main_security_table' request.user.id current_page start_letter %}
+    <!-- Employee Table - No caching for real-time updates -->
     <table id="employee-table">
         <thead>
             <tr>
@@ -433,7 +432,6 @@
             {% endfor %}
         </tbody>
     </table>
-    {% endcache %}
 
     <!-- Pagination - Cache for 5 minutes -->
             {% cache 300 'main_security_pagination' current_page start_letter %}
@@ -462,7 +460,7 @@
     </div> <!-- Close main-content div -->
 
 <script>
-// Client-side filtering functionality
+// Client-side filtering functionality and real-time updates
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('search');
     const statusFilter = document.getElementById('status-filter');
@@ -510,6 +508,123 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // Real-time clock in/out functionality
+    function handleClockAction(event) {
+        event.preventDefault();
+        
+        const button = event.currentTarget;
+        const employeeId = button.getAttribute('data-employee-id');
+        const currentStatus = button.getAttribute('data-current-status');
+        const row = button.closest('.employee-row');
+        
+        // Optimistic UI update
+        const newStatus = currentStatus === 'in' ? 'out' : 'in';
+        const statusBadge = row.querySelector('.status-badge');
+        const timeIndicator = row.querySelector('.time-indicator');
+        
+        // Update button appearance immediately
+        if (newStatus === 'in') {
+            button.textContent = 'Clock Out';
+            button.className = 'btn btn-danger clock-btn';
+            statusBadge.textContent = 'Clocked In';
+            statusBadge.className = 'status-badge status-in';
+        } else {
+            button.textContent = 'Clock In';
+            button.className = 'btn btn-success clock-btn';
+            statusBadge.textContent = 'Clocked Out';
+            statusBadge.className = 'status-badge status-out';
+        }
+        
+        // Update data attributes
+        button.setAttribute('data-current-status', newStatus);
+        row.setAttribute('data-status', newStatus);
+        
+        // Update time indicator
+        const now = new Date();
+        timeIndicator.textContent = now.toLocaleDateString('en-US', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        });
+        
+        // Update summary statistics
+        updateSummaryStats(newStatus === 'in');
+        
+        // Make the actual request
+        fetch(button.href, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                // Revert changes if request failed
+                if (newStatus === 'in') {
+                    button.textContent = 'Clock In';
+                    button.className = 'btn btn-success clock-btn';
+                    statusBadge.textContent = 'Clocked Out';
+                    statusBadge.className = 'status-badge status-out';
+                    button.setAttribute('data-current-status', 'out');
+                    row.setAttribute('data-status', 'out');
+                } else {
+                    button.textContent = 'Clock Out';
+                    button.className = 'btn btn-danger clock-btn';
+                    statusBadge.textContent = 'Clocked In';
+                    statusBadge.className = 'status-badge status-in';
+                    button.setAttribute('data-current-status', 'in');
+                    row.setAttribute('data-status', 'in');
+                }
+                alert('Failed to update employee status. Please try again.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // Revert changes on error
+            if (newStatus === 'in') {
+                button.textContent = 'Clock In';
+                button.className = 'btn btn-success clock-btn';
+                statusBadge.textContent = 'Clocked Out';
+                statusBadge.className = 'status-badge status-out';
+                button.setAttribute('data-current-status', 'out');
+                row.setAttribute('data-status', 'out');
+            } else {
+                button.textContent = 'Clock Out';
+                button.className = 'btn btn-danger clock-btn';
+                statusBadge.textContent = 'Clocked In';
+                statusBadge.className = 'status-badge status-in';
+                button.setAttribute('data-current-status', 'in');
+                row.setAttribute('data-status', 'in');
+            }
+            alert('Failed to update employee status. Please try again.');
+        });
+    }
+    
+    function updateSummaryStats(clockedIn) {
+        const clockedInElement = document.getElementById('clocked-in-count');
+        const clockedOutElement = document.getElementById('clocked-out-count');
+        const totalElement = document.getElementById('total-employees');
+        
+        if (clockedInElement && clockedOutElement && totalElement) {
+            let clockedInCount = parseInt(clockedInElement.textContent) || 0;
+            let clockedOutCount = parseInt(clockedOutElement.textContent) || 0;
+            
+            if (clockedIn) {
+                clockedInCount++;
+                clockedOutCount--;
+            } else {
+                clockedInCount--;
+                clockedOutCount++;
+            }
+            
+            clockedInElement.textContent = clockedInCount;
+            clockedOutElement.textContent = clockedOutCount;
+        }
+    }
+    
     // Add event listeners for real-time filtering
     if (searchInput) {
         searchInput.addEventListener('input', filterEmployees);
@@ -518,6 +633,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (statusFilter) {
         statusFilter.addEventListener('change', filterEmployees);
     }
+    
+    // Add event listeners for clock buttons
+    const clockButtons = document.querySelectorAll('.clock-btn');
+    clockButtons.forEach(button => {
+        button.addEventListener('click', handleClockAction);
+    });
     
     // Initial filter application
     filterEmployees();
