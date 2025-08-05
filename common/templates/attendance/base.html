@@ -1,30 +1,8 @@
-{% extends "main_security.html" %}
+{% extends "attendance/base_attendance.html" %}
 
 {% block extra_css %}
 {{ block.super }}
 <style>
-.attendance-nav {
-    background: #f8f9fa;
-    padding: 15px 0;
-    margin-bottom: 20px;
-    border-bottom: 1px solid #dee2e6;
-}
-.attendance-nav .nav-link {
-    color: #495057;
-    text-decoration: none;
-    padding: 8px 16px;
-    border-radius: 4px;
-    margin-right: 10px;
-    font-weight: 500;
-}
-.attendance-nav .nav-link:hover {
-    background: #e9ecef;
-    color: #212529;
-}
-.attendance-nav .nav-link.active {
-    background: var(--accent-color);
-    color: white;
-}
 .attendance-card {
     background: white;
     border-radius: 8px;
@@ -77,20 +55,6 @@
 </style>
 {% endblock %}
 
-{% load role_extras %}
-
-{% block content %}
-<div class="attendance-nav">
-    {% if user|has_any_role:"attendance,admin" %}
-        <a href="{% url 'attendance_list' %}" class="nav-link {% if request.resolver_match.url_name == 'attendance_list' %}active{% endif %}">Attendance Records</a>
-        <a href="{% url 'progressive_entry' %}" class="nav-link {% if request.resolver_match.url_name == 'progressive_entry' %}active{% endif %}">Progressive Entry</a>
-        <a href="{% url 'historical_progressive_entry' %}" class="nav-link {% if request.resolver_match.url_name == 'historical_progressive_entry' or request.resolver_match.url_name == 'historical_progressive_results' %}active{% endif %}">Historical Entry</a>
-    {% endif %}
-    
-    {% if user|has_any_role:"reporting,attendance,admin" %}
-        <a href="{% url 'comprehensive_reports' %}" class="nav-link {% if request.resolver_match.url_name == 'comprehensive_reports' or request.resolver_match.url_name == 'attendance_analytics' %}active{% endif %}">Analytics & Reports</a>
-        <a href="{% url 'location_dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'location_dashboard' %}active{% endif %}">📍 Location Dashboard</a>
-    {% endif %}
-</div>
-{% block attendance_content %}{% endblock %}
+{% block attendance_content %}
+{% block attendance_page_content %}{% endblock %}
 {% endblock %} 

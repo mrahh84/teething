@@ -165,6 +165,11 @@ api_urls = [
                     # Real-time Analytics API endpoints
                 path("api/realtime/employees/", views.RealTimeEmployeeStatusView.as_view(), name="api_realtime_employees"),
                 path("api/realtime/attendance-counter/", views.LiveAttendanceCounterView.as_view(), name="api_attendance_counter"),
+                
+                # Phase 3: Advanced Analytics API endpoints
+                path("api/pattern-recognition/", views.PatternRecognitionView.as_view(), name="api_pattern_recognition"),
+                path("api/anomaly-detection/", views.AnomalyDetectionView.as_view(), name="api_anomaly_detection"),
+                path("api/predictive-analytics/", views.PredictiveAnalyticsView.as_view(), name="api_predictive_analytics"),
 ]
 
 # System URLs
@@ -178,3 +183,7 @@ urlpatterns = clock_in_urls + attendance_urls + report_urls + location_urls + ap
 
 # Real-time Analytics Dashboard
 urlpatterns.append(path("realtime-analytics/", views.realtime_analytics_dashboard, name="realtime_analytics_dashboard"))
+
+# Phase 3: Advanced Analytics Dashboards
+urlpatterns.append(path("pattern-recognition/", views.pattern_recognition_dashboard, name="pattern_recognition_dashboard"))
+urlpatterns.append(path("predictive-analytics/", views.predictive_analytics_dashboard, name="predictive_analytics_dashboard"))

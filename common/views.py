@@ -3397,6 +3397,7 @@ class LiveAttendanceCounterView(generics.RetrieveAPIView):
     """API endpoint for live attendance counter data"""
     authentication_classes = [SessionAuthentication]
     permission_classes = [ReportingPermission]
+    serializer_class = EmployeeSerializer
     
     def get_object(self):
         """Return live attendance statistics"""
@@ -3979,3 +3980,485 @@ def location_assignment_complete(request, assignment_id):
     }
     
     return render(request, 'common/location_assignment_confirm_complete.html', context)
+
+# Phase 3: Advanced Analytics - Pattern Recognition Dashboard
+
+class PatternRecognitionView(generics.ListAPIView):
+    """API endpoint for pattern recognition analysis"""
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [ReportingPermission]
+    serializer_class = EmployeeAnalyticsSerializer
+    
+    def get_queryset(self):
+        """Return pattern analysis data"""
+        # This will be implemented to return pattern analysis data
+        return EmployeeAnalytics.objects.none()
+    
+    def list(self, request, *args, **kwargs):
+        """Return pattern recognition data"""
+        from datetime import datetime, timedelta
+        from django.db.models import Avg, Count, Q
+        
+        # Get date range from request
+        days_back = int(request.GET.get('days', 30))
+        end_date = datetime.now().date()
+        start_date = end_date - timedelta(days=days_back)
+        
+        # Get employee analytics for pattern analysis
+        analytics = EmployeeAnalytics.objects.filter(
+            date__range=[start_date, end_date]
+        ).select_related('employee', 'employee__department')
+        
+        # Pattern analysis data
+        pattern_data = {
+            'arrival_patterns': self._analyze_arrival_patterns(analytics),
+            'departure_patterns': self._analyze_departure_patterns(analytics),
+            'location_patterns': self._analyze_location_patterns(analytics),
+            'anomaly_detection': self._detect_anomalies(analytics),
+            'trend_analysis': self._analyze_trends(analytics),
+            'correlation_analysis': self._analyze_correlations(analytics),
+        }
+        
+        return Response(pattern_data)
+    
+    def _analyze_arrival_patterns(self, analytics):
+        """Analyze employee arrival time patterns"""
+        patterns = {}
+        
+        # Group by employee and analyze arrival times
+        for employee_analytics in analytics:
+            employee = employee_analytics.employee
+            if employee.id not in patterns:
+                patterns[employee.id] = {
+                    'employee_name': f"{employee.given_name} {employee.surname}",
+                    'department': employee.department.name if employee.department else 'Unknown',
+                    'arrival_times': [],
+                    'average_arrival': None,
+                    'consistency_score': 0,
+                }
+            
+            if employee_analytics.average_arrival_time:
+                patterns[employee.id]['arrival_times'].append(
+                    employee_analytics.average_arrival_time.strftime('%H:%M')
+                )
+        
+        # Calculate consistency scores
+        for emp_id, data in patterns.items():
+            if data['arrival_times']:
+                # Calculate average arrival time
+                times = [datetime.strptime(t, '%H:%M').time() for t in data['arrival_times']]
+                avg_hour = sum(t.hour for t in times) / len(times)
+                avg_minute = sum(t.minute for t in times) / len(times)
+                data['average_arrival'] = f"{int(avg_hour):02d}:{int(avg_minute):02d}"
+                
+                # Calculate consistency (lower variance = higher consistency)
+                hour_variance = sum((t.hour - avg_hour) ** 2 for t in times) / len(times)
+                data['consistency_score'] = max(0, 100 - (hour_variance * 10))
+        
+        return patterns
+    
+    def _analyze_departure_patterns(self, analytics):
+        """Analyze employee departure time patterns"""
+        patterns = {}
+        
+        # Similar to arrival patterns but for departures
+        for employee_analytics in analytics:
+            employee = employee_analytics.employee
+            if employee.id not in patterns:
+                patterns[employee.id] = {
+                    'employee_name': f"{employee.given_name} {employee.surname}",
+                    'department': employee.department.name if employee.department else 'Unknown',
+                    'departure_times': [],
+                    'average_departure': None,
+                    'consistency_score': 0,
+                }
+            
+            if employee_analytics.average_departure_time:
+                patterns[employee.id]['departure_times'].append(
+                    employee_analytics.average_departure_time.strftime('%H:%M')
+                )
+        
+        # Calculate consistency scores
+        for emp_id, data in patterns.items():
+            if data['departure_times']:
+                times = [datetime.strptime(t, '%H:%M').time() for t in data['departure_times']]
+                avg_hour = sum(t.hour for t in times) / len(times)
+                avg_minute = sum(t.minute for t in times) / len(times)
+                data['average_departure'] = f"{int(avg_hour):02d}:{int(avg_minute):02d}"
+                
+                hour_variance = sum((t.hour - avg_hour) ** 2 for t in times) / len(times)
+                data['consistency_score'] = max(0, 100 - (hour_variance * 10))
+        
+        return patterns
+    
+    def _analyze_location_patterns(self, analytics):
+        """Analyze employee location preference patterns"""
+        from collections import defaultdict
+        
+        location_patterns = defaultdict(lambda: {
+            'visits': 0,
+            'total_time': 0,
+            'employees': set(),
+        })
+        
+        for employee_analytics in analytics:
+            employee = employee_analytics.employee
+            locations_visited = employee_analytics.locations_visited
+            
+            for location in locations_visited:
+                location_patterns[location]['visits'] += 1
+                location_patterns[location]['employees'].add(employee.id)
+        
+        # Convert to serializable format
+        patterns = {}
+        for location, data in location_patterns.items():
+            patterns[location] = {
+                'visits': data['visits'],
+                'unique_employees': len(data['employees']),
+                'popularity_score': data['visits'] * len(data['employees']),
+            }
+        
+        return patterns
+    
+    def _detect_anomalies(self, analytics):
+        """Detect anomalous behavior patterns"""
+        anomalies = []
+        
+        for employee_analytics in analytics:
+            employee = employee_analytics.employee
+            
+            # Detect various types of anomalies
+            anomaly_flags = []
+            
+            # Late arrival anomaly
+            if employee_analytics.is_late_arrival:
+                anomaly_flags.append('late_arrival')
+            
+            # Early departure anomaly
+            if employee_analytics.is_early_departure:
+                anomaly_flags.append('early_departure')
+            
+            # Low attendance score anomaly
+            if employee_analytics.attendance_score < 70:
+                anomaly_flags.append('low_attendance_score')
+            
+            # Unusual movement pattern
+            if employee_analytics.movement_count > 10:  # Threshold for unusual movement
+                anomaly_flags.append('high_movement')
+            
+            # Unusual hours worked
+            if employee_analytics.total_hours_worked < 6 or employee_analytics.total_hours_worked > 12:
+                anomaly_flags.append('unusual_hours')
+            
+            if anomaly_flags:
+                anomalies.append({
+                    'employee_id': employee.id,
+                    'employee_name': f"{employee.given_name} {employee.surname}",
+                    'department': employee.department.name if employee.department else 'Unknown',
+                    'date': employee_analytics.date,
+                    'anomaly_types': anomaly_flags,
+                    'severity_score': len(anomaly_flags),
+                })
+        
+        return anomalies
+    
+    def _analyze_trends(self, analytics):
+        """Analyze attendance trends over time"""
+        from django.db.models import Avg
+        
+        # Group by date and calculate trends
+        daily_trends = analytics.values('date').annotate(
+            avg_attendance_score=Avg('attendance_score'),
+            avg_hours_worked=Avg('total_hours_worked'),
+            total_employees=Count('employee'),
+            late_arrivals=Count('employee', filter=Q(is_late_arrival=True)),
+            early_departures=Count('employee', filter=Q(is_early_departure=True)),
+        ).order_by('date')
+        
+        trends = {
+            'daily_attendance_scores': list(daily_trends.values('date', 'avg_attendance_score')),
+            'daily_hours_worked': list(daily_trends.values('date', 'avg_hours_worked')),
+            'daily_late_arrivals': list(daily_trends.values('date', 'late_arrivals')),
+            'daily_early_departures': list(daily_trends.values('date', 'early_departures')),
+        }
+        
+        return trends
+    
+    def _analyze_correlations(self, analytics):
+        """Analyze correlations between different factors"""
+        correlations = {}
+        
+        # Department vs attendance correlation
+        dept_analytics = analytics.values('employee__department__name').annotate(
+            avg_attendance_score=Avg('attendance_score'),
+            avg_hours_worked=Avg('total_hours_worked'),
+            employee_count=Count('employee'),
+        )
+        
+        correlations['department_performance'] = list(dept_analytics)
+        
+        # Day of week correlation
+        from django.db.models.functions import ExtractDayOfWeek
+        day_analytics = analytics.annotate(
+            day_of_week=ExtractDayOfWeek('date')
+        ).values('day_of_week').annotate(
+            avg_attendance_score=Avg('attendance_score'),
+            avg_hours_worked=Avg('total_hours_worked'),
+        ).order_by('day_of_week')
+        
+        correlations['day_of_week_performance'] = list(day_analytics)
+        
+        return correlations
+
+
+class AnomalyDetectionView(generics.ListAPIView):
+    """API endpoint for anomaly detection system"""
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [ReportingPermission]
+    serializer_class = EmployeeAnalyticsSerializer
+    
+    def get_queryset(self):
+        """Return anomaly detection data"""
+        return EmployeeAnalytics.objects.none()
+    
+    def list(self, request, *args, **kwargs):
+        """Return anomaly detection results"""
+        from datetime import datetime, timedelta
+        
+        # Get date range from request
+        days_back = int(request.GET.get('days', 7))
+        end_date = datetime.now().date()
+        start_date = end_date - timedelta(days=days_back)
+        
+        # Get recent analytics for anomaly detection
+        analytics = EmployeeAnalytics.objects.filter(
+            date__range=[start_date, end_date],
+            is_anomaly=True
+        ).select_related('employee', 'employee__department')
+        
+        anomalies = []
+        for employee_analytics in analytics:
+            anomalies.append({
+                'employee_id': employee_analytics.employee.id,
+                'employee_name': f"{employee_analytics.employee.given_name} {employee_analytics.employee.surname}",
+                'department': employee_analytics.employee.department.name if employee_analytics.employee.department else 'Unknown',
+                'date': employee_analytics.date,
+                'anomaly_reason': employee_analytics.anomaly_reason,
+                'attendance_score': float(employee_analytics.attendance_score),
+                'hours_worked': float(employee_analytics.total_hours_worked),
+                'severity': self._calculate_anomaly_severity(employee_analytics),
+            })
+        
+        return Response({
+            'anomalies': anomalies,
+            'total_anomalies': len(anomalies),
+            'date_range': {
+                'start_date': start_date,
+                'end_date': end_date,
+            }
+        })
+    
+    def _calculate_anomaly_severity(self, analytics):
+        """Calculate anomaly severity score"""
+        severity = 0
+        
+        if analytics.is_late_arrival:
+            severity += 1
+        if analytics.is_early_departure:
+            severity += 1
+        if analytics.attendance_score < 70:
+            severity += 2
+        if analytics.total_hours_worked < 6:
+            severity += 1
+        if analytics.total_hours_worked > 12:
+            severity += 1
+        
+        return min(severity, 5)  # Cap at 5
+
+
+class PredictiveAnalyticsView(generics.ListAPIView):
+    """API endpoint for predictive analytics"""
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [ReportingPermission]
+    serializer_class = EmployeeAnalyticsSerializer
+    
+    def get_queryset(self):
+        """Return predictive analytics data"""
+        return EmployeeAnalytics.objects.none()
+    
+    def list(self, request, *args, **kwargs):
+        """Return predictive analytics forecasts"""
+        from datetime import datetime, timedelta
+        from django.db.models import Avg, Count
+        
+        # Get historical data for forecasting
+        days_back = int(request.GET.get('days', 90))
+        end_date = datetime.now().date()
+        start_date = end_date - timedelta(days=days_back)
+        
+        # Get historical analytics
+        analytics = EmployeeAnalytics.objects.filter(
+            date__range=[start_date, end_date]
+        ).select_related('employee', 'employee__department')
+        
+        # Generate forecasts
+        forecasts = {
+            'attendance_forecast': self._forecast_attendance(analytics),
+            'capacity_planning': self._forecast_capacity(analytics),
+            'risk_assessment': self._assess_risks(analytics),
+            'optimization_recommendations': self._generate_recommendations(analytics),
+        }
+        
+        return Response(forecasts)
+    
+    def _forecast_attendance(self, analytics):
+        """Forecast future attendance patterns"""
+        # Simple moving average forecast
+        daily_attendance = analytics.values('date').annotate(
+            avg_attendance_score=Avg('attendance_score'),
+            total_employees=Count('employee'),
+        ).order_by('date')
+        
+        # Calculate 7-day moving average
+        attendance_scores = [a['avg_attendance_score'] for a in daily_attendance]
+        if len(attendance_scores) >= 7:
+            recent_avg = sum(attendance_scores[-7:]) / 7
+        else:
+            recent_avg = sum(attendance_scores) / len(attendance_scores) if attendance_scores else 0
+        
+        # Generate next 7 days forecast
+        forecast_dates = []
+        for i in range(1, 8):
+            forecast_date = datetime.now().date() + timedelta(days=i)
+            forecast_dates.append({
+                'date': forecast_date,
+                'predicted_attendance_score': recent_avg,
+                'confidence_interval': [max(0, recent_avg - 5), min(100, recent_avg + 5)],
+            })
+        
+        return {
+            'current_trend': recent_avg,
+            'forecast_dates': forecast_dates,
+            'method': '7-day_moving_average',
+        }
+    
+    def _forecast_capacity(self, analytics):
+        """Forecast capacity planning needs"""
+        # Analyze peak usage patterns
+        daily_employee_counts = analytics.values('date').annotate(
+            total_employees=Count('employee'),
+        ).order_by('date')
+        
+        employee_counts = [d['total_employees'] for d in daily_employee_counts]
+        if employee_counts:
+            avg_employees = sum(employee_counts) / len(employee_counts)
+            max_employees = max(employee_counts)
+        else:
+            avg_employees = 0
+            max_employees = 0
+        
+        return {
+            'average_daily_employees': avg_employees,
+            'peak_daily_employees': max_employees,
+            'recommended_capacity': int(max_employees * 1.1),  # 10% buffer
+            'capacity_utilization': (avg_employees / max_employees * 100) if max_employees > 0 else 0,
+        }
+    
+    def _assess_risks(self, analytics):
+        """Assess attendance risk factors"""
+        risks = []
+        
+        # Analyze risk factors
+        late_arrival_rate = analytics.filter(is_late_arrival=True).count() / analytics.count() if analytics.count() > 0 else 0
+        early_departure_rate = analytics.filter(is_early_departure=True).count() / analytics.count() if analytics.count() > 0 else 0
+        low_attendance_rate = analytics.filter(attendance_score__lt=70).count() / analytics.count() if analytics.count() > 0 else 0
+        
+        if late_arrival_rate > 0.1:  # More than 10% late arrivals
+            risks.append({
+                'risk_type': 'high_late_arrivals',
+                'severity': 'medium',
+                'description': f"{late_arrival_rate:.1%} of employees arriving late",
+                'recommendation': 'Review arrival time policies and consider flexible start times',
+            })
+        
+        if early_departure_rate > 0.1:  # More than 10% early departures
+            risks.append({
+                'risk_type': 'high_early_departures',
+                'severity': 'medium',
+                'description': f"{early_departure_rate:.1%} of employees leaving early",
+                'recommendation': 'Investigate workload distribution and employee satisfaction',
+            })
+        
+        if low_attendance_rate > 0.2:  # More than 20% low attendance
+            risks.append({
+                'risk_type': 'low_attendance_scores',
+                'severity': 'high',
+                'description': f"{low_attendance_rate:.1%} of employees with low attendance scores",
+                'recommendation': 'Implement attendance improvement programs and support systems',
+            })
+        
+        return risks
+    
+    def _generate_recommendations(self, analytics):
+        """Generate optimization recommendations"""
+        recommendations = []
+        
+        # Analyze patterns and generate recommendations
+        avg_attendance_score = analytics.aggregate(Avg('attendance_score'))['attendance_score__avg'] or 0
+        avg_hours_worked = analytics.aggregate(Avg('total_hours_worked'))['total_hours_worked__avg'] or 0
+        
+        if avg_attendance_score < 80:
+            recommendations.append({
+                'category': 'attendance_improvement',
+                'priority': 'high',
+                'title': 'Improve Overall Attendance',
+                'description': f'Current average attendance score is {avg_attendance_score:.1f}%. Consider implementing attendance incentives.',
+                'action_items': [
+                    'Implement attendance recognition programs',
+                    'Provide flexible work arrangements',
+                    'Address underlying causes of absenteeism',
+                ]
+            })
+        
+        if avg_hours_worked < 7.5:
+            recommendations.append({
+                'category': 'productivity_optimization',
+                'priority': 'medium',
+                'title': 'Optimize Work Hours',
+                'description': f'Average hours worked is {avg_hours_worked:.1f} hours. Consider workload distribution.',
+                'action_items': [
+                    'Review workload distribution',
+                    'Implement productivity tracking',
+                    'Provide time management training',
+                ]
+            })
+        
+        return recommendations
+
+
+@reporting_required
+@extend_schema(exclude=True)
+def pattern_recognition_dashboard(request):
+    """
+    Pattern Recognition Dashboard for Phase 3 of the report enhancement roadmap.
+    Provides behavioral pattern analysis, anomaly detection, and trend analysis.
+    """
+    context = {
+        'page_title': 'Pattern Recognition Dashboard',
+        'active_tab': 'pattern_recognition',
+    }
+    return render(request, 'attendance/pattern_recognition_dashboard.html', context)
+
+
+@reporting_required
+@extend_schema(exclude=True)
+def predictive_analytics_dashboard(request):
+    """
+    Predictive Analytics Dashboard for Phase 3 of the report enhancement roadmap.
+    Provides attendance forecasting, capacity planning, and risk assessment.
+    """
+    context = {
+        'page_title': 'Predictive Analytics Dashboard',
+        'active_tab': 'predictive_analytics',
+    }
+    return render(request, 'attendance/predictive_analytics_dashboard.html', context)

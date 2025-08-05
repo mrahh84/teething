@@ -1,10 +1,13 @@
 {% load cache %}
+{% load static %}
 <!DOCTYPE html>
 <html>
 <head>
     <title>Clock-in Dashboard | Attendance System</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     {% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/navigation.css' %}">
+    <link rel="stylesheet" href="{% static 'css/breadcrumb.css' %}">
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -24,16 +27,11 @@
             line-height: 1.6;
             color: var(--text-color);
             margin: 0;
-            padding: 15px;
+            padding: 0;
             background-color: #f9f9f9;
         }
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            margin-bottom: 20px;
-            border-bottom: 1px solid var(--med-gray);
+        .main-content {
+            padding: 15px;
         }
         h1, h2 { margin: 0; padding: 0; }
         .dashboard-summary {
@@ -214,32 +212,109 @@
 </head>
 <body>
     {% load role_extras %}
-    <header>
-        <h1>Clock-in Dashboard</h1>
-        {% if user.is_authenticated %}
-            <nav style="display: flex; gap: 10px; align-items: center;">
-                <a href="{% url 'main_security' %}" class="btn">Clock-in/Out</a>
-                
-                {% if user|has_any_role:"attendance,admin" %}
-                    <a href="{% url 'attendance_list' %}" class="btn">Attendance</a>
-                    <a href="{% url 'progressive_entry' %}" class="btn">📝 Progressive Entry</a>
-                {% endif %}
-                
-                                      {% if user|has_any_role:"reporting,attendance,admin" %}
-                          <a href="{% url 'reports_dashboard' %}" class="btn">📊 Reports</a>
-                          <a href="{% url 'location_dashboard' %}" class="btn">📍 Location Dashboard</a>
-                          <a href="{% url 'location_assignment_list' %}" class="btn">📋 Assignments</a>
-                      {% endif %}
-                
-                <form action="{% url 'logout' %}" method="post" style="display:inline;">
-                  {% csrf_token %}
-                  <button type="submit" class="btn btn-danger">Logout</button>
-                </form>
-            </nav>
-        {% else %}
-            <a href="{% url 'login' %}" class="btn">Login</a>
-        {% endif %}
-    </header>
+    
+    <!-- Main Navigation Bar -->
+    {% if user.is_authenticated %}
+    <nav class="main-nav">
+        <!-- Brand/Logo -->
+        <div class="nav-brand">
+            <a href="{% url 'main_security' %}">🏢 Road Attendance</a>
+        </div>
+        
+        <!-- Primary Navigation Items -->
+        <div class="nav-items">
+            <!-- Core Functions (Always Visible) -->
+            <div class="nav-group">
+                <a href="{% url 'main_security' %}" class="nav-link {% if request.resolver_match.url_name == 'main_security' %}active{% endif %}">Clock-in/Out</a>
+            </div>
+            
+            <!-- Role-Based Navigation -->
+            {% if user|has_any_role:"attendance,admin" %}
+            <div class="nav-group">
+                <div class="nav-dropdown">
+                    <button class="nav-dropdown-btn">📝 Attendance</button>
+                    <div class="nav-dropdown-content">
+                        <a href="{% url 'attendance_list' %}">Records</a>
+                        <a href="{% url 'progressive_entry' %}">Progressive Entry</a>
+                        <a href="{% url 'historical_progressive_entry' %}">Historical Entry</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if user|has_any_role:"reporting,attendance,admin" %}
+            <div class="nav-group">
+                <div class="nav-dropdown">
+                    <button class="nav-dropdown-btn">📊 Analytics</button>
+                    <div class="nav-dropdown-content">
+                        <a href="{% url 'reports_dashboard' %}">Basic Reports</a>
+                        <a href="{% url 'realtime_analytics_dashboard' %}">Real-Time Analytics</a>
+                        <a href="{% url 'pattern_recognition_dashboard' %}">Pattern Recognition</a>
+                        <a href="{% url 'predictive_analytics_dashboard' %}">Predictive Analytics</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="nav-group">
+                <div class="nav-dropdown">
+                    <button class="nav-dropdown-btn">📍 Location</button>
+                    <div class="nav-dropdown-content">
+                        <a href="{% url 'location_dashboard' %}">Dashboard</a>
+                        <a href="{% url 'location_assignment_list' %}">Assignments</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if user|has_any_role:"admin" %}
+            <div class="nav-group">
+                <div class="nav-dropdown">
+                    <button class="nav-dropdown-btn">⚙️ Admin</button>
+                    <div class="nav-dropdown-content">
+                        <a href="/admin/">Django Admin</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- User Menu -->
+        <div class="nav-user">
+            <div class="nav-dropdown">
+                <button class="nav-dropdown-btn">👤 {{ user.username }}</button>
+                <div class="nav-dropdown-content">
+                    <span class="user-role">{{ user.get_role_display }}</span>
+                    <form action="{% url 'logout' %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="nav-link-danger">Logout</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </nav>
+    {% else %}
+    <nav class="main-nav">
+        <div class="nav-brand">
+            <a href="{% url 'main_security' %}">🏢 Road Attendance</a>
+        </div>
+        <div class="nav-user">
+            <a href="{% url 'login' %}" class="nav-link">Login</a>
+        </div>
+    </nav>
+    {% endif %}
+    
+    <!-- Breadcrumb Navigation -->
+    <div class="breadcrumb-nav">
+        <div class="breadcrumb-container">
+            <a href="{% url 'main_security' %}" class="breadcrumb-item">🏠 Home</a>
+            {% if request.resolver_match.url_name != 'main_security' %}
+                <span class="breadcrumb-separator">›</span>
+                <span class="breadcrumb-item current">Clock-in Dashboard</span>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="main-content">
 
     {% block content %}
     {% if messages %}
@@ -393,6 +468,7 @@
     </div>
     {% endcache %}
     {% endblock %}
+    </div> <!-- Close main-content div -->
 
 <script>
 // Client-side filtering functionality
