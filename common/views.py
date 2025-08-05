@@ -1353,16 +1353,11 @@ def main_security_clocked_in_status_flip(request, id):
     
     if recent_events.exists():
         most_recent_event = recent_events.first()
-        # Ensure both timestamps are timezone-aware for proper comparison
+        # Simplified timezone handling - Django handles timezone conversion automatically
         current_time = timezone.now()
         event_time = most_recent_event.timestamp
         
-        # Convert both to UTC for consistent comparison
-        if current_time.tzinfo is None:
-            current_time = timezone.make_aware(current_time)
-        if event_time.tzinfo is None:
-            event_time = timezone.make_aware(event_time)
-            
+        # Simple time difference calculation
         time_since_last_event = (current_time - event_time).total_seconds()
         
         # Safety check: if event is in the future or more than 1 hour ago, skip debounce
