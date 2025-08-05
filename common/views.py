@@ -1408,13 +1408,13 @@ def main_security_clocked_in_status_flip(request, id):
             "System configuration error."
         )  # Or redirect with message
 
-    # Create the new clock event
+    # Create the new clock event with local timezone timestamp
     event = Event.objects.create(
         employee=employee,
         event_type=event_type,
         location=location,
         created_by=request.user,  # Record which logged-in user performed the action
-        # timestamp defaults to timezone.now
+        timestamp=timezone.localtime(timezone.now())  # Use local timezone instead of UTC
     )
 
     # Optional: Add a success message with time and date
