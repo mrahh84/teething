@@ -366,7 +366,9 @@ class AttendanceRecord(models.Model):
         ).order_by('timestamp').first()
         
         if clock_in_event:
-            return clock_in_event.timestamp.time()
+            # Convert UTC timestamp to local timezone before extracting time
+            local_timestamp = timezone.localtime(clock_in_event.timestamp)
+            return local_timestamp.time()
         return None
 
     @property
@@ -388,7 +390,9 @@ class AttendanceRecord(models.Model):
         ).order_by('timestamp').last()
         
         if clock_out_event:
-            return clock_out_event.timestamp.time()
+            # Convert UTC timestamp to local timezone before extracting time
+            local_timestamp = timezone.localtime(clock_out_event.timestamp)
+            return local_timestamp.time()
         return None
 
     @property
