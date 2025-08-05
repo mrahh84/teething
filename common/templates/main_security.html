@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     {% block extra_css %}
     <link rel="stylesheet" href="{% static 'css/navigation.css' %}">
-    <link rel="stylesheet" href="{% static 'css/breadcrumb.css' %}">
+
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -303,16 +303,7 @@
     </nav>
     {% endif %}
     
-    <!-- Breadcrumb Navigation -->
-    <div class="breadcrumb-nav">
-        <div class="breadcrumb-container">
-            <a href="{% url 'main_security' %}" class="breadcrumb-item">🏠 Home</a>
-            {% if request.resolver_match.url_name != 'main_security' %}
-                <span class="breadcrumb-separator">›</span>
-                <span class="breadcrumb-item current">Clock-in Dashboard</span>
-            {% endif %}
-        </div>
-    </div>
+
     
     <div class="main-content">
 
