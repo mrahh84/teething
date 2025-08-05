@@ -619,8 +619,8 @@ def progressive_entry(request):
     end_of_day_local = timezone.make_aware(datetime.combine(today, time.max))
     
     # Convert to UTC for database query
-    start_of_day_utc = start_of_day_local.astimezone(timezone.UTC)
-    end_of_day_utc = end_of_day_local.astimezone(timezone.UTC)
+    start_of_day_utc = start_of_day_local.astimezone(timezone.utc)
+    end_of_day_utc = end_of_day_local.astimezone(timezone.utc)
     
     # Get employees who clocked in today (using UTC timestamps)
     present_employees = Event.objects.filter(
@@ -748,8 +748,8 @@ def attendance_list(request):
     end_of_day_local = timezone.make_aware(datetime.combine(target_date, time.max))
     
     # Convert to UTC for database query
-    start_of_day = start_of_day_local.astimezone(timezone.UTC)
-    end_of_day = end_of_day_local.astimezone(timezone.UTC)
+    start_of_day = start_of_day_local.astimezone(timezone.utc)
+    end_of_day = end_of_day_local.astimezone(timezone.utc)
     
     # Single optimized query to get all clocked-in employee IDs
     clocked_in_employees = set(
