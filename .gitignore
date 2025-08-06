@@ -15,6 +15,7 @@ logs/
 backups/
 
 # Documentation files
+Implementation/
 OPTIMIZATION_IMPLEMENTATION_PLAN.md
 EFFICIENCY_ANALYSIS.md
 
@@ -23,6 +24,21 @@ Garbage/
 notebooks/
 __marimo__/
 test_marimo.py
+scripts/
+
+# Test and utility files
+*.test.py
+*_test.py
+test_*.py
+*_tests.py
+validate_*.py
+analyze_*.py
+generate_*.py
+create_*.py
+batch_*.py
+clock_*.py
+check_*.py
+run_*.py
 
 # Generated files
 *.log

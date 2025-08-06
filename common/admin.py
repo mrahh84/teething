@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin
 from .models import (
     UserRole, Employee, Event, EventType, Location, Card, AttendanceRecord,
     Department, AnalyticsCache, ReportConfiguration, EmployeeAnalytics, 
-    DepartmentAnalytics, SystemPerformance
+    DepartmentAnalytics, SystemPerformance, TaskAssignment, LocationMovement, LocationAnalytics
 )
 
 
@@ -76,6 +76,37 @@ class SystemPerformanceAdmin(admin.ModelAdmin):
     list_filter = ('date',)
     readonly_fields = ('timestamp',)
     date_hierarchy = 'date'
+
+
+@admin.register(TaskAssignment)
+class TaskAssignmentAdmin(admin.ModelAdmin):
+    list_display = ('employee', 'location', 'task_type', 'assigned_date', 'is_completed', 'created_by')
+    list_filter = ('assigned_date', 'is_completed', 'location', 'task_type', 'created_by')
+    search_fields = ('employee__given_name', 'employee__surname', 'location__name', 'task_type')
+    date_hierarchy = 'assigned_date'
+    readonly_fields = ('created_at', 'updated_at')
+    list_editable = ('is_completed',)
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('employee', 'location', 'created_by')
+
+
+@admin.register(LocationMovement)
+class LocationMovementAdmin(admin.ModelAdmin):
+    list_display = ('employee', 'from_location', 'to_location', 'movement_type', 'timestamp', 'created_by')
+    list_filter = ('movement_type', 'timestamp', 'created_by')
+    search_fields = ('employee__given_name', 'employee__surname', 'from_location__name', 'to_location__name')
+    date_hierarchy = 'timestamp'
+    readonly_fields = ('timestamp',)
+
+
+@admin.register(LocationAnalytics)
+class LocationAnalyticsAdmin(admin.ModelAdmin):
+    list_display = ('location', 'date', 'current_occupancy', 'utilization_rate', 'total_movements')
+    list_filter = ('date', 'location')
+    search_fields = ('location__name',)
+    date_hierarchy = 'date'
+    readonly_fields = ('created_at', 'updated_at')
 
 
 # Register models

@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
-from .models import AttendanceRecord, Employee
+from .models import AttendanceRecord, Employee, TaskAssignment, Location
 import datetime
 
 class AttendanceRecordForm(forms.ModelForm):
@@ -294,3 +294,126 @@ class BulkHistoricalUpdateForm(forms.Form):
                 raise forms.ValidationError("Lunch time must be in HH:MM format (e.g., 12:30)")
         
         return cleaned_data 
+
+
+class TaskAssignmentForm(forms.ModelForm):
+    """Form for creating and editing task assignments"""
+    
+    class Meta:
+        model = TaskAssignment
+        fields = [
+            'employee', 'location', 'task_type', 'assigned_date',
+            'start_time', 'end_time', 'notes'
+        ]
+        widgets = {
+            'assigned_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'start_time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'end_time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'task_type': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Goobi, OCR4All, Transkribus'}),
+            'notes': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['employee'].queryset = Employee.objects.filter(is_active=True)
+        self.fields['location'].queryset = Location.objects.filter(is_active=True)
+        
+        for field_name, field in self.fields.items():
+            if field_name not in ['assigned_date', 'start_time', 'end_time', 'notes', 'task_type']:
+                field.widget.attrs.update({'class': 'form-select'})
+
+
+class BulkTaskAssignmentForm(forms.Form):
+    """Form for bulk task assignment"""
+    
+    assigned_date = forms.DateField(
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        help_text="Date for all assignments"
+    )
+    
+    location = forms.ModelChoiceField(
+        queryset=Location.objects.filter(is_active=True),
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        help_text="Location for all assignments"
+    )
+    
+    task_type = forms.CharField(
+        max_length=100,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Goobi, OCR4All, Transkribus'}),
+        help_text="Task type for all assignments"
+    )
+    
+    start_time = forms.TimeField(
+        required=False,
+        widget=forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+        help_text="Start time for all assignments (optional)"
+    )
+    
+    end_time = forms.TimeField(
+        required=False,
+        widget=forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+        help_text="End time for all assignments (optional)"
+    )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Dynamically add fields for each active employee
+        employees = Employee.objects.filter(is_active=True).order_by('surname', 'given_name')
+        
+        for employee in employees:
+            self.fields[f'assign_{employee.id}'] = forms.BooleanField(
+                required=False,
+                widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+                label=f"{employee.surname}, {employee.given_name}",
+                help_text=f"Assign {employee.given_name} {employee.surname} to this task"
+            )
+
+
+class LocationAssignmentFilterForm(forms.Form):
+    """Form for filtering location assignments"""
+    
+    date_from = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        label="From Date"
+    )
+    
+    date_to = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        label="To Date"
+    )
+    
+    employee = forms.ModelChoiceField(
+        queryset=Employee.objects.filter(is_active=True),
+        required=False,
+        empty_label="All Employees",
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label="Employee"
+    )
+    
+    location = forms.ModelChoiceField(
+        queryset=Location.objects.filter(is_active=True),
+        required=False,
+        empty_label="All Locations",
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label="Location"
+    )
+    
+    task_type = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Filter by task type'}),
+        label="Task Type"
+    )
+    
+    is_completed = forms.ChoiceField(
+        choices=[
+            ('', 'All Assignments'),
+            ('yes', 'Completed'),
+            ('no', 'Not Completed'),
+        ],
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label="Completion Status"
+    ) 

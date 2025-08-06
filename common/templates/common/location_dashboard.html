@@ -1,0 +1,397 @@
+{% extends "location/base.html" %}
+
+{% block location_content %}
+<style>
+    .location-dashboard {
+        padding: 20px 0;
+    }
+    
+    .dashboard-header {
+        margin-bottom: 30px;
+    }
+    
+    .dashboard-header h1 {
+        color: var(--primary-color);
+        margin-bottom: 10px;
+    }
+    
+    .dashboard-header p {
+        color: var(--dark-gray);
+        font-size: 16px;
+    }
+    
+    .summary-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .summary-card {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+    
+    .summary-card h5 {
+        margin: 0 0 10px 0;
+        color: var(--dark-gray);
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .summary-card .card-value {
+        font-size: 32px;
+        font-weight: 600;
+        margin: 10px 0;
+    }
+    
+    .summary-card.primary .card-value { color: var(--accent-color); }
+    .summary-card.success .card-value { color: var(--success-color); }
+    .summary-card.warning .card-value { color: var(--warning-color); }
+    .summary-card.info .card-value { color: var(--accent-color); }
+    
+    .summary-card small {
+        color: var(--dark-gray);
+        font-size: 12px;
+    }
+    
+    .location-status {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+    }
+    
+    .location-status .card-header {
+        background: var(--light-gray);
+        padding: 15px 20px;
+        border-bottom: 1px solid var(--med-gray);
+        border-radius: 8px 8px 0 0;
+    }
+    
+    .location-status .card-header h5 {
+        margin: 0;
+        color: var(--primary-color);
+        font-weight: 600;
+    }
+    
+    .location-status .card-body {
+        padding: 20px;
+    }
+    
+    .location-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+    }
+    
+    .location-item {
+        border: 1px solid var(--med-gray);
+        border-radius: 8px;
+        padding: 15px;
+        background: #fafafa;
+    }
+    
+    .location-item h6 {
+        margin: 0 0 15px 0;
+        color: var(--primary-color);
+        font-weight: 600;
+    }
+    
+    .location-stats {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+    }
+    
+    .location-stats span:first-child {
+        color: var(--dark-gray);
+    }
+    
+    .location-stats span:last-child {
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+    
+    .progress-bar {
+        height: 8px;
+        background: var(--light-gray);
+        border-radius: 4px;
+        overflow: hidden;
+        margin-top: 10px;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.3s ease;
+    }
+    
+    .progress-fill.success { background: var(--success-color); }
+    .progress-fill.warning { background: var(--warning-color); }
+    .progress-fill.danger { background: var(--danger-color); }
+    
+    .activity-section {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    @media (max-width: 768px) {
+        .activity-section {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .activity-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .activity-card .card-header {
+        background: var(--light-gray);
+        padding: 15px 20px;
+        border-bottom: 1px solid var(--med-gray);
+        border-radius: 8px 8px 0 0;
+    }
+    
+    .activity-card .card-header h5 {
+        margin: 0;
+        color: var(--primary-color);
+        font-weight: 600;
+    }
+    
+    .activity-card .card-body {
+        padding: 20px;
+    }
+    
+    .activity-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .activity-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--light-gray);
+    }
+    
+    .activity-item:last-child {
+        border-bottom: none;
+    }
+    
+    .activity-info h6 {
+        margin: 0 0 5px 0;
+        color: var(--primary-color);
+        font-weight: 600;
+    }
+    
+    .activity-info small {
+        color: var(--dark-gray);
+        font-size: 12px;
+    }
+    
+    .activity-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+        color: white;
+    }
+    
+    .badge-primary { background: var(--accent-color); }
+    .badge-secondary { background: var(--dark-gray); }
+    
+    .analytics-section {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+    }
+    
+    .analytics-section .card-header {
+        background: var(--light-gray);
+        padding: 15px 20px;
+        border-bottom: 1px solid var(--med-gray);
+        border-radius: 8px 8px 0 0;
+    }
+    
+    .analytics-section .card-header h5 {
+        margin: 0;
+        color: var(--primary-color);
+        font-weight: 600;
+    }
+    
+    .analytics-section .card-body {
+        padding: 20px;
+        min-height: 400px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .analytics-placeholder {
+        color: var(--dark-gray);
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="location-dashboard">
+    <div class="dashboard-header">
+        <h1>Location Dashboard</h1>
+        <p>Real-time location tracking and analytics</p>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-cards">
+        <div class="summary-card primary">
+            <h5>Total Assignments</h5>
+            <div class="card-value">{{ total_assignments }}</div>
+            <small>Today's assignments</small>
+        </div>
+        <div class="summary-card success">
+            <h5>Active Employees</h5>
+            <div class="card-value">{{ total_employees }}</div>
+            <small>Currently assigned</small>
+        </div>
+        <div class="summary-card warning">
+            <h5>Avg Utilization</h5>
+            <div class="card-value">{{ avg_utilization|floatformat:1 }}%</div>
+            <small>Across all locations</small>
+        </div>
+        <div class="summary-card info">
+            <h5>Active Locations</h5>
+            <div class="card-value">{{ locations.count }}</div>
+            <small>With assignments today</small>
+        </div>
+    </div>
+
+    <!-- Location Status -->
+    <div class="location-status">
+        <div class="card-header">
+            <h5>Location Status</h5>
+        </div>
+        <div class="card-body">
+            <div class="location-grid">
+                {% for location in locations %}
+                <div class="location-item">
+                    <h6>{{ location.name }}</h6>
+                    <div class="location-stats">
+                        <span>Current:</span>
+                        <span>{{ location.current_occupancy }}/{{ location.capacity }}</span>
+                    </div>
+                    <div class="location-stats">
+                        <span>Utilization:</span>
+                        <span>{{ location.utilization_rate|floatformat:1 }}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill {% if location.utilization_rate > 100 %}danger{% elif location.utilization_rate > 80 %}warning{% else %}success{% endif %}" 
+                             style="width: {{ location.utilization_rate|floatformat:0 }}%"></div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="location-item">
+                    <p style="text-align: center; color: var(--dark-gray);">No active locations today</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="activity-section">
+        <div class="activity-card">
+            <div class="card-header">
+                <h5>Recent Assignments</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_assignments %}
+                <ul class="activity-list">
+                    {% for assignment in recent_assignments %}
+                    <li class="activity-item">
+                        <div class="activity-info">
+                            <h6>{{ assignment.employee.given_name }} {{ assignment.employee.surname }}</h6>
+                            <small>{{ assignment.location.name }} - {{ assignment.task_type }}</small>
+                        </div>
+                        <span class="activity-badge badge-primary">{{ assignment.assigned_date }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p style="text-align: center; color: var(--dark-gray);">No recent assignments</p>
+                {% endif %}
+            </div>
+        </div>
+        <div class="activity-card">
+            <div class="card-header">
+                <h5>Recent Movements</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_movements %}
+                <ul class="activity-list">
+                    {% for movement in recent_movements %}
+                    <li class="activity-item">
+                        <div class="activity-info">
+                            <h6>{{ movement.employee.given_name }} {{ movement.employee.surname }}</h6>
+                            <small>{{ movement.movement_type }} → {{ movement.to_location.name }}</small>
+                        </div>
+                        <span class="activity-badge badge-secondary">{{ movement.timestamp|time }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p style="text-align: center; color: var(--dark-gray);">No recent movements</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Charts -->
+    <div class="analytics-section">
+        <div class="card-header">
+            <h5>Location Analytics</h5>
+        </div>
+        <div class="card-body">
+            <div class="analytics-placeholder">
+                <p>Analytics chart will be loaded here</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for real-time updates -->
+<script>
+// Function to update location data
+function updateLocationData() {
+    fetch('/common/api/location-summary/')
+        .then(response => response.json())
+        .then(data => {
+            console.log('Location data updated:', data);
+            // Update the UI with new data
+        })
+        .catch(error => {
+            console.error('Error updating location data:', error);
+        });
+}
+
+// Update data every 30 seconds
+setInterval(updateLocationData, 30000);
+
+// Initial load
+document.addEventListener('DOMContentLoaded', function() {
+    updateLocationData();
+});
+</script>
+{% endblock %} 

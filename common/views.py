@@ -9,13 +9,14 @@ from django.shortcuts import (
     redirect,
     render,
 )
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from django.db.models import Q, Count, Prefetch, Avg
 from datetime import datetime, timedelta, date
+import datetime as dt
 from django.urls import reverse
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.contrib.auth import authenticate, login
@@ -28,9 +29,14 @@ from typing import Optional
 
 from .models import (
     Employee, Event, EventType, Location, AttendanceRecord, Card, Department,
-    AnalyticsCache, ReportConfiguration, EmployeeAnalytics, DepartmentAnalytics, SystemPerformance
+    AnalyticsCache, ReportConfiguration, EmployeeAnalytics, DepartmentAnalytics, SystemPerformance,
+    TaskAssignment, LocationMovement, LocationAnalytics
 )
-from .forms import AttendanceRecordForm, BulkHistoricalUpdateForm, ProgressiveEntryForm, HistoricalProgressiveEntryForm, AttendanceFilterForm
+from .forms import (
+    AttendanceRecordForm, BulkHistoricalUpdateForm, ProgressiveEntryForm, 
+    HistoricalProgressiveEntryForm, AttendanceFilterForm,
+    TaskAssignmentForm, BulkTaskAssignmentForm, LocationAssignmentFilterForm
+)
 from .serializers import (
     EmployeeSerializer,
     EventSerializer,
@@ -349,16 +355,16 @@ def attendance_analytics(request):
     
     # Default to last 30 days if no dates provided
     if not start_date:
-        start_date = (timezone.now() - timedelta(days=30)).date().isoformat()
+        start_date = (django_timezone.now() - timedelta(days=30)).date().isoformat()
     if not end_date:
-        end_date = timezone.now().date().isoformat()
+        end_date = django_timezone.now().date().isoformat()
     
     try:
         start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
         end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
     except ValueError:
-        start_date = (timezone.now() - timedelta(days=30)).date()
-        end_date = timezone.now().date()
+        start_date = (django_timezone.now() - timedelta(days=30)).date()
+        end_date = django_timezone.now().date()
     
     # Get all employees
     employees = Employee.objects.filter(is_active=True).order_by('surname', 'given_name')
@@ -445,8 +451,8 @@ def comprehensive_reports(request):
 
     active_tab = request.GET.get('tab', 'comprehensive_attendance')
     
-    start_date = request.GET.get('start_date', timezone.now().date().replace(day=1).isoformat())
-    end_date = request.GET.get('end_date', timezone.now().date().isoformat())
+    start_date = request.GET.get('start_date', django_timezone.now().date().replace(day=1).isoformat())
+    end_date = request.GET.get('end_date', django_timezone.now().date().isoformat())
     department_filter = request.GET.get('department', 'Digitization Tech')  # Default to Digitization Tech
     
     employee_id = request.GET.get("employee_id")
@@ -475,7 +481,7 @@ def comprehensive_reports(request):
         "selected_period": period,
         "start_time": start_time,
         "end_time": end_time,
-        "timestamp": int(timezone.now().timestamp()),
+        "timestamp": int(django_timezone.now().timestamp()),
     }
     
     return render(request, "reports/comprehensive_reports.html", context)
@@ -485,7 +491,7 @@ def comprehensive_reports(request):
 @extend_schema(exclude=True)
 def progressive_entry(request):
     """Progressive attendance entry - optimized with bulk prefetch"""
-    today = timezone.now().date()
+    today = django_timezone.localtime(django_timezone.now()).date()
     
     # Get request parameters for filtering
     start_letter = request.GET.get("start_letter", "")
@@ -609,14 +615,19 @@ def progressive_entry(request):
     
     # Get employees who were actually present (had clock-in events) today
     from datetime import time
-    start_of_day = timezone.make_aware(datetime.combine(today, time.min))
-    end_of_day = timezone.make_aware(datetime.combine(today, time.max))
+    # Convert today to UTC for proper timezone handling
+    start_of_day_local = django_timezone.make_aware(datetime.combine(today, time.min))
+    end_of_day_local = django_timezone.make_aware(datetime.combine(today, time.max))
     
-    # Get employees who clocked in today
+    # Convert to UTC for database query
+    start_of_day_utc = start_of_day_local.astimezone(dt.timezone.utc)
+    end_of_day_utc = end_of_day_local.astimezone(dt.timezone.utc)
+    
+    # Get employees who clocked in today (using UTC timestamps)
     present_employees = Event.objects.filter(
         event_type__name='Clock In',
-        timestamp__gte=start_of_day,
-        timestamp__lte=end_of_day
+        timestamp__gte=start_of_day_utc,
+        timestamp__lte=end_of_day_utc
     ).values_list('employee', flat=True).distinct()
     
     # Get the actual employee objects for present employees
@@ -695,12 +706,12 @@ def attendance_list(request):
     
     # Default to today if no date specified
     if not date_filter:
-        date_filter = timezone.now().date().isoformat()
+        date_filter = django_timezone.localtime(django_timezone.now()).date().isoformat()
     
     try:
         target_date = datetime.strptime(date_filter, '%Y-%m-%d').date()
     except ValueError:
-        target_date = timezone.now().date()
+        target_date = django_timezone.localtime(django_timezone.now()).date()
     
     # Get all active employees with optimized prefetch
     all_employees = Employee.objects.filter(is_active=True).select_related('card_number').order_by('surname', 'given_name')
@@ -733,8 +744,13 @@ def attendance_list(request):
     
     # Identify absent employees (those who didn't clock in) - OPTIMIZED
     from datetime import time
-    start_of_day = timezone.make_aware(datetime.combine(target_date, time.min))
-    end_of_day = timezone.make_aware(datetime.combine(target_date, time.max))
+    # Convert local date to UTC for proper timezone handling
+    start_of_day_local = django_timezone.make_aware(datetime.combine(target_date, time.min))
+    end_of_day_local = django_timezone.make_aware(datetime.combine(target_date, time.max))
+    
+    # Convert to UTC for database query
+    start_of_day = start_of_day_local.astimezone(dt.timezone.utc)
+    end_of_day = end_of_day_local.astimezone(dt.timezone.utc)
     
     # Single optimized query to get all clocked-in employee IDs
     clocked_in_employees = set(
@@ -794,7 +810,7 @@ def attendance_list(request):
     display_records.sort(key=lambda x: (x.employee.surname, x.employee.given_name))
     
     # Pagination
-    paginator = Paginator(display_records, 25)  # Show 25 records per page
+    paginator = Paginator(display_records, 50)  # Show 50 records per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
@@ -853,7 +869,7 @@ def historical_progressive_entry(request):
                 if date_from_param.startswith('-') and date_to_param.startswith('-'):
                     days_from = int(date_from_param)
                     days_to = int(date_to_param)
-                    today = timezone.now().date()
+                    today = django_timezone.localtime(django_timezone.now()).date()
                     date_from = today + timedelta(days=days_from)
                     date_to = today + timedelta(days=days_to)
                 else:
@@ -1033,7 +1049,27 @@ def historical_progressive_results(request):
         for emp in present_employee_objects:
             # Find existing record for this employee on this date
             existing_record = existing_records.filter(employee=emp).first()
+            
+            # Get clock in/out events for this employee on this date
+            clock_events = Event.objects.filter(
+                employee=emp,
+                timestamp__date=date_key,
+                event_type__name__in=['Clock In', 'Clock Out']
+            ).select_related('event_type').order_by('timestamp')
+            
+            # Extract clock in/out times
+            clock_in_time = None
+            clock_out_time = None
+            for event in clock_events:
+                if event.event_type.name == 'Clock In':
+                    clock_in_time = event.timestamp
+                elif event.event_type.name == 'Clock Out':
+                    clock_out_time = event.timestamp
+            
             if existing_record:
+                # Add clock times to existing record
+                existing_record.clock_in_time = clock_in_time
+                existing_record.clock_out_time = clock_out_time
                 employee_records.append(existing_record)
             else:
                 # Create a dummy record object for present employees without attendance records
@@ -1052,6 +1088,8 @@ def historical_progressive_results(request):
                     'last_updated_by': None,
                     'updated_at': None,
                     'notes': '',
+                    'clock_in_time': clock_in_time,
+                    'clock_out_time': clock_out_time,
                 })()
                 employee_records.append(dummy_record)
         
@@ -1093,16 +1131,16 @@ def attendance_export_csv(request):
     
     # Default to last 30 days if no dates provided
     if not start_date:
-        start_date = (timezone.now() - timedelta(days=30)).date().isoformat()
+        start_date = (django_timezone.now() - timedelta(days=30)).date().isoformat()
     if not end_date:
-        end_date = timezone.now().date().isoformat()
+        end_date = django_timezone.now().date().isoformat()
     
     try:
         start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
         end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
     except ValueError:
-        start_date = (timezone.now() - timedelta(days=30)).date()
-        end_date = timezone.now().date()
+        start_date = (django_timezone.now() - timedelta(days=30)).date()
+        end_date = django_timezone.now().date()
     
     # Get attendance records
     records = AttendanceRecord.objects.filter(
@@ -1218,7 +1256,7 @@ def main_security(request):
 
     # Prefetch related events with only the latest clock in/out events to improve performance
     # This optimizes the is_clocked_in calculation
-    one_month_ago = timezone.now() - timedelta(days=30)
+    one_month_ago = django_timezone.now() - timedelta(days=30)
     latest_events = (
         Event.objects.filter(
             timestamp__gte=one_month_ago, event_type__name__in=["Clock In", "Clock Out"]
@@ -1348,16 +1386,11 @@ def main_security_clocked_in_status_flip(request, id):
     
     if recent_events.exists():
         most_recent_event = recent_events.first()
-        # Ensure both timestamps are timezone-aware for proper comparison
-        current_time = timezone.now()
+        # Simplified timezone handling - Django handles timezone conversion automatically
+        current_time = django_timezone.now()
         event_time = most_recent_event.timestamp
         
-        # Convert both to UTC for consistent comparison
-        if current_time.tzinfo is None:
-            current_time = timezone.make_aware(current_time)
-        if event_time.tzinfo is None:
-            event_time = timezone.make_aware(event_time)
-            
+        # Simple time difference calculation
         time_since_last_event = (current_time - event_time).total_seconds()
         
         # Safety check: if event is in the future or more than 1 hour ago, skip debounce
@@ -1403,14 +1436,31 @@ def main_security_clocked_in_status_flip(request, id):
             "System configuration error."
         )  # Or redirect with message
 
-    # Create the new clock event
+    # Create the new clock event with local timezone timestamp
     event = Event.objects.create(
         employee=employee,
         event_type=event_type,
         location=location,
         created_by=request.user,  # Record which logged-in user performed the action
-        # timestamp defaults to timezone.now
+        timestamp=django_timezone.localtime(django_timezone.now())  # Use local timezone instead of UTC
     )
+
+    # Clear relevant caches to ensure real-time updates
+    try:
+        from django.core.cache import cache
+        # Clear employee-specific caches
+        cache.delete(f"employee_status_{employee.id}")
+        cache.delete(f"employee_last_event_{employee.id}")
+        
+        # Clear main security page caches
+        cache.delete_pattern("main_security_*")
+        cache.delete_pattern("employee_status_*")
+        
+        # Clear template caches
+        from django.core.cache import cache as template_cache
+        template_cache.delete_pattern("main_security_*")
+    except Exception:
+        pass  # Ignore cache clearing errors
 
     # Optional: Add a success message with time and date
     # event_time = event.timestamp.strftime("%H:%M:%S on %d %b %Y")
@@ -1474,7 +1524,7 @@ def employee_events(request, id):
     locations = Location.objects.all()
 
     # Get some statistics for the employee
-    today = timezone.now().date()
+    today = django_timezone.now().date()
     week_ago = today - timedelta(days=7)
 
     today_events_count = Event.objects.filter(
@@ -1541,7 +1591,7 @@ def update_event(request, employee_id):
         # Parse date and time
         date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
         time_obj = datetime.strptime(time_str, "%H:%M:%S").time()
-        timestamp = timezone.make_aware(datetime.combine(date_obj, time_obj))
+        timestamp = django_timezone.make_aware(datetime.combine(date_obj, time_obj))
 
         # Update event
         event.event_type = event_type
@@ -1602,7 +1652,7 @@ def daily_dashboard_report(request):
     Display the daily attendance dashboard using Marimo.
     """
     # Get today's date in local timezone
-    today_local = timezone.localtime().date()
+    today_local = django_timezone.localtime().date()
 
     # Get filter parameters
     date_str = request.GET.get("date", today_local.isoformat())
@@ -1634,9 +1684,9 @@ def employee_history_report(request):
     # Get filter parameters
     employee_id = request.GET.get("employee_id")
     start_date = request.GET.get(
-        "start_date", timezone.now().date().replace(day=1).isoformat()
+        "start_date", django_timezone.now().date().replace(day=1).isoformat()
     )
-    end_date = request.GET.get("end_date", timezone.now().date().isoformat())
+    end_date = request.GET.get("end_date", django_timezone.now().date().isoformat())
 
     # Get all employees for the dropdown
     employees = Employee.objects.all().order_by("surname", "given_name")
@@ -1666,7 +1716,7 @@ def period_summary_report(request):
     """
     # Get filter parameters
     period = request.GET.get("period", "day")
-    start_date = request.GET.get("start_date", timezone.now().date().isoformat())
+    start_date = request.GET.get("start_date", django_timezone.now().date().isoformat())
     start_time = request.GET.get("start_time", "09:00")
     end_time = request.GET.get("end_time", "17:00")
 
@@ -1704,9 +1754,9 @@ def generate_marimo_report(request, report_type):
 
         # Get filter parameters
         start_date_str = request.GET.get(
-            "start", timezone.now().date().replace(day=1).isoformat()
+            "start", django_timezone.now().date().replace(day=1).isoformat()
         )
-        end_date_str = request.GET.get("end", timezone.now().date().isoformat())
+        end_date_str = request.GET.get("end", django_timezone.now().date().isoformat())
 
         # Convert string dates to datetime objects
         try:
@@ -1724,11 +1774,11 @@ def generate_marimo_report(request, report_type):
         # For now, use fallback HTML reports for all report types
         # This ensures users see something while we resolve Marimo integration issues
         if report_type == "daily_dashboard":
-            date_str = request.GET.get("date", timezone.now().date().isoformat())
+            date_str = request.GET.get("date", django_timezone.now().date().isoformat())
             try:
                 selected_date = datetime.fromisoformat(date_str).date()
             except ValueError:
-                selected_date = timezone.now().date()
+                selected_date = django_timezone.now().date()
 
             return generate_daily_dashboard_html(request, selected_date)
 
@@ -1770,10 +1820,10 @@ def generate_marimo_report(request, report_type):
 def generate_daily_dashboard_html(request, selected_date):
     """Generate HTML report for daily dashboard"""
     # Calculate start and end of selected date
-    start_of_day = timezone.make_aware(
+    start_of_day = django_timezone.make_aware(
         datetime.combine(selected_date, datetime.min.time())
     )
-    end_of_day = timezone.make_aware(
+    end_of_day = django_timezone.make_aware(
         datetime.combine(selected_date, datetime.max.time())
     )
 
@@ -1864,7 +1914,7 @@ def generate_daily_dashboard_html(request, selected_date):
         )
 
         last_event_info = (
-            f"{last_event.event_type.name} at {timezone.localtime(last_event.timestamp).strftime('%H:%M')} on {timezone.localtime(last_event.timestamp).strftime('%Y-%m-%d')}"
+            f"{last_event.event_type.name} at {django_timezone.localtime(last_event.timestamp).strftime('%H:%M')} on {django_timezone.localtime(last_event.timestamp).strftime('%Y-%m-%d')}"
             if last_event
             else "No events recorded"
         )
@@ -1906,7 +1956,7 @@ def generate_daily_dashboard_html(request, selected_date):
     for event in clock_events:
         if event.event_type.name == "Clock In":
             # Convert to local timezone for hour calculation
-            local_timestamp = timezone.localtime(event.timestamp)
+            local_timestamp = django_timezone.localtime(event.timestamp)
             hour = local_timestamp.hour
             if 7 <= hour <= 18:  # Only count hours in our range
                 dept = employee_departments.get(event.employee.id, "Administration")
@@ -1952,10 +2002,10 @@ def generate_employee_history_html(request, employee_id, start_date, end_date):
         employee = get_object_or_404(Employee, id=employee_id)
 
         # Convert to datetime objects for filtering
-        start_datetime = timezone.make_aware(
+        start_datetime = django_timezone.make_aware(
             datetime.combine(start_date, datetime.min.time())
         )
-        end_datetime = timezone.make_aware(
+        end_datetime = django_timezone.make_aware(
             datetime.combine(end_date, datetime.min.time())
         )
 
@@ -1975,7 +2025,7 @@ def generate_employee_history_html(request, employee_id, start_date, end_date):
 
         for event in events:
             # Convert to local timezone for date calculation
-            local_timestamp = timezone.localtime(event.timestamp)
+            local_timestamp = django_timezone.localtime(event.timestamp)
             event_date = local_timestamp.date()
             if event_date not in event_days:
                 event_days[event_date] = {
@@ -2180,10 +2230,10 @@ def generate_period_summary_html(
             end_time = datetime.strptime("17:00", "%H:%M").time()
 
         # Full date range
-        start_datetime = timezone.make_aware(
+        start_datetime = django_timezone.make_aware(
             datetime.combine(start_date, datetime.min.time())
         )
-        end_datetime = timezone.make_aware(
+        end_datetime = django_timezone.make_aware(
             datetime.combine(end_date, datetime.min.time())
         )
 
@@ -2236,7 +2286,7 @@ def generate_period_summary_html(
             employee_id = event.employee.id
             employee_name = f"{event.employee.given_name} {event.employee.surname}"
             # Convert to local timezone for date and time calculations
-            local_timestamp = timezone.localtime(event.timestamp)
+            local_timestamp = django_timezone.localtime(event.timestamp)
             event_date = local_timestamp.date()
             event_time = local_timestamp.time()
 
@@ -2451,12 +2501,12 @@ def generate_period_summary_html(
                 period["employees"].items(), key=lambda x: x[1]["name"]
             ):
                 first_in = (
-                    timezone.localtime(emp_data["first_clock_in"]).strftime("%Y-%m-%d %H:%M")
+                    django_timezone.localtime(emp_data["first_clock_in"]).strftime("%Y-%m-%d %H:%M")
                     if emp_data["first_clock_in"]
                     else "—"
                 )
                 last_out = (
-                    timezone.localtime(emp_data["last_clock_out"]).strftime("%Y-%m-%d %H:%M")
+                    django_timezone.localtime(emp_data["last_clock_out"]).strftime("%Y-%m-%d %H:%M")
                     if emp_data["last_clock_out"]
                     else "—"
                 )
@@ -2522,10 +2572,10 @@ def generate_period_summary_html(
             end_time = datetime.strptime("17:00", "%H:%M").time()
 
         # Full date range
-        start_datetime = timezone.make_aware(
+        start_datetime = django_timezone.make_aware(
             datetime.combine(start_date, datetime.min.time())
         )
-        end_datetime = timezone.make_aware(
+        end_datetime = django_timezone.make_aware(
             datetime.combine(end_date, datetime.min.time())
         )
 
@@ -2540,7 +2590,7 @@ def generate_period_summary_html(
         early_departures = []
 
         for event in events:
-            local_timestamp = timezone.localtime(event.timestamp)
+            local_timestamp = django_timezone.localtime(event.timestamp)
             event_time = local_timestamp.time()
             employee_name = f"{event.employee.given_name} {event.employee.surname}"
 
@@ -2824,9 +2874,9 @@ def employee_history_report_csv(request):
     """Download employee attendance history as CSV"""
     employee_id = request.GET.get("employee_id")
     start_date = request.GET.get(
-        "start_date", (timezone.now() - timedelta(days=30)).date().isoformat()
+        "start_date", (django_timezone.now() - timedelta(days=30)).date().isoformat()
     )
-    end_date = request.GET.get("end_date", timezone.now().date().isoformat())
+    end_date = request.GET.get("end_date", django_timezone.now().date().isoformat())
     if not employee_id:
         return HttpResponseBadRequest("Employee ID is required")
     try:
@@ -2835,10 +2885,10 @@ def employee_history_report_csv(request):
     except ValueError:
         return HttpResponseBadRequest("Invalid date format")
     employee = get_object_or_404(Employee, id=employee_id)
-    start_datetime = timezone.make_aware(
+    start_datetime = django_timezone.make_aware(
         datetime.combine(start_date, datetime.min.time())
     )
-    end_datetime = timezone.make_aware(datetime.combine(end_date, datetime.min.time()))
+    end_datetime = django_timezone.make_aware(datetime.combine(end_date, datetime.min.time()))
     events = (
         Event.objects.filter(
             employee=employee, timestamp__range=(start_datetime, end_datetime)
@@ -2853,7 +2903,7 @@ def employee_history_report_csv(request):
         clock_in_time = None
         for event in events:
             # Convert to local timezone for date calculation
-            local_timestamp = timezone.localtime(event.timestamp)
+            local_timestamp = django_timezone.localtime(event.timestamp)
             event_date = local_timestamp.date()
             if event_date not in event_days:
                 event_days[event_date] = {
@@ -2873,8 +2923,8 @@ def employee_history_report_csv(request):
             day = event_days[date_key]
             yield [
                 date_key.strftime("%Y-%m-%d"),
-                timezone.localtime(day["clock_in"]).strftime("%H:%M") if day["clock_in"] else "",
-                timezone.localtime(day["clock_out"]).strftime("%H:%M") if day["clock_out"] else "",
+                django_timezone.localtime(day["clock_in"]).strftime("%H:%M") if day["clock_in"] else "",
+                django_timezone.localtime(day["clock_out"]).strftime("%H:%M") if day["clock_out"] else "",
                 day["hours"],
             ]
 
@@ -2890,12 +2940,12 @@ def employee_history_report_csv(request):
 def period_summary_report_csv(request):
     """Download period summary as CSV"""
     period = request.GET.get("period", "day")
-    start_date = request.GET.get("start_date", timezone.now().date().isoformat())
+    start_date = request.GET.get("start_date", django_timezone.now().date().isoformat())
     start_time = request.GET.get("start_time", "09:00")
     end_time = request.GET.get("end_time", "17:00")
     try:
         start_date = datetime.fromisoformat(start_date).date()
-        end_date = timezone.now().date()
+        end_date = django_timezone.now().date()
     except ValueError:
         return HttpResponseBadRequest("Invalid date format")
     end_date = request.GET.get("end_date", end_date.isoformat())
@@ -2903,10 +2953,10 @@ def period_summary_report_csv(request):
         end_date = datetime.fromisoformat(end_date).date()
     except ValueError:
         return HttpResponseBadRequest("Invalid end date format")
-    start_datetime = timezone.make_aware(
+    start_datetime = django_timezone.make_aware(
         datetime.combine(start_date, datetime.min.time())
     )
-    end_datetime = timezone.make_aware(datetime.combine(end_date, datetime.min.time()))
+    end_datetime = django_timezone.make_aware(datetime.combine(end_date, datetime.min.time()))
     events = Event.objects.filter(
         timestamp__range=(start_datetime, end_datetime),
         event_type__name__in=["Clock In", "Clock Out"],
@@ -2936,7 +2986,7 @@ def period_summary_report_csv(request):
         employee_id = event.employee.id
         employee_name = f"{event.employee.given_name} {event.employee.surname}"
         # Convert to local timezone for date calculation
-        local_timestamp = timezone.localtime(event.timestamp)
+        local_timestamp = django_timezone.localtime(event.timestamp)
         event_date = local_timestamp.date()
         if period == "day":
             period_key = event_date
@@ -2981,10 +3031,10 @@ def period_summary_report_csv(request):
                 yield [
                     str(period_key),
                     emp_data["name"],
-                    timezone.localtime(emp_data["first_clock_in"]).strftime("%Y-%m-%d %H:%M")
+                    django_timezone.localtime(emp_data["first_clock_in"]).strftime("%Y-%m-%d %H:%M")
                     if emp_data["first_clock_in"]
                     else "",
-                    timezone.localtime(emp_data["last_clock_out"]).strftime("%Y-%m-%d %H:%M")
+                    django_timezone.localtime(emp_data["last_clock_out"]).strftime("%Y-%m-%d %H:%M")
                     if emp_data["last_clock_out"]
                     else "",
                     emp_data["hours"],
@@ -3106,7 +3156,7 @@ def bulk_historical_update(request):
 @xframe_options_sameorigin
 def comprehensive_attendance_report(request):
     """Comprehensive attendance report based on the CSV analysis format"""
-    today = timezone.now().date()
+    today = django_timezone.localtime(django_timezone.now()).date()
     
     # Get date range parameters
     start_date = request.GET.get('start_date', (today - timedelta(days=30)).isoformat())
@@ -3247,9 +3297,9 @@ def get_department_from_designation(designation):
         dept = raw_dept.lower()
         
         # Map to main departments
-        if 'digitization' in dept and 'tech' in dept:
+        if ('digitization' in dept or 'digitzation' in dept) and 'tech' in dept:
             return 'Digitization Tech'
-        elif 'digitization' in dept:
+        elif 'digitization' in dept or 'digitzation' in dept:
             return 'Digitization Tech'
         elif 'tech' in dept and 'compute' in dept:
             return 'Tech Compute'
@@ -3402,13 +3452,13 @@ class LiveAttendanceCounterView(generics.RetrieveAPIView):
     """API endpoint for live attendance counter data"""
     authentication_classes = [SessionAuthentication]
     permission_classes = [ReportingPermission]
+    serializer_class = EmployeeSerializer
     
     def get_object(self):
         """Return live attendance statistics"""
         from django.db.models import Count, Q
-        from django.utils import timezone
         
-        today = timezone.now().date()
+        today = django_timezone.localtime(django_timezone.now()).date()
         
         # Get total employees
         total_employees = Employee.objects.filter(is_active=True).count()
@@ -3434,7 +3484,7 @@ class LiveAttendanceCounterView(generics.RetrieveAPIView):
             'currently_clocked_in': clocked_in,
             'currently_clocked_out': clocked_out,
             'attendance_rate': round(attendance_rate, 1),
-            'last_updated': timezone.now()
+            'last_updated': django_timezone.now()
         }
     
     def retrieve(self, request, *args, **kwargs):
@@ -3461,7 +3511,7 @@ def realtime_analytics_dashboard(request):
 @extend_schema(exclude=True)
 def comprehensive_attendance_export_csv(request):
     """Export comprehensive attendance report data to CSV with sorting capabilities"""
-    today = timezone.now().date()
+    today = django_timezone.localtime(django_timezone.now()).date()
     
     # Get parameters
     start_date = request.GET.get('start_date', (today - timedelta(days=30)).isoformat())
@@ -3600,3 +3650,869 @@ def comprehensive_attendance_export_csv(request):
         ])
     
     return response
+
+def location_dashboard(request):
+    """Location dashboard view."""
+    
+    # Get current date
+    today = date.today()
+    
+    # Get all locations with analytics
+    locations = Location.objects.filter(
+        task_assignments__assigned_date=today
+    ).distinct()
+    
+    # Get current analytics
+    current_analytics = LocationAnalytics.objects.filter(
+        date=today
+    ).select_related('location')
+    
+    # Get recent assignments
+    recent_assignments = TaskAssignment.objects.filter(
+        assigned_date=today
+    ).select_related('employee', 'location')[:10]
+    
+    # Get recent movements
+    recent_movements = LocationMovement.objects.filter(
+        timestamp__date=today
+    ).select_related('employee', 'to_location')[:10]
+    
+    # Calculate summary statistics
+    total_assignments = TaskAssignment.objects.filter(
+        assigned_date=today
+    ).count()
+    
+    total_employees = TaskAssignment.objects.filter(
+        assigned_date=today
+    ).values('employee').distinct().count()
+    
+    avg_utilization = current_analytics.aggregate(
+        avg_util=Avg('utilization_rate')
+    )['avg_util'] or 0
+    
+    context = {
+        'locations': locations,
+        'current_analytics': current_analytics,
+        'recent_assignments': recent_assignments,
+        'recent_movements': recent_movements,
+        'total_assignments': total_assignments,
+        'total_employees': total_employees,
+        'avg_utilization': avg_utilization,
+        'today': today,
+    }
+    
+    return render(request, 'common/location_dashboard.html', context)
+
+def location_analytics_api(request, location_id):
+    """API endpoint for location analytics."""
+    
+    try:
+        location = Location.objects.get(id=location_id)
+        
+        # Get date range (last 30 days)
+        end_date = date.today()
+        start_date = end_date - timedelta(days=30)
+        
+        # Get analytics for the location
+        analytics = LocationAnalytics.objects.filter(
+            location=location,
+            date__range=[start_date, end_date]
+        ).order_by('date')
+        
+        # Prepare data for charts
+        dates = [a.date.isoformat() for a in analytics]
+        utilization_rates = [float(a.utilization_rate) for a in analytics]
+        occupancies = [a.current_occupancy for a in analytics]
+        
+        data = {
+            'location_name': location.name,
+            'dates': dates,
+            'utilization_rates': utilization_rates,
+            'occupancies': occupancies,
+            'current_occupancy': location.current_occupancy,
+            'utilization_rate': location.utilization_rate,
+            'capacity': location.capacity,
+        }
+        
+        return JsonResponse(data)
+        
+    except Location.DoesNotExist:
+        return JsonResponse({'error': 'Location not found'}, status=404)
+
+def employee_locations_api(request):
+    """API endpoint for current employee locations."""
+    
+    today = date.today()
+    
+    # Get current assignments
+    assignments = TaskAssignment.objects.filter(
+        assigned_date=today,
+        is_completed=False
+    ).select_related('employee', 'location')
+    
+    data = []
+    for assignment in assignments:
+        data.append({
+            'employee_name': f"{assignment.employee.given_name} {assignment.employee.surname}",
+            'location_name': assignment.location.name,
+            'task_type': assignment.task_type,
+            'assigned_date': assignment.assigned_date.isoformat(),
+        })
+    
+    return JsonResponse({'assignments': data})
+
+def location_summary_api(request):
+    """API endpoint for location summary."""
+    
+    today = date.today()
+    
+    # Get all locations with current activity
+    locations = Location.objects.filter(
+        task_assignments__assigned_date=today
+    ).distinct()
+    
+    summary = []
+    for location in locations:
+        current_assignments = TaskAssignment.objects.filter(
+            location=location,
+            assigned_date=today,
+            is_completed=False
+        ).count()
+        
+        total_assignments = TaskAssignment.objects.filter(
+            location=location,
+            assigned_date=today
+        ).count()
+        
+        summary.append({
+            'location_name': location.name,
+            'current_occupancy': current_assignments,
+            'total_assignments': total_assignments,
+            'utilization_rate': location.utilization_rate,
+            'capacity': location.capacity,
+        })
+    
+    return JsonResponse({'locations': summary})
+
+def location_assignment_list(request):
+    """List and filter location assignments."""
+    
+    # Get filter parameters
+    form = LocationAssignmentFilterForm(request.GET)
+    assignments = TaskAssignment.objects.select_related('employee', 'location').all()
+    
+    if form.is_valid():
+        # Apply filters
+        if form.cleaned_data.get('date_from'):
+            assignments = assignments.filter(assigned_date__gte=form.cleaned_data['date_from'])
+        
+        if form.cleaned_data.get('date_to'):
+            assignments = assignments.filter(assigned_date__lte=form.cleaned_data['date_to'])
+        
+        if form.cleaned_data.get('employee'):
+            assignments = assignments.filter(employee=form.cleaned_data['employee'])
+        
+        if form.cleaned_data.get('location'):
+            assignments = assignments.filter(location=form.cleaned_data['location'])
+        
+        if form.cleaned_data.get('task_type'):
+            assignments = assignments.filter(task_type__icontains=form.cleaned_data['task_type'])
+        
+        if form.cleaned_data.get('is_completed') == 'yes':
+            assignments = assignments.filter(is_completed=True)
+        elif form.cleaned_data.get('is_completed') == 'no':
+            assignments = assignments.filter(is_completed=False)
+    
+    # Pagination
+    paginator = Paginator(assignments, 25)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'form': form,
+        'total_assignments': assignments.count(),
+        'completed_assignments': assignments.filter(is_completed=True).count(),
+        'pending_assignments': assignments.filter(is_completed=False).count(),
+    }
+    
+    return render(request, 'common/location_assignment_list.html', context)
+
+
+def location_assignment_create(request):
+    """Create a new location assignment."""
+    
+    if request.method == 'POST':
+        form = TaskAssignmentForm(request.POST)
+        if form.is_valid():
+            assignment = form.save(commit=False)
+            assignment.created_by = request.user
+            assignment.save()
+            
+            # Create location movement record
+            LocationMovement.objects.create(
+                employee=assignment.employee,
+                to_location=assignment.location,
+                movement_type='TASK_ASSIGNMENT',
+                notes=f'Assignment created: {assignment.task_type}',
+                created_by=request.user
+            )
+            
+            messages.success(request, f'Assignment created for {assignment.employee} at {assignment.location}')
+            return redirect('location_assignment_list')
+    else:
+        form = TaskAssignmentForm()
+    
+    context = {
+        'form': form,
+        'title': 'Create Location Assignment',
+        'submit_text': 'Create Assignment'
+    }
+    
+    return render(request, 'common/location_assignment_form.html', context)
+
+
+def location_assignment_edit(request, assignment_id):
+    """Edit an existing location assignment."""
+    
+    try:
+        assignment = TaskAssignment.objects.get(id=assignment_id)
+    except TaskAssignment.DoesNotExist:
+        messages.error(request, 'Assignment not found')
+        return redirect('location_assignment_list')
+    
+    if request.method == 'POST':
+        form = TaskAssignmentForm(request.POST, instance=assignment)
+        if form.is_valid():
+            old_location = assignment.location
+            assignment = form.save()
+            
+            # Create movement record if location changed
+            if old_location != assignment.location:
+                LocationMovement.objects.create(
+                    employee=assignment.employee,
+                    from_location=old_location,
+                    to_location=assignment.location,
+                    movement_type='TASK_ASSIGNMENT',
+                    notes=f'Assignment moved from {old_location} to {assignment.location}',
+                    created_by=request.user
+                )
+            
+            messages.success(request, f'Assignment updated for {assignment.employee}')
+            return redirect('location_assignment_list')
+    else:
+        form = TaskAssignmentForm(instance=assignment)
+    
+    context = {
+        'form': form,
+        'assignment': assignment,
+        'title': 'Edit Location Assignment',
+        'submit_text': 'Update Assignment'
+    }
+    
+    return render(request, 'common/location_assignment_form.html', context)
+
+
+def location_assignment_delete(request, assignment_id):
+    """Delete a location assignment."""
+    
+    try:
+        assignment = TaskAssignment.objects.get(id=assignment_id)
+    except TaskAssignment.DoesNotExist:
+        messages.error(request, 'Assignment not found')
+        return redirect('location_assignment_list')
+    
+    if request.method == 'POST':
+        employee_name = f"{assignment.employee.given_name} {assignment.employee.surname}"
+        location_name = assignment.location.name
+        assignment.delete()
+        
+        messages.success(request, f'Assignment for {employee_name} at {location_name} deleted')
+        return redirect('location_assignment_list')
+    
+    context = {
+        'assignment': assignment,
+        'title': 'Delete Location Assignment'
+    }
+    
+    return render(request, 'common/location_assignment_confirm_delete.html', context)
+
+
+def bulk_location_assignment(request):
+    """Bulk assign employees to a location."""
+    
+    if request.method == 'POST':
+        form = BulkTaskAssignmentForm(request.POST)
+        if form.is_valid():
+            assigned_date = form.cleaned_data['assigned_date']
+            location = form.cleaned_data['location']
+            task_type = form.cleaned_data['task_type']
+            start_time = form.cleaned_data.get('start_time')
+            end_time = form.cleaned_data.get('end_time')
+            
+            assignments_created = 0
+            employees_assigned = []
+            
+            for field_name, value in form.cleaned_data.items():
+                if field_name.startswith('assign_') and value:
+                    employee_id = field_name.replace('assign_', '')
+                    try:
+                        employee = Employee.objects.get(id=employee_id)
+                        
+                        # Check if assignment already exists
+                        assignment, created = TaskAssignment.objects.get_or_create(
+                            employee=employee,
+                            location=location,
+                            assigned_date=assigned_date,
+                            defaults={
+                                'task_type': task_type,
+                                'start_time': start_time,
+                                'end_time': end_time,
+                                'created_by': request.user
+                            }
+                        )
+                        
+                        if created:
+                            assignments_created += 1
+                            employees_assigned.append(employee)
+                            
+                            # Create movement record
+                            LocationMovement.objects.create(
+                                employee=employee,
+                                to_location=location,
+                                movement_type='TASK_ASSIGNMENT',
+                                notes=f'Bulk assignment: {task_type}',
+                                created_by=request.user
+                            )
+                    
+                    except Employee.DoesNotExist:
+                        continue
+            
+            if assignments_created > 0:
+                messages.success(
+                    request, 
+                    f'Created {assignments_created} assignments for {location.name}'
+                )
+            else:
+                messages.warning(request, 'No new assignments created (may already exist)')
+            
+            return redirect('location_assignment_list')
+    else:
+        form = BulkTaskAssignmentForm()
+    
+    context = {
+        'form': form,
+        'title': 'Bulk Location Assignment',
+        'submit_text': 'Create Assignments'
+    }
+    
+    return render(request, 'common/bulk_location_assignment_form.html', context)
+
+
+def location_assignment_complete(request, assignment_id):
+    """Mark an assignment as completed."""
+    
+    try:
+        assignment = TaskAssignment.objects.get(id=assignment_id)
+    except TaskAssignment.DoesNotExist:
+        messages.error(request, 'Assignment not found')
+        return redirect('location_assignment_list')
+    
+    if request.method == 'POST':
+        assignment.is_completed = True
+        assignment.save()
+        
+        messages.success(
+            request, 
+            f'Assignment for {assignment.employee} at {assignment.location} marked as completed'
+        )
+        return redirect('location_assignment_list')
+    
+    context = {
+        'assignment': assignment,
+        'title': 'Complete Assignment'
+    }
+    
+    return render(request, 'common/location_assignment_confirm_complete.html', context)
+
+# Phase 3: Advanced Analytics - Pattern Recognition Dashboard
+
+class PatternRecognitionView(generics.ListAPIView):
+    """API endpoint for pattern recognition analysis"""
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [ReportingPermission]
+    serializer_class = EmployeeAnalyticsSerializer
+    
+    def get_queryset(self):
+        """Return pattern analysis data"""
+        # This will be implemented to return pattern analysis data
+        return EmployeeAnalytics.objects.none()
+    
+    def list(self, request, *args, **kwargs):
+        """Return pattern recognition data"""
+        from datetime import datetime, timedelta
+        from django.db.models import Avg, Count, Q
+        
+        # Get date range from request
+        days_back = int(request.GET.get('days', 30))
+        end_date = datetime.now().date()
+        start_date = end_date - timedelta(days=days_back)
+        
+        # Get employee analytics for pattern analysis
+        analytics = EmployeeAnalytics.objects.filter(
+            date__range=[start_date, end_date]
+        ).select_related('employee', 'employee__department')
+        
+        # Pattern analysis data
+        pattern_data = {
+            'arrival_patterns': self._analyze_arrival_patterns(analytics),
+            'departure_patterns': self._analyze_departure_patterns(analytics),
+            'location_patterns': self._analyze_location_patterns(analytics),
+            'anomaly_detection': self._detect_anomalies(analytics),
+            'trend_analysis': self._analyze_trends(analytics),
+            'correlation_analysis': self._analyze_correlations(analytics),
+        }
+        
+        return Response(pattern_data)
+    
+    def _analyze_arrival_patterns(self, analytics):
+        """Analyze employee arrival time patterns"""
+        patterns = {}
+        
+        # Group by employee and analyze arrival times
+        for employee_analytics in analytics:
+            employee = employee_analytics.employee
+            if employee.id not in patterns:
+                patterns[employee.id] = {
+                    'employee_name': f"{employee.given_name} {employee.surname}",
+                    'department': employee.department.name if employee.department else 'Unknown',
+                    'arrival_times': [],
+                    'average_arrival': None,
+                    'consistency_score': 0,
+                }
+            
+            if employee_analytics.average_arrival_time:
+                patterns[employee.id]['arrival_times'].append(
+                    employee_analytics.average_arrival_time.strftime('%H:%M')
+                )
+        
+        # Calculate consistency scores
+        for emp_id, data in patterns.items():
+            if data['arrival_times']:
+                # Calculate average arrival time
+                times = [datetime.strptime(t, '%H:%M').time() for t in data['arrival_times']]
+                avg_hour = sum(t.hour for t in times) / len(times)
+                avg_minute = sum(t.minute for t in times) / len(times)
+                data['average_arrival'] = f"{int(avg_hour):02d}:{int(avg_minute):02d}"
+                
+                # Calculate consistency (lower variance = higher consistency)
+                hour_variance = sum((t.hour - avg_hour) ** 2 for t in times) / len(times)
+                data['consistency_score'] = max(0, 100 - (hour_variance * 10))
+        
+        return patterns
+    
+    def _analyze_departure_patterns(self, analytics):
+        """Analyze employee departure time patterns"""
+        patterns = {}
+        
+        # Similar to arrival patterns but for departures
+        for employee_analytics in analytics:
+            employee = employee_analytics.employee
+            if employee.id not in patterns:
+                patterns[employee.id] = {
+                    'employee_name': f"{employee.given_name} {employee.surname}",
+                    'department': employee.department.name if employee.department else 'Unknown',
+                    'departure_times': [],
+                    'average_departure': None,
+                    'consistency_score': 0,
+                }
+            
+            if employee_analytics.average_departure_time:
+                patterns[employee.id]['departure_times'].append(
+                    employee_analytics.average_departure_time.strftime('%H:%M')
+                )
+        
+        # Calculate consistency scores
+        for emp_id, data in patterns.items():
+            if data['departure_times']:
+                times = [datetime.strptime(t, '%H:%M').time() for t in data['departure_times']]
+                avg_hour = sum(t.hour for t in times) / len(times)
+                avg_minute = sum(t.minute for t in times) / len(times)
+                data['average_departure'] = f"{int(avg_hour):02d}:{int(avg_minute):02d}"
+                
+                hour_variance = sum((t.hour - avg_hour) ** 2 for t in times) / len(times)
+                data['consistency_score'] = max(0, 100 - (hour_variance * 10))
+        
+        return patterns
+    
+    def _analyze_location_patterns(self, analytics):
+        """Analyze employee location preference patterns"""
+        from collections import defaultdict
+        
+        location_patterns = defaultdict(lambda: {
+            'visits': 0,
+            'total_time': 0,
+            'employees': set(),
+        })
+        
+        for employee_analytics in analytics:
+            employee = employee_analytics.employee
+            locations_visited = employee_analytics.locations_visited
+            
+            for location in locations_visited:
+                location_patterns[location]['visits'] += 1
+                location_patterns[location]['employees'].add(employee.id)
+        
+        # Convert to serializable format
+        patterns = {}
+        for location, data in location_patterns.items():
+            patterns[location] = {
+                'visits': data['visits'],
+                'unique_employees': len(data['employees']),
+                'popularity_score': data['visits'] * len(data['employees']),
+            }
+        
+        return patterns
+    
+    def _detect_anomalies(self, analytics):
+        """Detect anomalous behavior patterns"""
+        anomalies = []
+        
+        for employee_analytics in analytics:
+            employee = employee_analytics.employee
+            
+            # Detect various types of anomalies
+            anomaly_flags = []
+            
+            # Late arrival anomaly
+            if employee_analytics.is_late_arrival:
+                anomaly_flags.append('late_arrival')
+            
+            # Early departure anomaly
+            if employee_analytics.is_early_departure:
+                anomaly_flags.append('early_departure')
+            
+            # Low attendance score anomaly
+            if employee_analytics.attendance_score < 70:
+                anomaly_flags.append('low_attendance_score')
+            
+            # Unusual movement pattern
+            if employee_analytics.movement_count > 10:  # Threshold for unusual movement
+                anomaly_flags.append('high_movement')
+            
+            # Unusual hours worked
+            if employee_analytics.total_hours_worked < 6 or employee_analytics.total_hours_worked > 12:
+                anomaly_flags.append('unusual_hours')
+            
+            if anomaly_flags:
+                anomalies.append({
+                    'employee_id': employee.id,
+                    'employee_name': f"{employee.given_name} {employee.surname}",
+                    'department': employee.department.name if employee.department else 'Unknown',
+                    'date': employee_analytics.date,
+                    'anomaly_types': anomaly_flags,
+                    'severity_score': len(anomaly_flags),
+                })
+        
+        return anomalies
+    
+    def _analyze_trends(self, analytics):
+        """Analyze attendance trends over time"""
+        from django.db.models import Avg
+        
+        # Group by date and calculate trends
+        daily_trends = analytics.values('date').annotate(
+            avg_attendance_score=Avg('attendance_score'),
+            avg_hours_worked=Avg('total_hours_worked'),
+            total_employees=Count('employee'),
+            late_arrivals=Count('employee', filter=Q(is_late_arrival=True)),
+            early_departures=Count('employee', filter=Q(is_early_departure=True)),
+        ).order_by('date')
+        
+        trends = {
+            'daily_attendance_scores': list(daily_trends.values('date', 'avg_attendance_score')),
+            'daily_hours_worked': list(daily_trends.values('date', 'avg_hours_worked')),
+            'daily_late_arrivals': list(daily_trends.values('date', 'late_arrivals')),
+            'daily_early_departures': list(daily_trends.values('date', 'early_departures')),
+        }
+        
+        return trends
+    
+    def _analyze_correlations(self, analytics):
+        """Analyze correlations between different factors"""
+        correlations = {}
+        
+        # Department vs attendance correlation
+        dept_analytics = analytics.values('employee__department__name').annotate(
+            avg_attendance_score=Avg('attendance_score'),
+            avg_hours_worked=Avg('total_hours_worked'),
+            employee_count=Count('employee'),
+        )
+        
+        correlations['department_performance'] = list(dept_analytics)
+        
+        # Day of week correlation
+        from django.db.models.functions import ExtractDayOfWeek
+        day_analytics = analytics.annotate(
+            day_of_week=ExtractDayOfWeek('date')
+        ).values('day_of_week').annotate(
+            avg_attendance_score=Avg('attendance_score'),
+            avg_hours_worked=Avg('total_hours_worked'),
+        ).order_by('day_of_week')
+        
+        correlations['day_of_week_performance'] = list(day_analytics)
+        
+        return correlations
+
+
+class AnomalyDetectionView(generics.ListAPIView):
+    """API endpoint for anomaly detection system"""
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [ReportingPermission]
+    serializer_class = EmployeeAnalyticsSerializer
+    
+    def get_queryset(self):
+        """Return anomaly detection data"""
+        return EmployeeAnalytics.objects.none()
+    
+    def list(self, request, *args, **kwargs):
+        """Return anomaly detection results"""
+        from datetime import datetime, timedelta
+        
+        # Get date range from request
+        days_back = int(request.GET.get('days', 7))
+        end_date = datetime.now().date()
+        start_date = end_date - timedelta(days=days_back)
+        
+        # Get recent analytics for anomaly detection
+        analytics = EmployeeAnalytics.objects.filter(
+            date__range=[start_date, end_date],
+            is_anomaly=True
+        ).select_related('employee', 'employee__department')
+        
+        anomalies = []
+        for employee_analytics in analytics:
+            anomalies.append({
+                'employee_id': employee_analytics.employee.id,
+                'employee_name': f"{employee_analytics.employee.given_name} {employee_analytics.employee.surname}",
+                'department': employee_analytics.employee.department.name if employee_analytics.employee.department else 'Unknown',
+                'date': employee_analytics.date,
+                'anomaly_reason': employee_analytics.anomaly_reason,
+                'attendance_score': float(employee_analytics.attendance_score),
+                'hours_worked': float(employee_analytics.total_hours_worked),
+                'severity': self._calculate_anomaly_severity(employee_analytics),
+            })
+        
+        return Response({
+            'anomalies': anomalies,
+            'total_anomalies': len(anomalies),
+            'date_range': {
+                'start_date': start_date,
+                'end_date': end_date,
+            }
+        })
+    
+    def _calculate_anomaly_severity(self, analytics):
+        """Calculate anomaly severity score"""
+        severity = 0
+        
+        if analytics.is_late_arrival:
+            severity += 1
+        if analytics.is_early_departure:
+            severity += 1
+        if analytics.attendance_score < 70:
+            severity += 2
+        if analytics.total_hours_worked < 6:
+            severity += 1
+        if analytics.total_hours_worked > 12:
+            severity += 1
+        
+        return min(severity, 5)  # Cap at 5
+
+
+class PredictiveAnalyticsView(generics.ListAPIView):
+    """API endpoint for predictive analytics"""
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [ReportingPermission]
+    serializer_class = EmployeeAnalyticsSerializer
+    
+    def get_queryset(self):
+        """Return predictive analytics data"""
+        return EmployeeAnalytics.objects.none()
+    
+    def list(self, request, *args, **kwargs):
+        """Return predictive analytics forecasts"""
+        from datetime import datetime, timedelta
+        from django.db.models import Avg, Count
+        
+        # Get historical data for forecasting
+        days_back = int(request.GET.get('days', 90))
+        end_date = datetime.now().date()
+        start_date = end_date - timedelta(days=days_back)
+        
+        # Get historical analytics
+        analytics = EmployeeAnalytics.objects.filter(
+            date__range=[start_date, end_date]
+        ).select_related('employee', 'employee__department')
+        
+        # Generate forecasts
+        forecasts = {
+            'attendance_forecast': self._forecast_attendance(analytics),
+            'capacity_planning': self._forecast_capacity(analytics),
+            'risk_assessment': self._assess_risks(analytics),
+            'optimization_recommendations': self._generate_recommendations(analytics),
+        }
+        
+        return Response(forecasts)
+    
+    def _forecast_attendance(self, analytics):
+        """Forecast future attendance patterns"""
+        # Simple moving average forecast
+        daily_attendance = analytics.values('date').annotate(
+            avg_attendance_score=Avg('attendance_score'),
+            total_employees=Count('employee'),
+        ).order_by('date')
+        
+        # Calculate 7-day moving average
+        attendance_scores = [a['avg_attendance_score'] for a in daily_attendance]
+        if len(attendance_scores) >= 7:
+            recent_avg = sum(attendance_scores[-7:]) / 7
+        else:
+            recent_avg = sum(attendance_scores) / len(attendance_scores) if attendance_scores else 0
+        
+        # Generate next 7 days forecast
+        forecast_dates = []
+        for i in range(1, 8):
+            forecast_date = datetime.now().date() + timedelta(days=i)
+            forecast_dates.append({
+                'date': forecast_date,
+                'predicted_attendance_score': recent_avg,
+                'confidence_interval': [max(0, recent_avg - 5), min(100, recent_avg + 5)],
+            })
+        
+        return {
+            'current_trend': recent_avg,
+            'forecast_dates': forecast_dates,
+            'method': '7-day_moving_average',
+        }
+    
+    def _forecast_capacity(self, analytics):
+        """Forecast capacity planning needs"""
+        # Analyze peak usage patterns
+        daily_employee_counts = analytics.values('date').annotate(
+            total_employees=Count('employee'),
+        ).order_by('date')
+        
+        employee_counts = [d['total_employees'] for d in daily_employee_counts]
+        if employee_counts:
+            avg_employees = sum(employee_counts) / len(employee_counts)
+            max_employees = max(employee_counts)
+        else:
+            avg_employees = 0
+            max_employees = 0
+        
+        return {
+            'average_daily_employees': avg_employees,
+            'peak_daily_employees': max_employees,
+            'recommended_capacity': int(max_employees * 1.1),  # 10% buffer
+            'capacity_utilization': (avg_employees / max_employees * 100) if max_employees > 0 else 0,
+        }
+    
+    def _assess_risks(self, analytics):
+        """Assess attendance risk factors"""
+        risks = []
+        
+        # Analyze risk factors
+        late_arrival_rate = analytics.filter(is_late_arrival=True).count() / analytics.count() if analytics.count() > 0 else 0
+        early_departure_rate = analytics.filter(is_early_departure=True).count() / analytics.count() if analytics.count() > 0 else 0
+        low_attendance_rate = analytics.filter(attendance_score__lt=70).count() / analytics.count() if analytics.count() > 0 else 0
+        
+        if late_arrival_rate > 0.1:  # More than 10% late arrivals
+            risks.append({
+                'risk_type': 'high_late_arrivals',
+                'severity': 'medium',
+                'description': f"{late_arrival_rate:.1%} of employees arriving late",
+                'recommendation': 'Review arrival time policies and consider flexible start times',
+            })
+        
+        if early_departure_rate > 0.1:  # More than 10% early departures
+            risks.append({
+                'risk_type': 'high_early_departures',
+                'severity': 'medium',
+                'description': f"{early_departure_rate:.1%} of employees leaving early",
+                'recommendation': 'Investigate workload distribution and employee satisfaction',
+            })
+        
+        if low_attendance_rate > 0.2:  # More than 20% low attendance
+            risks.append({
+                'risk_type': 'low_attendance_scores',
+                'severity': 'high',
+                'description': f"{low_attendance_rate:.1%} of employees with low attendance scores",
+                'recommendation': 'Implement attendance improvement programs and support systems',
+            })
+        
+        return risks
+    
+    def _generate_recommendations(self, analytics):
+        """Generate optimization recommendations"""
+        recommendations = []
+        
+        # Analyze patterns and generate recommendations
+        avg_attendance_score = analytics.aggregate(Avg('attendance_score'))['attendance_score__avg'] or 0
+        avg_hours_worked = analytics.aggregate(Avg('total_hours_worked'))['total_hours_worked__avg'] or 0
+        
+        if avg_attendance_score < 80:
+            recommendations.append({
+                'category': 'attendance_improvement',
+                'priority': 'high',
+                'title': 'Improve Overall Attendance',
+                'description': f'Current average attendance score is {avg_attendance_score:.1f}%. Consider implementing attendance incentives.',
+                'action_items': [
+                    'Implement attendance recognition programs',
+                    'Provide flexible work arrangements',
+                    'Address underlying causes of absenteeism',
+                ]
+            })
+        
+        if avg_hours_worked < 7.5:
+            recommendations.append({
+                'category': 'productivity_optimization',
+                'priority': 'medium',
+                'title': 'Optimize Work Hours',
+                'description': f'Average hours worked is {avg_hours_worked:.1f} hours. Consider workload distribution.',
+                'action_items': [
+                    'Review workload distribution',
+                    'Implement productivity tracking',
+                    'Provide time management training',
+                ]
+            })
+        
+        return recommendations
+
+
+@reporting_required
+@extend_schema(exclude=True)
+def pattern_recognition_dashboard(request):
+    """
+    Pattern Recognition Dashboard for Phase 3 of the report enhancement roadmap.
+    Provides behavioral pattern analysis, anomaly detection, and trend analysis.
+    """
+    context = {
+        'page_title': 'Pattern Recognition Dashboard',
+        'active_tab': 'pattern_recognition',
+    }
+    return render(request, 'attendance/pattern_recognition_dashboard.html', context)
+
+
+@reporting_required
+@extend_schema(exclude=True)
+def predictive_analytics_dashboard(request):
+    """
+    Predictive Analytics Dashboard for Phase 3 of the report enhancement roadmap.
+    Provides attendance forecasting, capacity planning, and risk assessment.
+    """
+    context = {
+        'page_title': 'Predictive Analytics Dashboard',
+        'active_tab': 'predictive_analytics',
+    }
+    return render(request, 'attendance/predictive_analytics_dashboard.html', context)
