@@ -747,8 +747,8 @@ def attendance_list(request):
     end_of_day_local = django_timezone.make_aware(datetime.combine(target_date, time.max))
     
     # Convert to UTC for database query
-    start_of_day = start_of_day_local.astimezone(dt.timezone.utc)
-    end_of_day = end_of_day_local.astimezone(dt.timezone.utc)
+    start_of_day = start_of_day_local.astimezone(timezone.utc)
+    end_of_day = end_of_day_local.astimezone(timezone.utc)
     
     # Single optimized query to get all clocked-in employee IDs
     clocked_in_employees = set(
