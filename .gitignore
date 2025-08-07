@@ -13,7 +13,7 @@ data/
 logs/
 backups/
 
-# Documentation files
+# Documentation files (only exclude temporary analysis files)
 Implementation/
 OPTIMIZATION_IMPLEMENTATION_PLAN.md
 EFFICIENCY_ANALYSIS.md
@@ -23,26 +23,16 @@ Garbage/
 notebooks/
 __marimo__/
 test_marimo.py
-scripts/
 
-# Test and utility files
-*.test.py
-*_test.py
+
+# Test and utility files (only exclude temporary test files in root)
 test_*.py
+*_test.py
 *_tests.py
-validate_*.py
-analyze_*.py
-generate_*.py
-create_*.py
-batch_*.py
-clock_*.py
-check_*.py
-run_*.py
 
 # Generated files
 *.log
 *.csv
-*.html
 analysis/
 output/
 final/

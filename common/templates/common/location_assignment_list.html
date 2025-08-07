@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Location Assignments - Road Attendance System{% endblock %}
+
+{% block secondary_nav %}
+{% include 'secondary_nav.html' %}
+{% block secondary_nav_tabs %}
+<a href="{% url 'location_dashboard' %}" class="secondary-nav-tab {% if request.resolver_match.url_name == 'location_dashboard' %}active{% endif %}">
+    📍 Dashboard
+</a>
+<a href="{% url 'location_assignment_list' %}" class="secondary-nav-tab {% if request.resolver_match.url_name == 'location_assignment_list' %}active{% endif %}">
+    📋 Assignments
+</a>
+{% endblock %}
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">📋 Location Assignments</h1>
+        <p class="dashboard-subtitle">Manage employee assignments and track location utilization</p>
+    </div>
+    
+    <!-- Assignment Statistics -->
+    <div class="card-grid">
+        <div class="card">
+            <div class="card-value text-primary">{{ assignments.count }}</div>
+            <div class="card-label">Total Assignments</div>
+        </div>
+        <div class="card">
+            <div class="card-value text-success">{{ completed_count }}</div>
+            <div class="card-label">Completed</div>
+        </div>
+        <div class="card">
+            <div class="card-value text-warning">{{ pending_count }}</div>
+            <div class="card-label">Pending</div>
+        </div>
+    </div>
+    
+    <!-- Filter Section -->
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">🔍 Filter Assignments</h3>
+        </div>
+        <div class="section-body">
+            <form method="get" class="card-grid">
+                <div class="card">
+                    <div class="card-label">Employee</div>
+                    <select name="employee" id="employee" style="width: 100%; padding: 0.5rem; margin-top: 0.5rem; border: 1px solid #e2e8f0; border-radius: 4px;">
+                        <option value="">All Employees</option>
+                        {% for employee in employees %}
+                        <option value="{{ employee.id }}" {% if selected_employee == employee.id %}selected{% endif %}>
+                            {{ employee.given_name }} {{ employee.surname }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="card">
+                    <div class="card-label">Location</div>
+                    <select name="location" id="location" style="width: 100%; padding: 0.5rem; margin-top: 0.5rem; border: 1px solid #e2e8f0; border-radius: 4px;">
+                        <option value="">All Locations</option>
+                        {% for location in locations %}
+                        <option value="{{ location.id }}" {% if selected_location == location.id %}selected{% endif %}>
+                            {{ location.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="card">
+                    <div class="card-label">Status</div>
+                    <select name="status" id="status" style="width: 100%; padding: 0.5rem; margin-top: 0.5rem; border: 1px solid #e2e8f0; border-radius: 4px;">
+                        <option value="">All Status</option>
+                        <option value="pending" {% if selected_status == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="in_progress" {% if selected_status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                        <option value="completed" {% if selected_status == 'completed' %}selected{% endif %}>Completed</option>
+                    </select>
+                </div>
+                <div class="card">
+                    <div class="card-label">Date</div>
+                    <input type="date" name="date" id="date" value="{{ selected_date|default:'' }}" style="width: 100%; padding: 0.5rem; margin-top: 0.5rem; border: 1px solid #e2e8f0; border-radius: 4px;">
+                </div>
+            </form>
+            
+            <div style="margin-top: 2rem; text-align: center;">
+                <button type="submit" class="btn btn-primary">🔍 Apply Filters</button>
+                <a href="{% url 'location_assignment_list' %}" class="btn btn-secondary">🗑️ Clear</a>
+                <a href="{% url 'location_assignment_create' %}" class="btn btn-success">➕ New Assignment</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Assignments Table -->
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">📊 Assignment Details</h3>
+        </div>
+        <div class="section-body">
+            {% if assignments %}
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Location</th>
+                            <th>Task Type</th>
+                            <th>Assigned Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for assignment in assignments %}
+                        <tr>
+                            <td>
+                                <strong>{{ assignment.employee.given_name }} {{ assignment.employee.surname }}</strong>
+                                <br>
+                                <small>{{ assignment.employee.department.name|default:"No Department" }}</small>
+                            </td>
+                            <td>
+                                <strong>{{ assignment.location.name }}</strong>
+                                <br>
+                                <small>Capacity: {{ assignment.location.capacity }}</small>
+                            </td>
+                            <td>{{ assignment.task_type|default:"General Assignment" }}</td>
+                            <td>{{ assignment.assigned_date|date:"M d, Y" }}</td>
+                            <td>
+                                <span class="status-badge status-{{ assignment.status }}">
+                                    {{ assignment.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                    <a href="{% url 'location_assignment_edit' assignment.id %}" class="btn btn-primary btn-sm">✏️ Edit</a>
+                                    {% if assignment.status != 'completed' %}
+                                    <a href="{% url 'location_assignment_complete' assignment.id %}" class="btn btn-success btn-sm">✅ Complete</a>
+                                    {% endif %}
+                                    <a href="{% url 'location_assignment_delete' assignment.id %}" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this assignment?')">🗑️ Delete</a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                <p>No assignments found matching your criteria.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Pagination -->
+    {% if assignments.has_other_pages %}
+    <div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; margin-top: 2rem;">
+        {% if assignments.has_previous %}
+        <a href="?page={{ assignments.previous_page_number }}" class="btn btn-secondary btn-sm">← Previous</a>
+        {% endif %}
+        
+        {% for num in assignments.paginator.page_range %}
+        {% if assignments.number == num %}
+        <span class="btn btn-primary btn-sm">{{ num }}</span>
+        {% elif num > assignments.number|add:'-3' and num < assignments.number|add:'3' %}
+        <a href="?page={{ num }}" class="btn btn-secondary btn-sm">{{ num }}</a>
+        {% endif %}
+        {% endfor %}
+        
+        {% if assignments.has_next %}
+        <a href="?page={{ assignments.next_page_number }}" class="btn btn-secondary btn-sm">Next →</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 

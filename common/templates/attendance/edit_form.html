@@ -1,123 +1,90 @@
-{% extends "attendance/base.html" %}
+{% extends "base.html" %}
+{% load static %}
 
-{% block attendance_content %}
-<div class="attendance-card">
-    <div class="card-header">
-        <h2>Edit Attendance Record</h2>
-        <p style="margin: 0; color: #6c757d;">{{ record.employee }} - {{ record.date|date:"M d, Y" }}</p>
+{% block title %}Edit Attendance Record - Road Attendance System{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">✏️ Edit Attendance Record</h1>
+        <p class="dashboard-subtitle">Update attendance record details</p>
     </div>
-    <div class="card-body">
-        <form method="post">
-            {% csrf_token %}
+    
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">📋 Edit Record</h3>
+        </div>
+        <div class="section-body">
+            <form method="post" class="card-grid">
+                {% csrf_token %}
+                
+                <div class="card">
+                    <div class="card-label">Employee</div>
+                    <select name="employee" required style="width: 100%; padding: 0.5rem; margin-top: 0.5rem; border: 1px solid #e2e8f0; border-radius: 4px;">
+                        <option value="">Select Employee</option>
+                        {% for employee in employees %}
+                        <option value="{{ employee.id }}" {% if form.employee.value == employee.id %}selected{% endif %}>
+                            {{ employee.given_name }} {{ employee.surname }} - {{ employee.department.name|default:"No Department" }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% if form.employee.errors %}
+                    <div style="color: var(--danger-color); font-size: 0.8rem; margin-top: 0.25rem;">{{ form.employee.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="card">
+                    <div class="card-label">Date</div>
+                    <input type="date" name="date" value="{{ form.date.value|default:'' }}" required style="width: 100%; padding: 0.5rem; margin-top: 0.5rem; border: 1px solid #e2e8f0; border-radius: 4px;">
+                    {% if form.date.errors %}
+                    <div style="color: var(--danger-color); font-size: 0.8rem; margin-top: 0.25rem;">{{ form.date.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="card">
+                    <div class="card-label">Clock In Time</div>
+                    <input type="time" name="clock_in_time" value="{{ form.clock_in_time.value|default:'' }}" style="width: 100%; padding: 0.5rem; margin-top: 0.5rem; border: 1px solid #e2e8f0; border-radius: 4px;">
+                    {% if form.clock_in_time.errors %}
+                    <div style="color: var(--danger-color); font-size: 0.8rem; margin-top: 0.25rem;">{{ form.clock_in_time.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="card">
+                    <div class="card-label">Clock Out Time</div>
+                    <input type="time" name="clock_out_time" value="{{ form.clock_out_time.value|default:'' }}" style="width: 100%; padding: 0.5rem; margin-top: 0.5rem; border: 1px solid #e2e8f0; border-radius: 4px;">
+                    {% if form.clock_out_time.errors %}
+                    <div style="color: var(--danger-color); font-size: 0.8rem; margin-top: 0.25rem;">{{ form.clock_out_time.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="card">
+                    <div class="card-label">Status</div>
+                    <select name="status" required style="width: 100%; padding: 0.5rem; margin-top: 0.5rem; border: 1px solid #e2e8f0; border-radius: 4px;">
+                        <option value="">Select Status</option>
+                        <option value="present" {% if form.status.value == 'present' %}selected{% endif %}>Present</option>
+                        <option value="absent" {% if form.status.value == 'absent' %}selected{% endif %}>Absent</option>
+                        <option value="late" {% if form.status.value == 'late' %}selected{% endif %}>Late</option>
+                        <option value="early_departure" {% if form.status.value == 'early_departure' %}selected{% endif %}>Early Departure</option>
+                    </select>
+                    {% if form.status.errors %}
+                    <div style="color: var(--danger-color); font-size: 0.8rem; margin-top: 0.25rem;">{{ form.status.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="card">
+                    <div class="card-label">Notes</div>
+                    <textarea name="notes" rows="3" style="width: 100%; padding: 0.5rem; margin-top: 0.5rem; border: 1px solid #e2e8f0; border-radius: 4px; resize: vertical;">{{ form.notes.value|default:'' }}</textarea>
+                    {% if form.notes.errors %}
+                    <div style="color: var(--danger-color); font-size: 0.8rem; margin-top: 0.25rem;">{{ form.notes.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </form>
             
-            <div class="form-section">
-                <h3>Basic Information</h3>
-                <div class="field-group">
-                    <div>
-                        <label for="{{ form.employee.id_for_label }}">{{ form.employee.label }}</label>
-                        {{ form.employee }}
-                        {% if form.employee.errors %}
-                            <div class="text-danger">{{ form.employee.errors }}</div>
-                        {% endif %}
-                    </div>
-                    <div>
-                        <label for="{{ form.date.id_for_label }}">{{ form.date.label }}</label>
-                        {{ form.date }}
-                        {% if form.date.errors %}
-                            <div class="text-danger">{{ form.date.errors }}</div>
-                        {% endif %}
-                    </div>
-                </div>
+            <div style="margin-top: 2rem; text-align: center;">
+                <button type="submit" class="btn btn-primary">💾 Update Record</button>
+                <a href="{% url 'attendance_list' %}" class="btn btn-secondary">❌ Cancel</a>
             </div>
-
-            <div class="form-section">
-                <h3>Stand-up Meeting</h3>
-                <div class="field-group">
-                    <div>
-                        <label for="{{ form.standup_attendance.id_for_label }}">{{ form.standup_attendance.label }}</label>
-                        {{ form.standup_attendance }}
-                        {% if form.standup_attendance.errors %}
-                            <div class="text-danger">{{ form.standup_attendance.errors }}</div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-
-            <div class="form-section">
-                <h3>Lunch Tracking</h3>
-                <div class="field-group">
-                    <div>
-                        <label for="{{ form.lunch_time.id_for_label }}">{{ form.lunch_time.label }}</label>
-                        {{ form.lunch_time }}
-                        {% if form.lunch_time.errors %}
-                            <div class="text-danger">{{ form.lunch_time.errors }}</div>
-                        {% endif %}
-                    </div>
-                    <div>
-                        <label for="{{ form.left_lunch_on_time.id_for_label }}">{{ form.left_lunch_on_time.label }}</label>
-                        {{ form.left_lunch_on_time }}
-                        {% if form.left_lunch_on_time.errors %}
-                            <div class="text-danger">{{ form.left_lunch_on_time.errors }}</div>
-                        {% endif %}
-                    </div>
-                </div>
-                <div class="field-group">
-                    <div>
-                        <label for="{{ form.returned_on_time_after_lunch.id_for_label }}">{{ form.returned_on_time_after_lunch.label }}</label>
-                        {{ form.returned_on_time_after_lunch }}
-                        {% if form.returned_on_time_after_lunch.errors %}
-                            <div class="text-danger">{{ form.returned_on_time_after_lunch.errors }}</div>
-                        {% endif %}
-                    </div>
-                    <div>
-                        <label for="{{ form.returned_after_lunch.id_for_label }}">{{ form.returned_after_lunch.label }}</label>
-                        {{ form.returned_after_lunch }}
-                        {% if form.returned_after_lunch.errors %}
-                            <div class="text-danger">{{ form.returned_after_lunch.errors }}</div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-
-            <div class="form-section">
-                <h3>Departure</h3>
-                <div class="field-group">
-                    <div>
-                        <label for="{{ form.departure_time.id_for_label }}">{{ form.departure_time.label }}</label>
-                        {{ form.departure_time }}
-                        {% if form.departure_time.errors %}
-                            <div class="text-danger">{{ form.departure_time.errors }}</div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-
-            <div class="form-section">
-                <h3>Additional Information</h3>
-                <div class="field-group">
-                    <div style="grid-column: 1 / -1;">
-                        <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
-                        {{ form.notes }}
-                        {% if form.notes.errors %}
-                            <div class="text-danger">{{ form.notes.errors }}</div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-
-            {% if form.non_field_errors %}
-                <div class="alert alert-danger">
-                    {% for error in form.non_field_errors %}
-                        {{ error }}
-                    {% endfor %}
-                </div>
-            {% endif %}
-
-            <div style="text-align: right; margin-top: 30px;">
-                <a href="{% url 'attendance_list' %}" class="btn" style="margin-right: 10px;">Cancel</a>
-                <button type="submit" class="btn btn-primary">Update Record</button>
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 {% endblock %} 

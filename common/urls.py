@@ -41,6 +41,7 @@ attendance_urls = [
     path("attendance/edit/<int:record_id>/", views.attendance_edit, name="attendance_edit"),
     path("attendance/delete/<int:record_id>/", views.attendance_delete, name="attendance_delete"),
     path("attendance/bulk_historical_update/", views.bulk_historical_update, name="bulk_historical_update"),
+    path("attendance/debug/", views.debug_view, name="debug_view"),
 ]
 
 # Reports section
@@ -182,7 +183,7 @@ system_urls = [
 urlpatterns = clock_in_urls + attendance_urls + report_urls + location_urls + api_urls + system_urls
 
 # Real-time Analytics Dashboard
-urlpatterns.append(path("realtime-analytics/", views.realtime_analytics_dashboard, name="realtime_analytics_dashboard"))
+
 
 # Phase 3: Advanced Analytics Dashboards
 urlpatterns.append(path("pattern-recognition/", views.pattern_recognition_dashboard, name="pattern_recognition_dashboard"))

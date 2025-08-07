@@ -1420,13 +1420,7 @@ class RealTimeAnalyticsTestCase(TestCase):
         for node in data['nodes']:
             self.assertIn(node, location_names)
     
-    def test_realtime_analytics_dashboard_view(self):
-        """Test real-time analytics dashboard view"""
-        self.client.login(username='realtime_test_user', password='password')
-        response = self.client.get('/common/realtime-analytics/')
-        
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Real-Time Analytics Dashboard')
+
         self.assertContains(response, 'Live Employee Status')
         self.assertContains(response, 'Attendance Heat Map')
         self.assertContains(response, 'Employee Movement Flow')
