@@ -15,8 +15,7 @@ from rest_framework import generics
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from django.db.models import Q, Count, Prefetch, Avg
-from datetime import datetime, timedelta, date
-import datetime as dt
+from datetime import datetime, timedelta, date, timezone, time
 from django.urls import reverse
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.contrib.auth import authenticate, login
@@ -25,6 +24,7 @@ import json
 import traceback
 import csv
 import re
+import logging
 from typing import Optional
 
 from .models import (
@@ -614,14 +614,13 @@ def progressive_entry(request):
         form = ProgressiveEntryForm()
     
     # Get employees who were actually present (had clock-in events) today
-    from datetime import time
     # Convert today to UTC for proper timezone handling
     start_of_day_local = django_timezone.make_aware(datetime.combine(today, time.min))
     end_of_day_local = django_timezone.make_aware(datetime.combine(today, time.max))
     
     # Convert to UTC for database query
-    start_of_day_utc = start_of_day_local.astimezone(dt.timezone.utc)
-    end_of_day_utc = end_of_day_local.astimezone(dt.timezone.utc)
+    start_of_day_utc = start_of_day_local.astimezone(timezone.utc)
+    end_of_day_utc = end_of_day_local.astimezone(timezone.utc)
     
     # Get employees who clocked in today (using UTC timestamps)
     present_employees = Event.objects.filter(
@@ -743,7 +742,6 @@ def attendance_list(request):
         records = records.filter(status=status_filter)
     
     # Identify absent employees (those who didn't clock in) - OPTIMIZED
-    from datetime import time
     # Convert local date to UTC for proper timezone handling
     start_of_day_local = django_timezone.make_aware(datetime.combine(target_date, time.min))
     end_of_day_local = django_timezone.make_aware(datetime.combine(target_date, time.max))
@@ -1329,7 +1327,7 @@ def main_security(request):
     paginator = Paginator(all_employees, server_items_per_page)
     try:
         employees = paginator.page(page_number)
-    except:
+    except Exception:
         employees = paginator.page(1)
 
     # Calculate summary statistics
@@ -1414,9 +1412,9 @@ def main_security_clocked_in_status_flip(request, id):
             messages.warning(
                 request, f"Please wait {debounce_seconds} seconds before clocking again."
             )
-            print(
+            logging.info(
                 f"Clock action for {employee} blocked by debounce ({debounce_seconds}s) - last event was {time_since_last_event:.1f}s ago"
-            )  # Log for debugging
+            )
             return redirect("main_security")  # Redirect without making changes
 
     try:
@@ -1443,7 +1441,7 @@ def main_security_clocked_in_status_flip(request, id):
             
     except (EventType.DoesNotExist, Location.DoesNotExist) as e:
         # Handle case where required EventType or Location is missing
-        print(f"Error: Required EventType or Location missing: {e}")  # Log error
+        logging.error(f"Required EventType or Location missing: {e}")
         messages.error(request, "System configuration error. Cannot process request.")
         return HttpResponseBadRequest(
             "System configuration error."
@@ -1761,7 +1759,7 @@ def generate_marimo_report(request, report_type):
         import marimo as mo
 
         # We'll use our custom Marimo notebooks for reports
-        print(
+        logging.info(
             f"Marimo is installed (version {mo.__version__}), creating {report_type} report"
         )
 
@@ -1782,7 +1780,7 @@ def generate_marimo_report(request, report_type):
             return HttpResponse(f"Invalid date format: {str(e)}", status=400)
 
         # Add logging to debug
-        print(f"Generating {report_type} report for dates {start_date} to {end_date}")
+        logging.info(f"Generating {report_type} report for dates {start_date} to {end_date}")
 
         # For now, use fallback HTML reports for all report types
         # This ensures users see something while we resolve Marimo integration issues
@@ -1819,14 +1817,14 @@ def generate_marimo_report(request, report_type):
             return HttpResponse(f"Unknown report type: {report_type}", status=400)
 
     except ImportError:
-        print("Marimo not installed")
+        logging.warning("Marimo not installed")
         return HttpResponse(
             "Marimo is not installed. Reports require Marimo to be installed.",
             status=500,
         )
     except Exception as e:
         error_msg = f"Error generating report: {str(e)}\n\n{traceback.format_exc()}"
-        print(error_msg)  # Log the full error to the console
+        logging.error(error_msg)
         return HttpResponse(f"Error generating report: {str(e)}", status=500)
 
 
@@ -2567,7 +2565,7 @@ def generate_period_summary_html(
 
     except Exception as e:
         error_msg = f"Error generating period summary report: {str(e)}\n\n{traceback.format_exc()}"
-        print(error_msg)  # Log the full error to the console
+        logging.error(error_msg)
         return HttpResponse(
             f"Error generating period summary report: {str(e)}", status=500
         )
@@ -3123,8 +3121,8 @@ def debug_view(request):
     # Test progressive entry logic
     start_of_day_local = django_timezone.make_aware(datetime.combine(today, time.min))
     end_of_day_local = django_timezone.make_aware(datetime.combine(today, time.max))
-    start_of_day_utc = start_of_day_local.astimezone(dt.timezone.utc)
-    end_of_day_utc = end_of_day_local.astimezone(dt.timezone.utc)
+    start_of_day_utc = start_of_day_local.astimezone(timezone.utc)
+    end_of_day_utc = end_of_day_local.astimezone(timezone.utc)
     
     present_employees = Event.objects.filter(
         event_type__name='Clock In',
@@ -3572,7 +3570,7 @@ def redirect_based_on_role(user):
             return redirect('main_security')
         else:
             return redirect('main_security')
-    except:
+    except Exception:
         # If no role is assigned, redirect to main security
         return redirect('main_security')
 
