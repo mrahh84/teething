@@ -1,219 +1,430 @@
-{% extends "attendance/base.html" %}
-{% load attendance_extras %}
-{% load cache %}
+{% extends "base.html" %}
+{% load static %}
 
-{% block attendance_content %}
+{% block title %}Attendance Records - Road Attendance System{% endblock %}
+
+{% block content %}
 <div class="attendance-card">
     <div class="card-header">
-        <h2>Attendance Records</h2>
-        <div style="float: right; color: #721c24; font-weight: bold;">
-            Absent Today: {{ page_obj.object_list|absent_count }}
-        </div>
+        <h2>📝 Attendance Records</h2>
+        <p style="margin: 0; color: rgba(255,255,255,0.9);">Manage and view attendance records</p>
     </div>
+    
     <div class="card-body">
-        <!-- Filter Form - Cache for 5 minutes -->
-        {% cache 300 'attendance_filters' request.user.id request.GET.department %}
-        <form method="get" class="controls-wrapper" style="margin-bottom: 20px;">
-            <div class="controls">
-                <div class="filter-group">
-                    <label for="{{ filter_form.date_from.id_for_label }}">{{ filter_form.date_from.label }}</label>
-                    {{ filter_form.date_from }}
-                </div>
-                <div class="filter-group">
-                    <label for="{{ filter_form.date_to.id_for_label }}">{{ filter_form.date_to.label }}</label>
-                    {{ filter_form.date_to }}
-                </div>
-                <div class="filter-group">
-                    <label for="{{ filter_form.employee.id_for_label }}">{{ filter_form.employee.label }}</label>
-                    {{ filter_form.employee }}
-                </div>
-                <div class="filter-group">
-                    <label for="{{ filter_form.has_issues.id_for_label }}">{{ filter_form.has_issues.label }}</label>
-                    {{ filter_form.has_issues }}
-                </div>
-                <div class="filter-group">
-                    <label for="department">Department:</label>
-                    <select id="department" name="department" class="form-control" onchange="this.form.submit()">
-                        <option value="">All Departments</option>
-                        {% for dept in available_departments %}
-                        <option value="{{ dept }}" {% if department_filter == dept %}selected{% endif %}>{{ dept }}</option>
+        <!-- Action Buttons -->
+        <div class="action-section">
+            <h3>Actions</h3>
+            <div class="action-buttons">
+                <a href="{% url 'attendance_entry' %}" class="btn btn-primary">➕ New Record</a>
+                <a href="{% url 'progressive_entry' %}" class="btn btn-success">📊 Progressive Entry</a>
+                <a href="{% url 'historical_progressive_entry' %}" class="btn btn-warning">📈 Historical Entry</a>
+                <a href="{% url 'bulk_historical_update' %}" class="btn btn-secondary">📋 Bulk Update</a>
+            </div>
+        </div>
+        
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <h3>🔍 Filter Records</h3>
+            <form method="get" class="filter-form">
+                <div class="form-group">
+                    <label for="employee">Employee</label>
+                    <select name="employee" id="employee" class="form-control">
+                        <option value="">All Employees</option>
+                        {% for employee in employees %}
+                        <option value="{{ employee.id }}" {% if employee_filter == employee.id %}selected{% endif %}>
+                            {{ employee.given_name }} {{ employee.surname }}
+                        </option>
                         {% endfor %}
                     </select>
                 </div>
-            </div>
-            <div style="text-align: right; margin-top: 15px;">
-                <button type="submit" class="btn">Apply Filters</button>
-                <a href="{% url 'attendance_list' %}" class="btn" style="margin-left: 10px;">Clear Filters</a>
-            </div>
-        </form>
-        {% endcache %}
-
-        <!-- Records Table - Cache for 2 minutes -->
-        {% cache 120 'attendance_table' request.user.id page_obj.number request.GET.department %}
-        {% if page_obj %}
-            <table class="attendance-table">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Employee</th>
-                        <th>Arrival</th>
-                        <th>Stand-up</th>
-                        <th>Lunch Time</th>
-                        <th>Left Lunch On Time</th>
-                        <th>Returned On Time</th>
-                        <th>Returned After Lunch</th>
-                        <th>Departure</th>
-                        <th>Hours</th>
-                        <th>Issues</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for record in page_obj %}
-                    <tr class="{% if record.absent %}absent-row{% elif record.is_problematic_day %}problematic-day{% endif %}">
-                        <td>{{ record.date|date:"M d, Y" }}</td>
-                        <td>{{ record.employee }}</td>
-                        <td>
-                            {% if record.arrival_time %}
-                                <span class="{% if record.is_late_arrival %}text-danger{% endif %}">
-                                    {{ record.arrival_time|time:"H:i" }}
-                                </span>
-                            {% else %}
-                                <span class="text-muted">-</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if record.standup_attendance %}
-                                <span class="status-badge status-{{ record.standup_attendance|lower }}">
-                                    {{ record.standup_attendance }}
-                                </span>
-                            {% else %}
-                                <span class="text-muted">-</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if record.lunch_time %}
-                                {{ record.lunch_time|time:"H:i" }}
-                            {% else %}
-                                <span class="text-muted">-</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if record.left_lunch_on_time %}
-                                {{ record.left_lunch_on_time }}
-                            {% else %}
-                                <span class="text-muted">-</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if record.returned_on_time_after_lunch %}
-                                {{ record.returned_on_time_after_lunch }}
-                            {% else %}
-                                <span class="text-muted">-</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if record.returned_after_lunch %}
-                                {{ record.returned_after_lunch }}
-                            {% else %}
-                                <span class="text-muted">-</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if record.departure_time %}
-                                <span class="{% if record.is_early_departure %}text-danger{% endif %}">
-                                    {{ record.departure_time|time:"H:i" }}
-                                </span>
-                            {% else %}
-                                <span class="text-muted">-</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if record.worked_hours %}
-                                {{ record.worked_hours|floatformat:1 }}h
-                            {% else %}
-                                <span class="text-muted">-</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if record.total_issues is not None %}
-                                {% if record.total_issues > 0 %}
-                                    <span class="badge bg-danger">{{ record.total_issues }}</span>
+                <div class="form-group">
+                    <label for="department">Department</label>
+                    <select name="department" id="department" class="form-control">
+                        <option value="">All Departments</option>
+                        {% for dept in available_departments %}
+                        <option value="{{ dept }}" {% if department_filter == dept %}selected{% endif %}>
+                            {{ dept }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="date_from">Date From</label>
+                    <input type="date" name="date_from" id="date_from" value="{{ date_filter|date:'Y-m-d' }}" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="date_to">Date To</label>
+                    <input type="date" name="date_to" id="date_to" value="{{ date_filter|date:'Y-m-d' }}" class="form-control">
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">🔍 Apply Filters</button>
+                    <a href="{% url 'attendance_list' %}" class="btn btn-secondary">🗑️ Clear</a>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Records Table -->
+        <div class="records-section">
+            <h3>📊 Attendance Records</h3>
+            {% if page_obj %}
+            <p style="margin: 0 0 20px 0; color: #6c757d;">Showing {{ page_obj|length }} records</p>
+            {% endif %}
+            
+            {% if page_obj %}
+            <div class="table-responsive">
+                <table class="attendance-table">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Department</th>
+                            <th>Date</th>
+                            <th>Clock In</th>
+                            <th>Clock Out</th>
+                            <th>Total Hours</th>
+                            <th>Notes</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in page_obj %}
+                        <tr>
+                            <td>
+                                <strong>{{ record.employee.given_name }} {{ record.employee.surname }}</strong>
+                            </td>
+                            <td>{{ record.employee.department.name|default:"No Department" }}</td>
+                            <td>{{ record.date|date:"M d, Y" }}</td>
+                            <td>{{ record.clock_in_time|time:"H:i"|default:"-" }}</td>
+                            <td>{{ record.clock_out_time|time:"H:i"|default:"-" }}</td>
+                            <td>{{ record.total_hours|default:"-" }}</td>
+                            <td>
+                                {% if record.notes %}
+                                <div class="notes-display" title="{{ record.notes }}">
+                                    {{ record.notes|truncatechars:30 }}
+                                </div>
                                 {% else %}
-                                    <span class="badge bg-success">0</span>
+                                <span class="text-muted">-</span>
                                 {% endif %}
-                            {% else %}
-                                <span class="text-muted">-</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if record.absent %}
-                                <span class="status-badge status-absent">Absent</span>
-                            {% elif record.is_problematic_day %}
-                                <span class="status-badge status-no">Problematic</span>
-                            {% else %}
-                                <span class="status-badge status-yes">Present</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if record.id %}
-                                <a href="{% url 'attendance_edit' record.id %}" class="btn btn-sm btn-primary">Edit</a>
-                                <a href="{% url 'attendance_delete' record.id %}" class="btn btn-sm btn-danger">Delete</a>
-                            {% else %}
-                                <span class="text-muted">-</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <div style="text-align: center; padding: 40px;">
-                <p>No attendance records found.</p>
-                <a href="{% url 'attendance_entry' %}" class="btn btn-primary">Add First Record</a>
+                            </td>
+                            <td>
+                                <span class="status-badge status-{{ record.status|lower }}">
+                                    {{ record.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="action-links">
+                                    {% if record.id %}
+                                    <a href="{% url 'attendance_edit' record.id %}" class="btn btn-primary btn-sm">✏️ Edit</a>
+                                    <a href="{% url 'attendance_delete' record.id %}" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this record?')">🗑️ Delete</a>
+                                    {% else %}
+                                    <span class="text-muted">No actions available</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-        {% endif %}
-        {% endcache %}
-
-        <!-- Pagination - Cache for 5 minutes -->
-        {% if page_obj and page_obj.has_other_pages %}
-        {% cache 300 'attendance_pagination' page_obj.number request.GET.department %}
+            {% else %}
+            <div style="text-align: center; padding: 2rem; color: #6c757d;">
+                <p>No attendance records found matching your criteria.</p>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="pagination-section">
             <div class="pagination">
-                <div class="pagination-info">
-                    Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} records
-                </div>
-                <div class="pagination-controls">
-                    {% if page_obj.has_previous %}
-                        <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">« Prev</a>
-                    {% endif %}
-                    
-                    {% for num in page_obj.paginator.page_range %}
-                        {% if page_obj.number == num %}
-                            <a href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="active">{{ num }}</a>
-                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                            <a href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
-                        {% endif %}
-                    {% endfor %}
-                    
-                    {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Next »</a>
-                    {% endif %}
-                </div>
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-secondary btn-sm">← Previous</a>
+                {% endif %}
+                
+                {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <span class="btn btn-primary btn-sm">{{ num }}</span>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <a href="?page={{ num }}" class="btn btn-secondary btn-sm">{{ num }}</a>
+                {% endif %}
+                {% endfor %}
+                
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="btn btn-secondary btn-sm">Next →</a>
+                {% endif %}
             </div>
-        {% endcache %}
+        </div>
         {% endif %}
     </div>
 </div>
 
 <style>
-.absent-row {
-    background: #fff3cd !important;
+.attendance-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    overflow: hidden;
+    margin: 20px;
 }
-.status-badge.status-absent {
-    background: #fff3cd;
-    color: #856404;
-    font-weight: bold;
+
+.card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    text-align: center;
+}
+
+.card-header h2 {
+    margin: 0 0 5px 0;
+    font-size: 1.5rem;
+}
+
+.card-header p {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 0.9rem;
+}
+
+.card-body {
+    padding: 20px;
+}
+
+.action-section {
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.action-section h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #495057;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.filter-section {
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.filter-section h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #495057;
+}
+
+.filter-form {
+    display: flex;
+    gap: 1rem;
+    align-items: end;
+    flex-wrap: wrap;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    min-width: 150px;
+}
+
+.form-group label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #495057;
+}
+
+.form-control {
+    padding: 0.5rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.25);
+}
+
+.records-section {
+    margin-bottom: 2rem;
+}
+
+.records-section h3 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    color: #495057;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.attendance-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    font-size: 0.9rem;
+}
+
+.attendance-table th,
+.attendance-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.attendance-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.attendance-table tr:hover {
+    background: #f8f9fa;
+}
+
+.status-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.status-pending { background: #e2e8f0; color: #4a5568; }
+.status-partial { background: #fef5e7; color: #d69e2e; }
+.status-complete { background: #c6f6d5; color: #2f855a; }
+.status-reviewed { background: #e2e3e5; color: #383d41; }
+
+.notes-display {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.8rem;
+    color: #6c757d;
+    cursor: help;
+}
+
+.action-links {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.pagination-section {
+    margin-top: 2rem;
+    text-align: center;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.btn-primary {
+    background: #667eea;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #5a67d8;
+    color: white;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+    color: white;
+}
+
+.btn-success {
+    background: #38a169;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #2f855a;
+    color: white;
+}
+
+.btn-warning {
+    background: #f6ad55;
+    color: white;
+}
+
+.btn-warning:hover {
+    background: #ed8936;
+    color: white;
+}
+
+.btn-danger {
+    background: #e53e3e;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #c53030;
+    color: white;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+}
+
+@media (max-width: 768px) {
+    .filter-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .form-group {
+        min-width: auto;
+    }
+    
+    .attendance-table {
+        font-size: 0.8rem;
+    }
+    
+    .attendance-table th,
+    .attendance-table td {
+        padding: 8px 6px;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
 }
 </style>
 {% endblock %} 

@@ -1100,6 +1100,15 @@ def historical_progressive_results(request):
     total_days = len(date_range)
     total_records = sum(len(records) for records in records_by_date.values())
     
+    # Flatten records for template display
+    all_records = []
+    for date_records in records_by_date.values():
+        all_records.extend(date_records)
+    
+    # Calculate updated and pending records
+    updated_records = len([r for r in all_records if hasattr(r, 'status') and r.status in ['COMPLETE', 'PARTIAL']])
+    pending_records = len([r for r in all_records if hasattr(r, 'status') and r.status in ['DRAFT', 'ABSENT']])
+    
     # Get available departments for filter
     available_departments = get_available_departments()
     
@@ -1110,8 +1119,12 @@ def historical_progressive_results(request):
         'available_departments': available_departments,
         'date_page': date_page,
         'records_by_date': records_by_date,
+        'records': all_records,  # Flattened records for template
         'total_days': total_days,
         'total_records': total_records,
+        'updated_records': updated_records,
+        'pending_records': pending_records,
+        'date_range': f"{date_from.strftime('%Y-%m-%d')} to {date_to.strftime('%Y-%m-%d')}",
         'days_per_page': days_per_page,
     }
     
@@ -3102,6 +3115,134 @@ def attendance_delete(request, record_id):
 
 
 @attendance_required  # Attendance management role and above
+def debug_view(request):
+    """Debug view to test template context"""
+    
+    today = django_timezone.localtime(django_timezone.now()).date()
+    
+    # Test progressive entry logic
+    start_of_day_local = django_timezone.make_aware(datetime.combine(today, time.min))
+    end_of_day_local = django_timezone.make_aware(datetime.combine(today, time.max))
+    start_of_day_utc = start_of_day_local.astimezone(dt.timezone.utc)
+    end_of_day_utc = end_of_day_local.astimezone(dt.timezone.utc)
+    
+    present_employees = Event.objects.filter(
+        event_type__name='Clock In',
+        timestamp__gte=start_of_day_utc,
+        timestamp__lte=end_of_day_utc
+    ).values_list('employee', flat=True).distinct()
+    
+    employees = Employee.objects.filter(
+        id__in=present_employees,
+        is_active=True
+    ).select_related('card_number').order_by('surname', 'given_name')
+    
+    # Apply department filter
+    department_filter = 'Digitization Tech'
+    filtered_employees = filter_employees_by_department(employees, department_filter)
+    
+    # Get attendance records
+    today_records = AttendanceRecord.objects.filter(
+        date=today,
+        employee__in=filtered_employees
+    ).select_related('employee', 'employee__card_number')
+    
+    # Create employee attendance list
+    records_by_employee = {record.employee_id: record for record in today_records}
+    
+    employee_attendance = []
+    for employee in filtered_employees:
+        record = records_by_employee.get(employee.id)
+        
+        employee_attendance.append({
+            'employee': employee,
+            'record': record,
+            'is_clocked_in': True,
+            'arrival_time': record.arrival_time if record else None,
+            'departure_time': record.departure_time if record else None,
+        })
+    
+    # Test attendance list logic
+    all_employees = Employee.objects.filter(is_active=True).select_related('card_number').order_by('surname', 'given_name')
+    filtered_all_employees = filter_employees_by_department(all_employees, department_filter)
+    
+    records = AttendanceRecord.objects.filter(date=today).select_related('employee', 'employee__card_number')
+    
+    # Create display records
+    clocked_in_employees = set(
+        Event.objects.filter(
+            event_type__name='Clock In',
+            timestamp__gte=start_of_day_utc,
+            timestamp__lte=end_of_day_utc
+        ).values_list('employee_id', flat=True)
+    )
+    
+    absentees = [emp for emp in filtered_all_employees if emp.id not in clocked_in_employees]
+    
+    # Build display records
+    absentee_ids = {emp.id for emp in absentees}
+    filtered_records = [r for r in records if r.employee.id not in absentee_ids]
+    display_records = list(filtered_records)
+    
+    # Add absent employees as dummy records
+    for employee in absentees:
+        dummy_record = type('DummyRecord', (), {
+            'employee': employee,
+            'date': today,
+            'arrival_time': None,
+            'departure_time': None,
+            'is_absent': True,
+            'is_problematic_day': lambda: False,
+            'total_issues': 0,
+            'status': 'ABSENT',
+        })()
+        display_records.append(dummy_record)
+    
+    # Add employees who clocked in but don't have attendance records
+    for employee in filtered_all_employees:
+        if (employee.id in clocked_in_employees and 
+            not any(r.employee.id == employee.id for r in display_records)):
+            dummy_record = type('DummyRecord', (), {
+                'employee': employee,
+                'date': today,
+                'arrival_time': None,
+                'departure_time': None,
+                'is_absent': False,
+                'is_problematic_day': lambda: False,
+                'total_issues': 0,
+                'status': 'DRAFT',
+            })()
+            display_records.append(dummy_record)
+    
+    # Sort display records
+    display_records.sort(key=lambda x: (x.employee.surname, x.employee.given_name))
+    
+    # Get available departments
+    available_departments = get_available_departments()
+    
+    context = {
+        # Progressive entry variables
+        'employee_attendance': employee_attendance,
+        'employees': filtered_employees,
+        'today': today,
+        'department_filter': department_filter,
+        'start_letter': '',
+        'search_query': '',
+        'available_departments': available_departments,
+        
+        # Attendance list variables
+        'page_obj': display_records,
+        'date_filter': today,
+        'employee_filter': '',
+        'status_filter': '',
+        'total_records': len(display_records),
+        'absent_count': len(absentees),
+        'present_count': len(display_records) - len(absentees),
+    }
+    
+    return render(request, 'debug_template.html', context)
+
+@attendance_required  # Attendance management role and above
 def bulk_historical_update(request):
     """Bulk update historical attendance records"""
     
@@ -3155,7 +3296,7 @@ def bulk_historical_update(request):
 @extend_schema(exclude=True)
 @xframe_options_sameorigin
 def comprehensive_attendance_report(request):
-    """Comprehensive attendance report based on the CSV analysis format"""
+    """Comprehensive attendance report based on the CSV analysis format with notes support"""
     today = django_timezone.localtime(django_timezone.now()).date()
     
     # Get date range parameters
@@ -3198,7 +3339,12 @@ def comprehensive_attendance_report(request):
         return_lunch_issues = 0
         early_departure_issues = 0
         
+        # Collect notes for this employee
+        employee_notes = []
         for record in records:
+            if record.notes and record.notes.strip():
+                employee_notes.append(f"{record.date.strftime('%Y-%m-%d')}: {record.notes}")
+            
             # Check for problematic values
             problematic_values = ['NO', 'LATE']
             
@@ -3231,6 +3377,7 @@ def comprehensive_attendance_report(request):
             'return_lunch_issues': return_lunch_issues,
             'early_departure_issues': early_departure_issues,
             'total_individual_issues': total_individual_issues,
+            'notes': '; '.join(employee_notes) if employee_notes else None,
         })
     
     # Get sorting parameters
@@ -3494,18 +3641,7 @@ class LiveAttendanceCounterView(generics.RetrieveAPIView):
 
 
 
-@reporting_required
-@extend_schema(exclude=True)
-def realtime_analytics_dashboard(request):
-    """
-    Real-time analytics dashboard with live employee status and attendance analytics.
-    This is the main dashboard for Phase 2 of the report enhancement roadmap.
-    """
-    context = {
-        'page_title': 'Real-Time Analytics Dashboard',
-        'active_tab': 'realtime_analytics',
-    }
-    return render(request, 'attendance/realtime_analytics_dashboard.html', context)
+
 
 @reporting_required  # Reporting role and above
 @extend_schema(exclude=True)
@@ -4497,9 +4633,122 @@ def pattern_recognition_dashboard(request):
     Pattern Recognition Dashboard for Phase 3 of the report enhancement roadmap.
     Provides behavioral pattern analysis, anomaly detection, and trend analysis.
     """
+    from django.db.models import Count, Avg, Q
+    from datetime import timedelta
+    
+    today = django_timezone.localtime(django_timezone.now()).date()
+    last_30_days = today - timedelta(days=30)
+    
+    # Get employee analytics data
+    employees = Employee.objects.filter(is_active=True).select_related('department')
+    
+    # Analyze patterns
+    pattern_data = []
+    anomaly_data = []
+    trend_data = []
+    
+    for employee in employees:
+        # Get events for the last 30 days
+        events = employee.employee_events.filter(
+            timestamp__date__gte=last_30_days,
+            timestamp__date__lte=today
+        ).order_by('timestamp')
+        
+        if events.exists():
+            # Analyze arrival patterns
+            clock_in_events = events.filter(event_type__name='Clock In')
+            
+            # Calculate average arrival time manually for SQLite compatibility
+            arrival_times = []
+            for event in clock_in_events:
+                if event.timestamp:
+                    arrival_times.append(event.timestamp.time())
+            
+            avg_arrival_time = None
+            if arrival_times:
+                total_seconds = sum((t.hour * 3600 + t.minute * 60 + t.second) for t in arrival_times)
+                avg_seconds = total_seconds // len(arrival_times)
+                avg_hours = avg_seconds // 3600
+                avg_minutes = (avg_seconds % 3600) // 60
+                avg_arrival_time = django_timezone.now().replace(
+                    hour=avg_hours, minute=avg_minutes, second=0, microsecond=0
+                ).time()
+            
+            # Analyze departure patterns
+            clock_out_events = events.filter(event_type__name='Clock Out')
+            
+            # Calculate average departure time manually for SQLite compatibility
+            departure_times = []
+            for event in clock_out_events:
+                if event.timestamp:
+                    departure_times.append(event.timestamp.time())
+            
+            avg_departure_time = None
+            if departure_times:
+                total_seconds = sum((t.hour * 3600 + t.minute * 60 + t.second) for t in departure_times)
+                avg_seconds = total_seconds // len(departure_times)
+                avg_hours = avg_seconds // 3600
+                avg_minutes = (avg_seconds % 3600) // 60
+                avg_departure_time = django_timezone.now().replace(
+                    hour=avg_hours, minute=avg_minutes, second=0, microsecond=0
+                ).time()
+            
+            # Detect anomalies (late arrivals, early departures)
+            late_arrivals = 0
+            early_departures = 0
+            
+            # Check for late arrivals (after 9:00 AM)
+            for event in clock_in_events:
+                if event.timestamp and event.timestamp.time() > django_timezone.now().replace(hour=9, minute=0, second=0, microsecond=0).time():
+                    late_arrivals += 1
+            
+            # Check for early departures (before 5:00 PM)
+            for event in clock_out_events:
+                if event.timestamp and event.timestamp.time() < django_timezone.now().replace(hour=17, minute=0, second=0, microsecond=0).time():
+                    early_departures += 1
+            
+            # Calculate attendance rate
+            total_work_days = 30
+            present_days = clock_in_events.count()
+            attendance_rate = (present_days / total_work_days) * 100 if total_work_days > 0 else 0
+            
+            pattern_data.append({
+                'employee_name': f"{employee.given_name} {employee.surname}",
+                'department': employee.department.name if employee.department else 'N/A',
+                'avg_arrival_time': avg_arrival_time,
+                'avg_departure_time': avg_departure_time,
+                'attendance_rate': round(attendance_rate, 1),
+                'total_events': events.count(),
+            })
+            
+            # Anomaly detection
+            if late_arrivals > 5 or early_departures > 5 or attendance_rate < 80:
+                anomaly_data.append({
+                    'employee_name': f"{employee.given_name} {employee.surname}",
+                    'department': employee.department.name if employee.department else 'N/A',
+                    'anomaly_type': 'attendance_issues',
+                    'severity': 'high' if attendance_rate < 70 else 'medium',
+                    'description': f"Attendance rate: {attendance_rate:.1f}%, Late arrivals: {late_arrivals}, Early departures: {early_departures}",
+                })
+    
+    # Calculate trend data
+    if pattern_data:
+        avg_attendance_rate = sum(p['attendance_rate'] for p in pattern_data) / len(pattern_data)
+        total_anomalies = len(anomaly_data)
+        
+        trend_data = {
+            'avg_attendance_rate': round(avg_attendance_rate, 1),
+            'total_anomalies': total_anomalies,
+            'high_risk_employees': len([a for a in anomaly_data if a['severity'] == 'high']),
+            'medium_risk_employees': len([a for a in anomaly_data if a['severity'] == 'medium']),
+        }
+    
     context = {
         'page_title': 'Pattern Recognition Dashboard',
         'active_tab': 'pattern_recognition',
+        'pattern_data': pattern_data,
+        'anomaly_data': anomaly_data,
+        'trend_data': trend_data,
     }
     return render(request, 'attendance/pattern_recognition_dashboard.html', context)
 
@@ -4511,8 +4760,77 @@ def predictive_analytics_dashboard(request):
     Predictive Analytics Dashboard for Phase 3 of the report enhancement roadmap.
     Provides attendance forecasting, capacity planning, and risk assessment.
     """
+    from django.db.models import Count, Avg, Q
+    from datetime import timedelta
+    
+    today = django_timezone.localtime(django_timezone.now()).date()
+    last_30_days = today - timedelta(days=30)
+    next_30_days = today + timedelta(days=30)
+    
+    # Get employee data
+    employees = Employee.objects.filter(is_active=True).select_related('department')
+    
+    # Calculate current metrics
+    current_metrics = {
+        'total_employees': employees.count(),
+        'active_employees': employees.filter(
+            employee_events__timestamp__date=today
+        ).distinct().count(),
+        'avg_attendance_rate': 0,
+        'predicted_attendance_rate': 0,
+    }
+    
+    # Calculate attendance trends
+    attendance_data = []
+    for employee in employees:
+        events = employee.employee_events.filter(
+            timestamp__date__gte=last_30_days,
+            timestamp__date__lte=today
+        )
+        
+        if events.exists():
+            clock_in_count = events.filter(event_type__name='Clock In').count()
+            attendance_rate = (clock_in_count / 30) * 100 if 30 > 0 else 0
+            
+            attendance_data.append({
+                'employee_name': f"{employee.given_name} {employee.surname}",
+                'department': employee.department.name if employee.department else 'N/A',
+                'current_attendance_rate': round(attendance_rate, 1),
+                'predicted_attendance_rate': round(attendance_rate * 0.95, 1),  # Simple prediction
+                'risk_level': 'high' if attendance_rate < 70 else 'medium' if attendance_rate < 85 else 'low',
+            })
+    
+    # Calculate averages
+    if attendance_data:
+        current_metrics['avg_attendance_rate'] = round(
+            sum(d['current_attendance_rate'] for d in attendance_data) / len(attendance_data), 1
+        )
+        current_metrics['predicted_attendance_rate'] = round(
+            sum(d['predicted_attendance_rate'] for d in attendance_data) / len(attendance_data), 1
+        )
+    
+    # Generate forecasts
+    forecast_data = {
+        'next_week_attendance': round(current_metrics['avg_attendance_rate'] * 0.98, 1),
+        'next_month_attendance': round(current_metrics['avg_attendance_rate'] * 0.95, 1),
+        'capacity_utilization': round((current_metrics['active_employees'] / current_metrics['total_employees']) * 100, 1),
+        'predicted_capacity': round((current_metrics['active_employees'] / current_metrics['total_employees']) * 95, 1),
+    }
+    
+    # Risk assessment
+    risk_data = {
+        'high_risk_employees': len([d for d in attendance_data if d['risk_level'] == 'high']),
+        'medium_risk_employees': len([d for d in attendance_data if d['risk_level'] == 'medium']),
+        'low_risk_employees': len([d for d in attendance_data if d['risk_level'] == 'low']),
+        'total_risks': len([d for d in attendance_data if d['risk_level'] in ['high', 'medium']]),
+    }
+    
     context = {
         'page_title': 'Predictive Analytics Dashboard',
         'active_tab': 'predictive_analytics',
+        'current_metrics': current_metrics,
+        'forecast_data': forecast_data,
+        'risk_data': risk_data,
+        'attendance_data': attendance_data,
     }
     return render(request, 'attendance/predictive_analytics_dashboard.html', context)

@@ -1,455 +1,188 @@
-{% extends "attendance/base.html" %}
+{% extends "base.html" %}
+{% load static %}
 
-{% block attendance_content %}
+{% block title %}Comprehensive Attendance Report - Road Attendance System{% endblock %}
+
+{% block content %}
 <style>
-    .controls-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-        padding: 15px;
-        background-color: #f8f9fa;
-        border-radius: 8px;
-        border: 1px solid #e9ecef;
-    }
-    
-    .sorting-controls {
-        flex: 1;
-    }
-    
-    .export-controls {
-        margin-left: 20px;
-    }
-    
-    .btn-export {
-        padding: 10px 20px;
-        font-size: 14px;
-        font-weight: 600;
-        background-color: #28a745;
-        border-color: #28a745;
-        color: white;
-        text-decoration: none;
-        border-radius: 6px;
-        display: inline-block;
-        transition: all 0.3s ease;
-    }
-    
-    .btn-export:hover {
-        background-color: #218838;
-        border-color: #1e7e34;
-        color: white;
-        text-decoration: none;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-    
-    .form-row {
-        display: flex;
-        gap: 15px;
-        align-items: end;
-    }
-    
-    .form-group {
-        margin-bottom: 0;
-    }
-    
-    .filter-form {
-        margin-bottom: 0;
-    }
-</style>
-<div class="attendance-card">
-    <div class="card-header">
-        <h2>📊 Comprehensive Attendance Report</h2>
-        <p style="margin: 0; color: #6c757d;">Detailed attendance analysis for {{ start_date|date:"M d, Y" }} to {{ end_date|date:"M d, Y" }}</p>
-    </div>
-    
-    <div class="card-body">
-        <!-- Summary Statistics -->
-        <div class="summary-stats">
-            <div class="stat-item">
-                <span class="stat-label">👥 Total Employees</span>
-                <span class="stat-value">{{ total_employees }}</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">📅 Date Range</span>
-                <span class="stat-value">{{ start_date|date:"M d" }} - {{ end_date|date:"M d, Y" }}</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">⚠️ Avg Problematic %</span>
-                <span class="stat-value">{{ avg_problematic_percentage }}%</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">🔢 Total Issues</span>
-                <span class="stat-value">{{ total_issues }}</span>
-            </div>
-        </div>
-
-        <!-- Sorting and Export Controls -->
-        <div class="filter-section">
-            <div class="controls-row">
-                <div class="sorting-controls">
-                    <form method="get" class="filter-form">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="sort_by">Sort By:</label>
-                                <select id="sort_by" name="sort" class="form-control">
-                                    <option value="problematic_percentage" {% if request.GET.sort == 'problematic_percentage' %}selected{% endif %}>Problematic %</option>
-                                    <option value="name" {% if request.GET.sort == 'name' %}selected{% endif %}>Employee Name</option>
-                                    <option value="total_working_days" {% if request.GET.sort == 'total_working_days' %}selected{% endif %}>Total Working Days</option>
-                                    <option value="problematic_days" {% if request.GET.sort == 'problematic_days' %}selected{% endif %}>Problematic Days</option>
-                                    <option value="total_individual_issues" {% if request.GET.sort == 'total_individual_issues' %}selected{% endif %}>Total Issues</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="direction">Direction:</label>
-                                <select id="direction" name="direction" class="form-control">
-                                    <option value="desc" {% if request.GET.direction == 'desc' %}selected{% endif %}>Descending</option>
-                                    <option value="asc" {% if request.GET.direction == 'asc' %}selected{% endif %}>Ascending</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <button type="submit" class="btn btn-primary">🔄 Update Sort</button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <div class="export-controls">
-                    <a href="{% url 'comprehensive_attendance_export_csv' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}{% if department_filter %}&department={{ department_filter }}{% endif %}&sort={{ request.GET.sort|default:'problematic_percentage' }}&direction={{ request.GET.direction|default:'desc' }}" class="btn btn-success btn-export">📊 Export CSV</a>
-                </div>
-            </div>
-        </div>
-
-        <!-- Comprehensive Report Table -->
-        <div class="table-responsive">
-            <table class="attendance-table comprehensive-table">
-                <thead>
-                    <tr>
-                        <th>👤 Employee Name</th>
-                        <th>📅 Total Working Days</th>
-                        <th>⚠️ Problematic Days</th>
-                        <th>📊 Problematic %</th>
-                        <th>✅ Non-Problematic Days</th>
-                        <th>📈 Non-Problematic %</th>
-                        <th>🕐 Stand-up Issues</th>
-                        <th>🍽️ Return from Lunch Issues</th>
-                        <th>🚪 Early Departure Issues</th>
-                        <th>🔢 Total Individual Issues</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for employee in employee_data %}
-                    <tr class="employee-row {% if employee.problematic_percentage > 50 %}high-risk{% elif employee.problematic_percentage > 25 %}medium-risk{% else %}low-risk{% endif %}">
-                        <td><strong>{{ employee.name }}</strong></td>
-                        <td>{{ employee.total_working_days }}</td>
-                        <td>{{ employee.problematic_days }}</td>
-                        <td>
-                            <span class="percentage-badge {% if employee.problematic_percentage > 50 %}high{% elif employee.problematic_percentage > 25 %}medium{% else %}low{% endif %}">
-                                {{ employee.problematic_percentage }}%
-                            </span>
-                        </td>
-                        <td>{{ employee.non_problematic_days }}</td>
-                        <td>{{ employee.non_problematic_percentage }}%</td>
-                        <td>
-                            <span class="issue-count {% if employee.standup_issues > 20 %}high{% elif employee.standup_issues > 10 %}medium{% else %}low{% endif %}">
-                                {{ employee.standup_issues }}
-                            </span>
-                        </td>
-                        <td>
-                            <span class="issue-count {% if employee.return_lunch_issues > 20 %}high{% elif employee.return_lunch_issues > 10 %}medium{% else %}low{% endif %}">
-                                {{ employee.return_lunch_issues }}
-                            </span>
-                        </td>
-                        <td>
-                            <span class="issue-count {% if employee.early_departure_issues > 20 %}high{% elif employee.early_departure_issues > 10 %}medium{% else %}low{% endif %}">
-                                {{ employee.early_departure_issues }}
-                            </span>
-                        </td>
-                        <td>
-                            <span class="total-issues {% if employee.total_individual_issues > 50 %}high{% elif employee.total_individual_issues > 25 %}medium{% else %}low{% endif %}">
-                                {{ employee.total_individual_issues }}
-                            </span>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="10" style="text-align: center; padding: 40px;">
-                            <p>No attendance data available for the selected date range.</p>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Risk Level Legend -->
-        <div class="legend-section">
-            <h4>📋 Risk Level Legend</h4>
-            <div class="legend-items">
-                <div class="legend-item">
-                    <span class="legend-color high"></span>
-                    <span>High Risk (>50% problematic)</span>
-                </div>
-                <div class="legend-item">
-                    <span class="legend-color medium"></span>
-                    <span>Medium Risk (25-50% problematic)</span>
-                </div>
-                <div class="legend-item">
-                    <span class="legend-color low"></span>
-                    <span>Low Risk (<25% problematic)</span>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<style>
-.summary-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-bottom: 2rem;
-    padding: 1rem;
-    background: #f8f9fa;
-    border-radius: 8px;
-}
-
-.stat-item {
-    text-align: center;
-    padding: 1rem;
-    background: white;
-    border-radius: 6px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.stat-label {
-    display: block;
-    font-size: 0.9rem;
-    color: #6c757d;
-    margin-bottom: 0.5rem;
-}
-
-.stat-value {
-    display: block;
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: #495057;
-}
-
-.filter-section {
-    margin-bottom: 2rem;
-    padding: 1rem;
-    background: #f8f9fa;
-    border-radius: 8px;
-}
-
-.filter-form {
-    display: flex;
-    gap: 1rem;
-    align-items: end;
-}
-
-.form-row {
-    display: flex;
-    gap: 1rem;
-    align-items: end;
-}
-
-.form-group {
-    display: flex;
-    flex-direction: column;
-}
-
-.form-group label {
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    color: #495057;
-}
-
-.comprehensive-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 1rem;
-    font-size: 0.9rem;
-}
-
-.comprehensive-table th {
-    background: #495057;
-    color: white;
-    padding: 12px 8px;
-    text-align: center;
-    font-weight: 600;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
-
-.comprehensive-table td {
-    padding: 10px 8px;
-    text-align: center;
-    border-bottom: 1px solid #dee2e6;
-}
-
-.comprehensive-table th:first-child,
-.comprehensive-table td:first-child {
-    text-align: left;
-    position: sticky;
-    left: 0;
-    background: white;
-    z-index: 5;
-}
-
-.employee-row {
-    transition: background-color 0.2s;
-}
-
-.employee-row:hover {
-    background-color: #f8f9fa;
-}
-
-.employee-row.high-risk {
-    background-color: #fff5f5;
-}
-
-.employee-row.medium-risk {
-    background-color: #fffbf0;
-}
-
-.employee-row.low-risk {
-    background-color: #f0fff4;
-}
-
-.percentage-badge {
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-weight: 600;
-    font-size: 0.8rem;
-}
-
-.percentage-badge.high {
-    background-color: #fed7d7;
-    color: #c53030;
-}
-
-.percentage-badge.medium {
-    background-color: #fef5e7;
-    color: #d69e2e;
-}
-
-.percentage-badge.low {
-    background-color: #c6f6d5;
-    color: #2f855a;
-}
-
-.issue-count {
-    font-weight: 600;
-    padding: 2px 6px;
-    border-radius: 4px;
-}
-
-.issue-count.high {
-    background-color: #fed7d7;
-    color: #c53030;
-}
-
-.issue-count.medium {
-    background-color: #fef5e7;
-    color: #d69e2e;
-}
-
-.issue-count.low {
-    background-color: #c6f6d5;
-    color: #2f855a;
-}
-
-.total-issues {
-    font-weight: bold;
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: 0.9rem;
-}
-
-.total-issues.high {
-    background-color: #fed7d7;
-    color: #c53030;
-}
-
-.total-issues.medium {
-    background-color: #fef5e7;
-    color: #d69e2e;
-}
-
-.total-issues.low {
-    background-color: #c6f6d5;
-    color: #2f855a;
-}
-
-.legend-section {
-    margin-top: 2rem;
-    padding: 1rem;
-    background: #f8f9fa;
-    border-radius: 8px;
-}
-
-.legend-section h4 {
-    margin-bottom: 1rem;
-    color: #495057;
-}
-
-.legend-items {
-    display: flex;
-    gap: 2rem;
-    flex-wrap: wrap;
-}
-
-.legend-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.legend-color {
-    width: 20px;
-    height: 20px;
-    border-radius: 4px;
-}
-
-.legend-color.high {
-    background-color: #fed7d7;
-    border: 2px solid #c53030;
-}
-
-.legend-color.medium {
-    background-color: #fef5e7;
-    border: 2px solid #d69e2e;
-}
-
-.legend-color.low {
-    background-color: #c6f6d5;
-    border: 2px solid #2f855a;
-}
-
-@media (max-width: 768px) {
-    .summary-stats {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .filter-form {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .form-row {
-        flex-direction: column;
-    }
-    
-    .comprehensive-table {
+    .notes-display {
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
         font-size: 0.8rem;
+        color: #6c757d;
+        cursor: help;
     }
     
-    .comprehensive-table th,
-    .comprehensive-table td {
-        padding: 6px 4px;
+    .high-risk {
+        background-color: rgba(220, 53, 69, 0.1);
     }
-}
+    
+    .medium-risk {
+        background-color: rgba(255, 193, 7, 0.1);
+    }
+    
+    .low-risk {
+        background-color: rgba(40, 167, 69, 0.1);
+    }
+    
+    .status-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+    
+    .status-warning {
+        background-color: #ffc107;
+        color: #212529;
+    }
+    
+    .status-success {
+        background-color: #28a745;
+        color: white;
+    }
 </style>
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">📊 Comprehensive Attendance Report</h1>
+        <p class="dashboard-subtitle">Detailed attendance analysis and reporting</p>
+    </div>
+    
+    <!-- Report Summary -->
+    <div class="card-grid">
+        <div class="card">
+            <div class="card-value text-primary">{{ total_employees }}</div>
+            <div class="card-label">Total Employees</div>
+        </div>
+        <div class="card">
+            <div class="card-value text-info">{{ start_date|date:"M d" }} - {{ end_date|date:"M d, Y" }}</div>
+            <div class="card-label">Date Range</div>
+        </div>
+        <div class="card">
+            <div class="card-value text-warning">{{ avg_problematic_percentage }}%</div>
+            <div class="card-label">Avg Problematic %</div>
+        </div>
+        <div class="card">
+            <div class="card-value text-danger">{{ total_issues }}</div>
+            <div class="card-label">Total Issues</div>
+        </div>
+    </div>
+    
+    <!-- Report Filters -->
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">🔍 Report Filters</h3>
+        </div>
+        <div class="section-body">
+            <form method="get" id="filter-form" class="card-grid">
+                <div class="card">
+                    <div class="card-label">Start Date</div>
+                    <input type="date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" style="width: 100%; padding: 0.5rem; margin-top: 0.5rem; border: 1px solid #e2e8f0; border-radius: 4px;">
+                </div>
+                <div class="card">
+                    <div class="card-label">End Date</div>
+                    <input type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" style="width: 100%; padding: 0.5rem; margin-top: 0.5rem; border: 1px solid #e2e8f0; border-radius: 4px;">
+                </div>
+                <div class="card">
+                    <div class="card-label">Department</div>
+                    <select name="department" style="width: 100%; padding: 0.5rem; margin-top: 0.5rem; border: 1px solid #e2e8f0; border-radius: 4px;">
+                        <option value="">All Departments</option>
+                        {% for dept in available_departments %}
+                        <option value="{{ dept }}" {% if department_filter == dept %}selected{% endif %}>
+                            {{ dept }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
+            
+            <div style="margin-top: 2rem; text-align: center;">
+                <button type="submit" form="filter-form" class="btn btn-primary">🔍 Generate Report</button>
+                <a href="{% url 'comprehensive_attendance_report' %}" class="btn btn-secondary">🗑️ Clear Filters</a>
+                <a href="{% url 'comprehensive_attendance_export_csv' %}" class="btn btn-success">📥 Export CSV</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Report Data -->
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">📋 Attendance Records</h3>
+        </div>
+        <div class="section-body">
+            {% if employee_data %}
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>👤 Employee Name</th>
+                            <th>📅 Total Working Days</th>
+                            <th>⚠️ Problematic Days</th>
+                            <th>📊 Problematic %</th>
+                            <th>✅ Non-Problematic Days</th>
+                            <th>📈 Non-Problematic %</th>
+                            <th>🕐 Stand-up Issues</th>
+                            <th>🍽️ Return from Lunch Issues</th>
+                            <th>🚪 Early Departure Issues</th>
+                            <th>🔢 Total Individual Issues</th>
+                            <th>📝 Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for employee in employee_data %}
+                        <tr class="{% if employee.problematic_percentage > 50 %}high-risk{% elif employee.problematic_percentage > 25 %}medium-risk{% else %}low-risk{% endif %}">
+                            <td><strong>{{ employee.name }}</strong></td>
+                            <td>{{ employee.total_working_days }}</td>
+                            <td>{{ employee.problematic_days }}</td>
+                            <td>
+                                <span class="status-badge {% if employee.problematic_percentage > 50 %}status-danger{% elif employee.problematic_percentage > 25 %}status-warning{% else %}status-success{% endif %}">
+                                    {{ employee.problematic_percentage }}%
+                                </span>
+                            </td>
+                            <td>{{ employee.non_problematic_days }}</td>
+                            <td>{{ employee.non_problematic_percentage }}%</td>
+                            <td>
+                                <span class="status-badge {% if employee.standup_issues > 20 %}status-danger{% elif employee.standup_issues > 10 %}status-warning{% else %}status-success{% endif %}">
+                                    {{ employee.standup_issues }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="status-badge {% if employee.return_lunch_issues > 20 %}status-danger{% elif employee.return_lunch_issues > 10 %}status-warning{% else %}status-success{% endif %}">
+                                    {{ employee.return_lunch_issues }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="status-badge {% if employee.early_departure_issues > 20 %}status-danger{% elif employee.early_departure_issues > 10 %}status-warning{% else %}status-success{% endif %}">
+                                    {{ employee.early_departure_issues }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="status-badge {% if employee.total_individual_issues > 50 %}status-danger{% elif employee.total_individual_issues > 25 %}status-warning{% else %}status-success{% endif %}">
+                                    {{ employee.total_individual_issues }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if employee.notes %}
+                                <div class="notes-display" title="{{ employee.notes }}">
+                                    {{ employee.notes|truncatechars:50 }}
+                                </div>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                <p>No attendance data available for the selected date range.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+
+</div>
 {% endblock %} 

@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Pattern Recognition Dashboard - Road Attendance System{% endblock %}
+
+{% block secondary_nav %}
+{% include 'secondary_nav.html' %}
+{% block secondary_nav_tabs %}
+
+    📈 Real-Time
+</a>
+<a href="{% url 'pattern_recognition_dashboard' %}" class="secondary-nav-tab {% if request.resolver_match.url_name == 'pattern_recognition_dashboard' %}active{% endif %}">
+    🔍 Pattern Recognition
+</a>
+<a href="{% url 'predictive_analytics_dashboard' %}" class="secondary-nav-tab {% if request.resolver_match.url_name == 'predictive_analytics_dashboard' %}active{% endif %}">
+    🔮 Predictive
+</a>
+{% endblock %}
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">🔍 Pattern Recognition Dashboard</h1>
+        <p class="dashboard-subtitle">Advanced behavioral analysis and anomaly detection for attendance patterns</p>
+        
+        <div class="controls-section">
+            <div class="control-group">
+                <button onclick="location.reload()" class="refresh-btn">🔄 Refresh Data</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card-grid">
+        <div class="card">
+            <div class="card-value">{{ pattern_data|length }}</div>
+            <div class="card-label">Total Employees Analyzed</div>
+        </div>
+        <div class="card">
+            <div class="card-value">{{ anomaly_data|length }}</div>
+            <div class="card-label">Anomalies Detected</div>
+        </div>
+        <div class="card">
+            <div class="card-value">{{ trend_data.avg_attendance_rate|default:0 }}%</div>
+            <div class="card-label">Avg Attendance Rate</div>
+        </div>
+        <div class="card">
+            <div class="card-value">{{ trend_data.total_anomalies|default:0 }}</div>
+            <div class="card-label">Total Risks</div>
+        </div>
+    </div>
+    
+    <!-- Pattern Analysis Table -->
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">📊 Employee Pattern Analysis</h3>
+        </div>
+        <div class="section-body">
+            {% if pattern_data %}
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Employee Name</th>
+                            <th>Department</th>
+                            <th>Attendance Rate</th>
+                            <th>Total Events</th>
+                            <th>Avg Arrival Time</th>
+                            <th>Avg Departure Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pattern in pattern_data %}
+                        <tr>
+                            <td>{{ pattern.employee_name }}</td>
+                            <td>{{ pattern.department }}</td>
+                            <td>{{ pattern.attendance_rate }}%</td>
+                            <td>{{ pattern.total_events }}</td>
+                            <td>
+                                {% if pattern.avg_arrival_time %}
+                                    {{ pattern.avg_arrival_time|time:"H:i" }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if pattern.avg_departure_time %}
+                                    {{ pattern.avg_departure_time|time:"H:i" }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                <p>No pattern data available</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Anomaly Detection Section -->
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">🚨 Anomaly Detection</h3>
+        </div>
+        <div class="section-body">
+            {% if anomaly_data %}
+            <div class="card-grid">
+                {% for anomaly in anomaly_data %}
+                <div class="card">
+                    <div class="card-value">{{ anomaly.employee_name }}</div>
+                    <div class="card-label">{{ anomaly.department }}</div>
+                    <div style="margin-top: 1rem;">
+                        <span class="status-badge status-{{ anomaly.severity }}">
+                            {{ anomaly.severity|title }}
+                        </span>
+                    </div>
+                    <div style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--text-secondary);">
+                        {{ anomaly.description }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                <p>No anomalies detected</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Risk Summary -->
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">📈 Risk Summary</h3>
+        </div>
+        <div class="section-body">
+            <div class="card-grid">
+                <div class="card">
+                    <div class="card-value text-danger">{{ trend_data.high_risk_employees|default:0 }}</div>
+                    <div class="card-label">High Risk Employees</div>
+                </div>
+                <div class="card">
+                    <div class="card-value text-warning">{{ trend_data.medium_risk_employees|default:0 }}</div>
+                    <div class="card-label">Medium Risk Employees</div>
+                </div>
+                <div class="card">
+                    <div class="card-value text-success">{{ trend_data.total_anomalies|default:0 }}</div>
+                    <div class="card-label">Total Anomalies</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Simple filter functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Pattern Recognition Dashboard loaded successfully');
+    });
+</script>
+{% endblock %} 

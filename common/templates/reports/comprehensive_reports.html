@@ -1,75 +1,135 @@
-{% extends "reports/base.html" %}
+{% extends "base.html" %}
+{% load static %}
 
-{% block reports_content %}
-<div class="attendance-card">
-    <div class="card-header">
-        <h2>📊 Comprehensive Reports Dashboard</h2>
-        <p style="margin: 0; color: #6c757d;">Interactive analytics and reports for attendance tracking</p>
+{% block title %}Comprehensive Reports - Road Attendance System{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">📊 Comprehensive Reports</h1>
+        <p class="dashboard-subtitle">Advanced reporting and analytics dashboard</p>
     </div>
-    <div class="card-body">
-        <!-- Date Range and Department Filter -->
-        <form method="get" class="filter-form">
-            <div class="field-group">
-                <div>
-                    <label for="start_date">Start Date</label>
-                    <input type="date" name="start_date" value="{{ start_date }}" class="form-control">
-                </div>
-                <div>
-                    <label for="end_date">End Date</label>
-                    <input type="date" name="end_date" value="{{ end_date }}" class="form-control">
-                </div>
-                <div>
-                    <label for="department">Department:</label>
-                    <select id="department" name="department" class="form-control">
-                        <option value="">All Departments</option>
-                        {% for dept in available_departments %}
-                        <option value="{{ dept }}" {% if department_filter == dept %}selected{% endif %}>{{ dept }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div>
-                    <button type="submit" class="btn btn-primary">🔄 Update Report</button>
-                </div>
-            </div>
-        </form>
-
-        <!-- Comprehensive Attendance Report iframe -->
-        <div class="marimo-container">
-            <div style="margin-bottom: 10px; text-align: right;">
-                <button onclick="refreshIframe()" class="btn btn-sm btn-outline-secondary">🔄 Refresh Report</button>
-            </div>
-            <iframe 
-                id="comprehensive-attendance-iframe"
-                src="{% url 'comprehensive_attendance_report' %}?start_date={{ start_date }}&end_date={{ end_date }}{% if department_filter %}&department={{ department_filter }}{% endif %}&iframe=1&v={{ timestamp|default:'' }}"
-                width="100%" 
-                height="800px" 
-                frameborder="0"
-                title="Comprehensive Attendance Report">
-            </iframe>
+    
+    <!-- Report Summary -->
+    <div class="card-grid">
+        <div class="card">
+            <div class="card-value text-primary">{{ total_reports }}</div>
+            <div class="card-label">Total Reports</div>
         </div>
-        
-        <script>
-        // Refresh iframe function
-        function refreshIframe() {
-            const iframe = document.getElementById('comprehensive-attendance-iframe');
-            if (iframe) {
-                const currentSrc = iframe.src;
-                const separator = currentSrc.includes('?') ? '&' : '?';
-                iframe.src = currentSrc + separator + 'refresh=' + Date.now();
-            }
-        }
-        
-        // Force iframe refresh when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            const iframe = document.getElementById('comprehensive-attendance-iframe');
-            if (iframe) {
-                // Add a small delay to ensure the iframe is loaded
-                setTimeout(function() {
-                    iframe.src = iframe.src + '&refresh=' + Date.now();
-                }, 100);
-            }
-        });
-        </script>
+        <div class="card">
+            <div class="card-value text-success">{{ active_reports }}</div>
+            <div class="card-label">Active Reports</div>
+        </div>
+        <div class="card">
+            <div class="card-value text-warning">{{ pending_reports }}</div>
+            <div class="card-label">Pending Reports</div>
+        </div>
+        <div class="card">
+            <div class="card-value text-info">{{ completion_rate }}%</div>
+            <div class="card-label">Completion Rate</div>
+        </div>
+    </div>
+    
+    <!-- Report Categories -->
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">📋 Report Categories</h3>
+        </div>
+        <div class="section-body">
+            <div class="card-grid">
+                <div class="card">
+                    <div class="card-value">📊</div>
+                    <div class="card-label">Attendance Reports</div>
+                    <div style="margin-top: 1rem;">
+                        <a href="{% url 'comprehensive_attendance_report' %}" class="btn btn-primary btn-sm">View Reports</a>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-value">📈</div>
+                    <div class="card-label">Analytics Reports</div>
+                    <div style="margin-top: 1rem;">
+                        
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-value">🔍</div>
+                    <div class="card-label">Pattern Recognition</div>
+                    <div style="margin-top: 1rem;">
+                        <a href="{% url 'pattern_recognition_dashboard' %}" class="btn btn-warning btn-sm">View Patterns</a>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-value">🔮</div>
+                    <div class="card-label">Predictive Analytics</div>
+                    <div style="margin-top: 1rem;">
+                        <a href="{% url 'predictive_analytics_dashboard' %}" class="btn btn-info btn-sm">View Predictions</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Reports -->
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">📋 Recent Reports</h3>
+        </div>
+        <div class="section-body">
+            {% if recent_reports %}
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Report Name</th>
+                            <th>Type</th>
+                            <th>Generated Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for report in recent_reports %}
+                        <tr>
+                            <td><strong>{{ report.name }}</strong></td>
+                            <td>{{ report.type }}</td>
+                            <td>{{ report.generated_date|date:"M d, Y" }}</td>
+                            <td>
+                                <span class="status-badge status-{{ report.status|lower }}">
+                                    {{ report.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                    <a href="{{ report.download_url }}" class="btn btn-primary btn-sm">📥 Download</a>
+                                    <a href="{{ report.view_url }}" class="btn btn-secondary btn-sm">👁️ View</a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                <p>No recent reports available.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">⚡ Quick Actions</h3>
+        </div>
+        <div class="section-body">
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;">
+                <a href="{% url 'daily_dashboard_report' %}" class="btn btn-primary">📅 Daily Dashboard</a>
+                <a href="{% url 'employee_history_report' %}" class="btn btn-success">👥 Employee History</a>
+                <a href="{% url 'period_summary_report' %}" class="btn btn-warning">📊 Period Summary</a>
+                <a href="{% url 'performance_dashboard' %}" class="btn btn-info">⚡ Performance</a>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %} 

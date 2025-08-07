@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Predictive Analytics Dashboard - Road Attendance System{% endblock %}
+
+{% block secondary_nav %}
+{% include 'secondary_nav.html' %}
+{% block secondary_nav_tabs %}
+
+    📈 Real-Time
+</a>
+<a href="{% url 'pattern_recognition_dashboard' %}" class="secondary-nav-tab {% if request.resolver_match.url_name == 'pattern_recognition_dashboard' %}active{% endif %}">
+    🔍 Pattern Recognition
+</a>
+<a href="{% url 'predictive_analytics_dashboard' %}" class="secondary-nav-tab {% if request.resolver_match.url_name == 'predictive_analytics_dashboard' %}active{% endif %}">
+    🔮 Predictive
+</a>
+{% endblock %}
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">🔮 Predictive Analytics Dashboard</h1>
+        <p class="dashboard-subtitle">Advanced forecasting and capacity planning for attendance optimization</p>
+        
+        <div class="controls-section">
+            <div class="control-group">
+                <button onclick="location.reload()" class="refresh-btn">🔄 Refresh Data</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Current Metrics -->
+    <div class="card-grid">
+        <div class="card">
+            <div class="card-value">{{ current_metrics.total_employees }}</div>
+            <div class="card-label">Total Employees</div>
+        </div>
+        <div class="card">
+            <div class="card-value">{{ current_metrics.active_employees }}</div>
+            <div class="card-label">Active Employees</div>
+        </div>
+        <div class="card">
+            <div class="card-value">{{ current_metrics.avg_attendance_rate }}%</div>
+            <div class="card-label">Current Attendance Rate</div>
+        </div>
+        <div class="card">
+            <div class="card-value">{{ current_metrics.predicted_attendance_rate }}%</div>
+            <div class="card-label">Predicted Attendance Rate</div>
+        </div>
+    </div>
+    
+    <!-- Forecast Metrics -->
+    <div class="card-grid">
+        <div class="card">
+            <div class="card-value">{{ forecast_data.next_week_attendance }}%</div>
+            <div class="card-label">Next Week Attendance</div>
+            <div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--success-color);">📈 Predicted</div>
+        </div>
+        <div class="card">
+            <div class="card-value">{{ forecast_data.next_month_attendance }}%</div>
+            <div class="card-label">Next Month Attendance</div>
+            <div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--success-color);">📈 Predicted</div>
+        </div>
+        <div class="card">
+            <div class="card-value">{{ forecast_data.capacity_utilization }}%</div>
+            <div class="card-label">Current Capacity</div>
+            <div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-secondary);">📊 Utilization</div>
+        </div>
+        <div class="card">
+            <div class="card-value">{{ forecast_data.predicted_capacity }}%</div>
+            <div class="card-label">Predicted Capacity</div>
+            <div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--success-color);">📈 Forecast</div>
+        </div>
+    </div>
+    
+    <!-- Risk Assessment -->
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">🚨 Risk Assessment</h3>
+        </div>
+        <div class="section-body">
+            <div class="card-grid">
+                <div class="card">
+                    <div class="card-value text-danger">{{ risk_data.high_risk_employees }}</div>
+                    <div class="card-label">High Risk Employees</div>
+                </div>
+                <div class="card">
+                    <div class="card-value text-warning">{{ risk_data.medium_risk_employees }}</div>
+                    <div class="card-label">Medium Risk Employees</div>
+                </div>
+                <div class="card">
+                    <div class="card-value text-success">{{ risk_data.low_risk_employees }}</div>
+                    <div class="card-label">Low Risk Employees</div>
+                </div>
+                <div class="card">
+                    <div class="card-value">{{ risk_data.total_risks }}</div>
+                    <div class="card-label">Total Risks</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Employee Attendance Predictions -->
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">📊 Employee Attendance Predictions</h3>
+        </div>
+        <div class="section-body">
+            {% if attendance_data %}
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Employee Name</th>
+                            <th>Department</th>
+                            <th>Current Rate</th>
+                            <th>Predicted Rate</th>
+                            <th>Risk Level</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for employee in attendance_data %}
+                        <tr>
+                            <td>{{ employee.employee_name }}</td>
+                            <td>{{ employee.department }}</td>
+                            <td>{{ employee.current_attendance_rate }}%</td>
+                            <td>{{ employee.predicted_attendance_rate }}%</td>
+                            <td>
+                                <span class="status-badge status-{{ employee.risk_level }}">
+                                    {{ employee.risk_level|title }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                <p>No attendance data available</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Recommendations -->
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">💡 Recommendations</h3>
+        </div>
+        <div class="section-body">
+            <div class="card-grid">
+                {% if risk_data.high_risk_employees > 0 %}
+                <div class="card">
+                    <div class="card-value text-danger">🚨</div>
+                    <div class="card-label">High Risk Management</div>
+                    <div style="margin-top: 1rem; font-size: 0.9rem; color: var(--text-secondary);">
+                        There are {{ risk_data.high_risk_employees }} employees with high attendance risk. Consider implementing:
+                    </div>
+                    <ul style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-secondary); text-align: left;">
+                        <li>One-on-one meetings to understand challenges</li>
+                        <li>Flexible work arrangements</li>
+                        <li>Attendance improvement programs</li>
+                    </ul>
+                </div>
+                {% endif %}
+                
+                {% if risk_data.medium_risk_employees > 0 %}
+                <div class="card">
+                    <div class="card-value text-warning">⚠️</div>
+                    <div class="card-label">Medium Risk Monitoring</div>
+                    <div style="margin-top: 1rem; font-size: 0.9rem; color: var(--text-secondary);">
+                        There are {{ risk_data.medium_risk_employees }} employees with medium attendance risk. Consider:
+                    </div>
+                    <ul style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-secondary); text-align: left;">
+                        <li>Regular check-ins and support</li>
+                        <li>Performance improvement plans</li>
+                        <li>Additional training and resources</li>
+                    </ul>
+                </div>
+                {% endif %}
+                
+                {% if current_metrics.avg_attendance_rate < 85 %}
+                <div class="card">
+                    <div class="card-value text-primary">📈</div>
+                    <div class="card-label">Attendance Improvement</div>
+                    <div style="margin-top: 1rem; font-size: 0.9rem; color: var(--text-secondary);">
+                        Current average attendance rate is {{ current_metrics.avg_attendance_rate }}%. Consider:
+                    </div>
+                    <ul style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-secondary); text-align: left;">
+                        <li>Implementing attendance incentives</li>
+                        <li>Improving workplace conditions</li>
+                        <li>Providing better work-life balance</li>
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Simple dashboard functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Predictive Analytics Dashboard loaded successfully');
+    });
+</script>
+{% endblock %} 

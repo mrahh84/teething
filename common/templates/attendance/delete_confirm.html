@@ -1,41 +1,46 @@
-{% extends "attendance/base.html" %}
+{% extends "base.html" %}
+{% load static %}
 
-{% block attendance_content %}
-<div class="attendance-card">
-    <div class="card-header">
-        <h2>Delete Attendance Record</h2>
+{% block title %}Delete Attendance Record - Road Attendance System{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">🗑️ Delete Attendance Record</h1>
+        <p class="dashboard-subtitle">Confirm deletion of attendance record</p>
     </div>
-    <div class="card-body">
-        <div style="text-align: center; padding: 40px;">
-            <h3>Are you sure you want to delete this attendance record?</h3>
-            <p style="color: #6c757d; margin: 20px 0;">
-                <strong>{{ record.employee }}</strong> - {{ record.date|date:"M d, Y" }}
-            </p>
-            
-            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: left;">
-                <h4>Record Details:</h4>
-                <ul style="list-style: none; padding: 0;">
-                    <li><strong>Stand-up:</strong> {{ record.standup_attendance|default:"Not recorded" }}</li>
-                    <li><strong>Lunch Time:</strong> {{ record.lunch_time|time:"H:i"|default:"Not recorded" }}</li>
-                    <li><strong>Left Lunch On Time:</strong> {{ record.left_lunch_on_time|default:"Not recorded" }}</li>
-                    <li><strong>Returned On Time:</strong> {{ record.returned_on_time_after_lunch|default:"Not recorded" }}</li>
-                    <li><strong>Returned After Lunch:</strong> {{ record.returned_after_lunch|default:"Not recorded" }}</li>
-                    <li><strong>Departure Time:</strong> {{ record.departure_time|time:"H:i"|default:"Not recorded" }}</li>
-                    {% if record.notes %}
-                        <li><strong>Notes:</strong> {{ record.notes }}</li>
-                    {% endif %}
-                </ul>
+    
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">⚠️ Confirmation Required</h3>
+        </div>
+        <div class="section-body">
+            <div style="text-align: center; padding: 2rem;">
+                <div style="font-size: 1.2rem; color: var(--danger-color); margin-bottom: 1rem;">
+                    Are you sure you want to delete this attendance record?
+                </div>
+                
+                <div style="background: rgba(255, 255, 255, 0.9); border-radius: 8px; padding: 1.5rem; margin: 1rem 0;">
+                    <div style="font-weight: 600; color: var(--text-color); margin-bottom: 0.5rem;">
+                        {{ record.employee.given_name }} {{ record.employee.surname }}
+                    </div>
+                    <div style="color: var(--text-secondary);">
+                        {{ record.date|date:"M d, Y" }} - {{ record.get_status_display }}
+                    </div>
+                </div>
+                
+                <div style="color: var(--text-secondary); margin-bottom: 2rem;">
+                    This action cannot be undone.
+                </div>
+                
+                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                    <form method="post" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">🗑️ Delete Record</button>
+                    </form>
+                    <a href="{% url 'attendance_list' %}" class="btn btn-secondary">❌ Cancel</a>
+                </div>
             </div>
-            
-            <p style="color: #dc3545; font-weight: 600;">
-                ⚠️ This action cannot be undone!
-            </p>
-            
-            <form method="post" style="margin-top: 30px;">
-                {% csrf_token %}
-                <a href="{% url 'attendance_list' %}" class="btn" style="margin-right: 10px;">Cancel</a>
-                <button type="submit" class="btn btn-danger">Delete Record</button>
-            </form>
         </div>
     </div>
 </div>
