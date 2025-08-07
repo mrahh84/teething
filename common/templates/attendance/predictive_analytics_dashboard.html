@@ -3,114 +3,89 @@
 
 {% block title %}Predictive Analytics Dashboard - Road Attendance System{% endblock %}
 
-{% block secondary_nav %}
-{% include 'secondary_nav.html' %}
-{% block secondary_nav_tabs %}
-
-    📈 Real-Time
-</a>
-<a href="{% url 'pattern_recognition_dashboard' %}" class="secondary-nav-tab {% if request.resolver_match.url_name == 'pattern_recognition_dashboard' %}active{% endif %}">
-    🔍 Pattern Recognition
-</a>
-<a href="{% url 'predictive_analytics_dashboard' %}" class="secondary-nav-tab {% if request.resolver_match.url_name == 'predictive_analytics_dashboard' %}active{% endif %}">
-    🔮 Predictive
-</a>
-{% endblock %}
-{% endblock %}
-
 {% block content %}
-<div class="dashboard-container">
-    <div class="dashboard-header">
-        <h1 class="dashboard-title">🔮 Predictive Analytics Dashboard</h1>
-        <p class="dashboard-subtitle">Advanced forecasting and capacity planning for attendance optimization</p>
+<div class="attendance-card">
+    <div class="card-header">
+        <h2>🔮 Predictive Analytics Dashboard</h2>
+        <p style="margin: 0; color: rgba(255,255,255,0.9);">Advanced forecasting and capacity planning for attendance optimization</p>
+    </div>
+    
+    <div class="card-body">
+        <!-- Current Metrics -->
+        <div class="action-section">
+            <h3>📊 Current Metrics</h3>
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <span class="summary-label">Total Employees:</span>
+                    <span class="summary-value">{{ current_metrics.total_employees|default:"0" }}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Active Employees:</span>
+                    <span class="summary-value text-success">{{ current_metrics.active_employees|default:"0" }}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Current Attendance Rate:</span>
+                    <span class="summary-value text-info">{{ current_metrics.avg_attendance_rate|default:"0" }}%</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Predicted Attendance Rate:</span>
+                    <span class="summary-value text-warning">{{ current_metrics.predicted_attendance_rate|default:"0" }}%</span>
+                </div>
+            </div>
+        </div>
         
-        <div class="controls-section">
-            <div class="control-group">
-                <button onclick="location.reload()" class="refresh-btn">🔄 Refresh Data</button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Current Metrics -->
-    <div class="card-grid">
-        <div class="card">
-            <div class="card-value">{{ current_metrics.total_employees }}</div>
-            <div class="card-label">Total Employees</div>
-        </div>
-        <div class="card">
-            <div class="card-value">{{ current_metrics.active_employees }}</div>
-            <div class="card-label">Active Employees</div>
-        </div>
-        <div class="card">
-            <div class="card-value">{{ current_metrics.avg_attendance_rate }}%</div>
-            <div class="card-label">Current Attendance Rate</div>
-        </div>
-        <div class="card">
-            <div class="card-value">{{ current_metrics.predicted_attendance_rate }}%</div>
-            <div class="card-label">Predicted Attendance Rate</div>
-        </div>
-    </div>
-    
-    <!-- Forecast Metrics -->
-    <div class="card-grid">
-        <div class="card">
-            <div class="card-value">{{ forecast_data.next_week_attendance }}%</div>
-            <div class="card-label">Next Week Attendance</div>
-            <div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--success-color);">📈 Predicted</div>
-        </div>
-        <div class="card">
-            <div class="card-value">{{ forecast_data.next_month_attendance }}%</div>
-            <div class="card-label">Next Month Attendance</div>
-            <div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--success-color);">📈 Predicted</div>
-        </div>
-        <div class="card">
-            <div class="card-value">{{ forecast_data.capacity_utilization }}%</div>
-            <div class="card-label">Current Capacity</div>
-            <div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-secondary);">📊 Utilization</div>
-        </div>
-        <div class="card">
-            <div class="card-value">{{ forecast_data.predicted_capacity }}%</div>
-            <div class="card-label">Predicted Capacity</div>
-            <div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--success-color);">📈 Forecast</div>
-        </div>
-    </div>
-    
-    <!-- Risk Assessment -->
-    <div class="section">
-        <div class="section-header">
-            <h3 class="section-title">🚨 Risk Assessment</h3>
-        </div>
-        <div class="section-body">
-            <div class="card-grid">
-                <div class="card">
-                    <div class="card-value text-danger">{{ risk_data.high_risk_employees }}</div>
-                    <div class="card-label">High Risk Employees</div>
+        <!-- Forecast Metrics -->
+        <div class="action-section">
+            <h3>📈 Forecast Metrics</h3>
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <span class="summary-label">Next Week Attendance:</span>
+                    <span class="summary-value text-success">{{ forecast_data.next_week_attendance|default:"0" }}% 📈</span>
                 </div>
-                <div class="card">
-                    <div class="card-value text-warning">{{ risk_data.medium_risk_employees }}</div>
-                    <div class="card-label">Medium Risk Employees</div>
+                <div class="summary-item">
+                    <span class="summary-label">Next Month Attendance:</span>
+                    <span class="summary-value text-success">{{ forecast_data.next_month_attendance|default:"0" }}% 📈</span>
                 </div>
-                <div class="card">
-                    <div class="card-value text-success">{{ risk_data.low_risk_employees }}</div>
-                    <div class="card-label">Low Risk Employees</div>
+                <div class="summary-item">
+                    <span class="summary-label">Current Capacity:</span>
+                    <span class="summary-value text-info">{{ forecast_data.capacity_utilization|default:"0" }}% 📊</span>
                 </div>
-                <div class="card">
-                    <div class="card-value">{{ risk_data.total_risks }}</div>
-                    <div class="card-label">Total Risks</div>
+                <div class="summary-item">
+                    <span class="summary-label">Predicted Capacity:</span>
+                    <span class="summary-value text-warning">{{ forecast_data.predicted_capacity|default:"0" }}% 📈</span>
                 </div>
             </div>
         </div>
-    </div>
-    
-    <!-- Employee Attendance Predictions -->
-    <div class="section">
-        <div class="section-header">
-            <h3 class="section-title">📊 Employee Attendance Predictions</h3>
+        
+        <!-- Risk Assessment -->
+        <div class="action-section">
+            <h3>🚨 Risk Assessment</h3>
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <span class="summary-label">High Risk Employees:</span>
+                    <span class="summary-value text-danger">{{ risk_data.high_risk_employees|default:"0" }}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Medium Risk Employees:</span>
+                    <span class="summary-value text-warning">{{ risk_data.medium_risk_employees|default:"0" }}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Low Risk Employees:</span>
+                    <span class="summary-value text-success">{{ risk_data.low_risk_employees|default:"0" }}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Total Risks:</span>
+                    <span class="summary-value">{{ risk_data.total_risks|default:"0" }}</span>
+                </div>
+            </div>
         </div>
-        <div class="section-body">
-            {% if attendance_data %}
-            <div class="table-container">
-                <table class="data-table">
+        
+        <!-- Employee Attendance Predictions -->
+        {% if attendance_data %}
+        <div class="records-section">
+            <h3>📊 Employee Attendance Predictions</h3>
+            <div class="table-responsive">
+                <table class="attendance-table">
                     <thead>
                         <tr>
                             <th>Employee Name</th>
@@ -137,69 +112,179 @@
                     </tbody>
                 </table>
             </div>
-            {% else %}
-            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                <p>No attendance data available</p>
-            </div>
-            {% endif %}
         </div>
-    </div>
-    
-    <!-- Recommendations -->
-    <div class="section">
-        <div class="section-header">
-            <h3 class="section-title">💡 Recommendations</h3>
-        </div>
-        <div class="section-body">
-            <div class="card-grid">
-                {% if risk_data.high_risk_employees > 0 %}
-                <div class="card">
-                    <div class="card-value text-danger">🚨</div>
-                    <div class="card-label">High Risk Management</div>
-                    <div style="margin-top: 1rem; font-size: 0.9rem; color: var(--text-secondary);">
-                        There are {{ risk_data.high_risk_employees }} employees with high attendance risk. Consider implementing:
-                    </div>
-                    <ul style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-secondary); text-align: left;">
-                        <li>One-on-one meetings to understand challenges</li>
-                        <li>Flexible work arrangements</li>
-                        <li>Attendance improvement programs</li>
-                    </ul>
-                </div>
-                {% endif %}
-                
-                {% if risk_data.medium_risk_employees > 0 %}
-                <div class="card">
-                    <div class="card-value text-warning">⚠️</div>
-                    <div class="card-label">Medium Risk Monitoring</div>
-                    <div style="margin-top: 1rem; font-size: 0.9rem; color: var(--text-secondary);">
-                        There are {{ risk_data.medium_risk_employees }} employees with medium attendance risk. Consider:
-                    </div>
-                    <ul style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-secondary); text-align: left;">
-                        <li>Regular check-ins and support</li>
-                        <li>Performance improvement plans</li>
-                        <li>Additional training and resources</li>
-                    </ul>
-                </div>
-                {% endif %}
-                
-                {% if current_metrics.avg_attendance_rate < 85 %}
-                <div class="card">
-                    <div class="card-value text-primary">📈</div>
-                    <div class="card-label">Attendance Improvement</div>
-                    <div style="margin-top: 1rem; font-size: 0.9rem; color: var(--text-secondary);">
-                        Current average attendance rate is {{ current_metrics.avg_attendance_rate }}%. Consider:
-                    </div>
-                    <ul style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-secondary); text-align: left;">
-                        <li>Implementing attendance incentives</li>
-                        <li>Improving workplace conditions</li>
-                        <li>Providing better work-life balance</li>
-                    </ul>
-                </div>
-                {% endif %}
+        {% endif %}
+        
+        <!-- Actions -->
+        <div class="action-section">
+            <h3>Actions</h3>
+            <div class="action-buttons">
+                <a href="{% url 'pattern_recognition_dashboard' %}" class="btn btn-primary">🔍 Pattern Recognition</a>
+                <a href="{% url 'comprehensive_attendance_report' %}" class="btn btn-success">📊 Comprehensive Report</a>
+                <a href="{% url 'daily_dashboard_report' %}" class="btn btn-warning">📅 Daily Dashboard</a>
+                <a href="{% url 'employee_history_report' %}" class="btn btn-info">👥 Employee History</a>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+.attendance-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    overflow: hidden;
+    margin: 20px;
+}
+
+.card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    text-align: center;
+}
+
+.card-header h2 {
+    margin: 0 0 5px 0;
+    font-size: 1.5rem;
+}
+
+.card-header p {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 0.9rem;
+}
+
+.card-body {
+    padding: 20px;
+}
+
+.action-section {
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.action-section h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #495057;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background: white;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+}
+
+.summary-label {
+    font-weight: 500;
+    color: #495057;
+}
+
+.summary-value {
+    font-weight: 600;
+    color: #212529;
+}
+
+.records-section {
+    margin-bottom: 2rem;
+}
+
+.records-section h3 {
+    margin-bottom: 1rem;
+    color: #495057;
+}
+
+.table-responsive {
+    overflow-x: auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.attendance-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+.attendance-table th {
+    background: #f8f9fa;
+    padding: 12px 8px;
+    text-align: left;
+    font-weight: 600;
+    color: #495057;
+    border-bottom: 2px solid #dee2e6;
+    font-size: 0.85rem;
+}
+
+.attendance-table td {
+    padding: 8px;
+    border-bottom: 1px solid #e9ecef;
+    vertical-align: middle;
+    font-size: 0.85rem;
+}
+
+.attendance-table tr:hover {
+    background-color: #f8f9fa;
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.status-high { background: #f8d7da; color: #721c24; }
+.status-medium { background: #fff3cd; color: #856404; }
+.status-low { background: #d4edda; color: #155724; }
+
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.2s ease;
+}
+
+.btn-primary { background: #667eea; color: white; }
+.btn-success { background: #28a745; color: white; }
+.btn-warning { background: #ffc107; color: #212529; }
+.btn-info { background: #17a2b8; color: white; }
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.text-success { color: #28a745; }
+.text-warning { color: #ffc107; }
+.text-info { color: #17a2b8; }
+.text-danger { color: #dc3545; }
+</style>
 {% endblock %}
 
 {% block extra_js %}
