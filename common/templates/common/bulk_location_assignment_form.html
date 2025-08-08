@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load attendance_extras %}
 
 {% block title %}Bulk Location Assignment - Road Attendance System{% endblock %}
 
@@ -89,7 +90,13 @@
                 {% for employee in employees %}
                 <div class="card">
                     <div class="card-value">{{ employee.given_name }} {{ employee.surname }}</div>
-                    <div class="card-label">{{ employee.department.name|default:"No Department" }}</div>
+                    <div class="card-label">
+                        {% if employee.card_number %}
+                            {{ employee.card_number.designation|get_department_from_designation }}
+                        {% else %}
+                            No Department
+                        {% endif %}
+                    </div>
                     
                     <div style="margin-top: 1rem;">
                         <input type="checkbox" name="selected_employees" value="{{ employee.id }}" id="employee_{{ employee.id }}" style="margin-right: 0.5rem;">

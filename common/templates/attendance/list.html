@@ -1,9 +1,7 @@
-{% extends "base.html" %}
-{% load static %}
+{% extends "attendance/base.html" %}
+{% load attendance_extras %}
 
-{% block title %}Attendance Records - Road Attendance System{% endblock %}
-
-{% block content %}
+{% block attendance_content %}
 <div class="attendance-card">
     <div class="card-header">
         <h2>📝 Attendance Records</h2>
@@ -92,7 +90,13 @@
                             <td>
                                 <strong>{{ record.employee.given_name }} {{ record.employee.surname }}</strong>
                             </td>
-                            <td>{{ record.employee.department.name|default:"No Department" }}</td>
+                            <td>
+                                {% if record.employee.card_number %}
+                                    {{ record.employee.card_number.designation|get_department_from_designation }}
+                                {% else %}
+                                    No Department
+                                {% endif %}
+                            </td>
                             <td>{{ record.date|date:"M d, Y" }}</td>
                             <td>{{ record.clock_in_time|time:"H:i"|default:"-" }}</td>
                             <td>{{ record.clock_out_time|time:"H:i"|default:"-" }}</td>

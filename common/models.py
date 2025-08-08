@@ -327,8 +327,6 @@ class AttendanceRecord(models.Model):
             issues += 1
         if self.returned_on_time_after_lunch in problematic_values:
             issues += 1
-        if self.returned_after_lunch in problematic_values:
-            issues += 1
         
         # Check stand-up meeting attendance
         if self.standup_attendance in problematic_values:
@@ -347,8 +345,6 @@ class AttendanceRecord(models.Model):
         if self.left_lunch_on_time in problematic_values:
             issues += 1
         if self.returned_on_time_after_lunch in problematic_values:
-            issues += 1
-        if self.returned_after_lunch in problematic_values:
             issues += 1
         
         # Check stand-up meeting attendance
@@ -433,16 +429,18 @@ class AttendanceRecord(models.Model):
     @property
     def completion_percentage(self):
         """Calculate completion percentage of this attendance record."""
-        total_fields = 4  # lunch_time, left_lunch_on_time, returned_after_lunch, standup_attendance
+        total_fields = 5  # lunch_time, left_lunch_on_time, returned_on_time_after_lunch, standup_attendance, notes
         filled_fields = 0
         
         if self.lunch_time:
             filled_fields += 1
         if self.left_lunch_on_time:
             filled_fields += 1
-        if self.returned_after_lunch:
+        if self.returned_on_time_after_lunch:
             filled_fields += 1
         if self.standup_attendance:
+            filled_fields += 1
+        if self.notes and self.notes.strip(): # Notes are now counted if not empty
             filled_fields += 1
         
         return (filled_fields / total_fields) * 100 if total_fields > 0 else 0

@@ -1,313 +1,199 @@
+{% extends "base.html" %}
 {% load cache %}
 {% load static %}
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Clock-in Dashboard | Attendance System</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'css/navigation.css' %}">
 
-    <style>
-        :root {
-            --primary-color: #2c3e50;
-            --secondary-color: #34495e;
-            --accent-color: #3498db;
-            --success-color: #2ecc71;
-            --warning-color: #f39c12;
-            --danger-color: #e74c3c;
-            --light-gray: #f5f5f5;
-            --med-gray: #e0e0e0;
-            --dark-gray: #95a5a6;
-            --text-color: #333;
-        }
-        * { box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            line-height: 1.6;
-            color: var(--text-color);
-            margin: 0;
-            padding: 0;
-            background-color: #f9f9f9;
-        }
-        .main-content {
-            padding: 15px;
-        }
-        h1, h2 { margin: 0; padding: 0; }
-        .dashboard-summary {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        .stat-card {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-        .stat-card h3 {
-            margin-top: 0;
-            color: var(--dark-gray);
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .stat-card .stat-value {
-            font-size: 32px;
-            font-weight: 600;
-            margin: 10px 0;
-        }
-        .stat-card.clocked-in .stat-value { color: var(--success-color); }
-        .stat-card.clocked-out .stat-value { color: var(--danger-color); }
-        .stat-card.total .stat-value { color: var(--primary-color); }
-        .controls-wrapper {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        .controls {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 15px;
-        }
-        @media (max-width: 768px) {
-            .controls { grid-template-columns: 1fr; }
-        }
-        .filter-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 500;
-            font-size: 14px;
-        }
-        input[type="text"], select {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid var(--med-gray);
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        input[type="text"]:focus, select:focus {
-            outline: none;
-            border-color: var(--accent-color);
-            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.25);
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background-color: white;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        th {
-            background-color: var(--primary-color);
-            color: white;
-            text-align: left;
-            padding: 12px;
-            font-weight: 500;
-            position: relative;
-            cursor: pointer;
-        }
-        th:hover { background-color: var(--secondary-color); }
-        th.sorted:after { content: " ▾"; font-size: 12px; }
-        th.sorted.desc:after { content: " ▴"; }
-        td {
-            padding: 12px;
-            border-bottom: 1px solid var(--med-gray);
-        }
-        tr:last-child td { border-bottom: none; }
-        tr:nth-child(even) { background-color: var(--light-gray); }
-        tr:hover { background-color: rgba(52, 152, 219, 0.1); }
-        a { color: var(--accent-color); text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        .btn {
-            display: inline-block;
-            padding: 8px 12px;
-            background-color: var(--accent-color);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            text-align: center;
-            text-decoration: none;
-        }
-        .btn:hover { background-color: #2980b9; text-decoration: none; }
-        .btn-success { background-color: var(--success-color); }
-        .btn-success:hover { background-color: #27ae60; }
-        .btn-danger { background-color: var(--danger-color); }
-        .btn-danger:hover { background-color: #c0392b; }
-        .message-list { list-style: none; padding: 0; margin: 0 0 20px 0; }
-        .message { padding: 10px 15px; border-radius: 4px; margin-bottom: 10px; }
-        .message.success { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
-        .message.warning { background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; }
-        .message.error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
-        .message.info { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
-        .status-badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 500;
-        }
-        .status-in { background-color: #d4edda; color: #155724; }
-        .status-out { background-color: #f8d7da; color: #721c24; }
-        .status-processing { background-color: #fff3cd; color: #856404; animation: pulse 1.5s ease-in-out infinite alternate; }
-        @keyframes pulse { from { opacity: 0.6; } to { opacity: 1; } }
-        .pagination {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 20px;
-            padding: 10px;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        .pagination-info { font-size: 14px; }
-        .pagination-controls a {
-            display: inline-block;
-            padding: 5px 10px;
-            margin: 0 5px;
-            border-radius: 4px;
-            background-color: var(--light-gray);
-        }
-        .pagination-controls a.active {
-            background-color: var(--accent-color);
-            color: white;
-        }
-        .pagination-controls a:hover:not(.active) { background-color: var(--med-gray); }
-        .employee-action { white-space: nowrap; }
-        .time-indicator { display: block; font-size: 11px; color: var(--dark-gray); }
-        .card-number { font-family: monospace; background: var(--light-gray); padding: 2px 4px; border-radius: 3px; }
-        .alphabet-filter {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-            margin-top: 15px;
-        }
-        .alphabet-filter a {
-            display: block;
-            width: 30px;
-            height: 30px;
-            line-height: 30px;
-            text-align: center;
-            background: var(--light-gray);
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        .alphabet-filter a.active,
-        .alphabet-filter a:hover {
-            background: var(--accent-color);
-            color: white;
-            text-decoration: none;
-        }
-        .alphabet-filter a.all { width: auto; padding: 0 10px; }
-    </style>
-    {% endblock %}
-</head>
-<body>
-    {% load role_extras %}
-    
-    <!-- Main Navigation Bar -->
-    {% if user.is_authenticated %}
-    <nav class="main-nav">
-        <!-- Brand/Logo -->
-        <div class="nav-brand">
-            <a href="{% url 'main_security' %}">🏢 Road Attendance</a>
-        </div>
-        
-        <!-- Primary Navigation Items -->
-        <div class="nav-items">
-            <!-- Core Functions (Always Visible) -->
-            <div class="nav-group">
-                <a href="{% url 'main_security' %}" class="nav-link {% if request.resolver_match.url_name == 'main_security' %}active{% endif %}">Clock-in/Out</a>
-            </div>
-            
-            <!-- Role-Based Navigation -->
-            {% if user|has_any_role:"attendance,admin" %}
-            <div class="nav-group">
-                <div class="nav-dropdown">
-                    <button class="nav-dropdown-btn">📝 Attendance</button>
-                    <div class="nav-dropdown-content">
-                        <a href="{% url 'attendance_list' %}">Records</a>
-                        <a href="{% url 'progressive_entry' %}">Progressive Entry</a>
-                        <a href="{% url 'historical_progressive_entry' %}">Historical Entry</a>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-            
-            {% if user|has_any_role:"reporting,attendance,admin" %}
-            <div class="nav-group">
-                <div class="nav-dropdown">
-                    <button class="nav-dropdown-btn">📊 Reports</button>
-                    <div class="nav-dropdown-content">
-                        <a href="{% url 'comprehensive_reports' %}">Comprehensive Reports</a>
-                        
-                        <a href="{% url 'pattern_recognition_dashboard' %}">Pattern Recognition</a>
-                        <a href="{% url 'predictive_analytics_dashboard' %}">Predictive Analytics</a>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="nav-group">
-                <div class="nav-dropdown">
-                    <button class="nav-dropdown-btn">📍 Location</button>
-                    <div class="nav-dropdown-content">
-                        <a href="{% url 'location_dashboard' %}">Dashboard</a>
-                        <a href="{% url 'location_assignment_list' %}">Assignments</a>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-            
-            {% if user|has_any_role:"admin" %}
-            <div class="nav-group">
-                <div class="nav-dropdown">
-                    <button class="nav-dropdown-btn">⚙️ Admin</button>
-                    <div class="nav-dropdown-content">
-                        <a href="/admin/">Django Admin</a>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-        </div>
-        
-        <!-- User Menu -->
-        <div class="nav-user">
-            <div class="nav-dropdown">
-                <button class="nav-dropdown-btn">👤 {{ user.username }}</button>
-                <div class="nav-dropdown-content">
-                    <span class="user-role">{{ user.get_role_display }}</span>
-                    <form action="{% url 'logout' %}" method="post" style="display:inline;">
-                        {% csrf_token %}
-                        <button type="submit" class="nav-link-danger">Logout</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </nav>
-    {% else %}
-    <nav class="main-nav">
-        <div class="nav-brand">
-            <a href="{% url 'main_security' %}">🏢 Road Attendance</a>
-        </div>
-        <div class="nav-user">
-            <a href="{% url 'login' %}" class="nav-link">Login</a>
-        </div>
-    </nav>
-    {% endif %}
-    
+{% block title %}Clock-in Dashboard | Attendance System{% endblock %}
 
+{% block extra_css %}
+{{ block.super }}
+<style>
+    :root {
+        --primary-color: #667eea;
+        --secondary-color: #764ba2;
+        --accent-color: #3498db;
+        --success-color: #38a169;
+        --warning-color: #f6ad55;
+        --danger-color: #e53e3e;
+        --light-gray: #f5f5f5;
+        --med-gray: #e0e0e0;
+        --dark-gray: #95a5a6;
+        --text-color: #2d3748;
+        --text-secondary: #718096;
+    }
     
-    <div class="main-content">
+    .dashboard-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    .stat-card {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+    .stat-card h3 {
+        margin-top: 0;
+        color: var(--dark-gray);
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .stat-card .stat-value {
+        font-size: 32px;
+        font-weight: 600;
+        margin: 10px 0;
+    }
+    .stat-card.clocked-in .stat-value { color: var(--success-color); }
+    .stat-card.clocked-out .stat-value { color: var(--danger-color); }
+    .stat-card.total .stat-value { color: var(--primary-color); }
+    .controls-wrapper {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    .controls {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 15px;
+    }
+    @media (max-width: 768px) {
+        .controls { grid-template-columns: 1fr; }
+    }
+    .filter-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 500;
+        font-size: 14px;
+    }
+    input[type="text"], select {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid var(--med-gray);
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    input[type="text"]:focus, select:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.25);
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    th, td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid var(--light-gray);
+    }
+    th {
+        background: var(--primary-color);
+        color: white;
+        font-weight: 600;
+    }
+    tr:hover {
+        background: var(--light-gray);
+    }
+    .status-badge {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+        text-transform: uppercase;
+    }
+    .status-badge.clocked-in {
+        background: var(--success-color);
+        color: white;
+    }
+    .status-badge.clocked-out {
+        background: var(--danger-color);
+        color: white;
+    }
+    .btn {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background 0.3s ease;
+    }
+    .btn:hover {
+        background: var(--secondary-color);
+    }
+    .btn-success {
+        background: var(--success-color);
+    }
+    .btn-danger {
+        background: var(--danger-color);
+    }
+    .btn-warning {
+        background: var(--warning-color);
+    }
+    .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin: 20px 0;
+    }
+    .pagination a {
+        padding: 8px 12px;
+        border: 1px solid var(--med-gray);
+        border-radius: 4px;
+        text-decoration: none;
+        color: var(--text-color);
+    }
+    .pagination a:hover {
+        background: var(--light-gray);
+    }
+    .pagination .current {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+    .search-form {
+        margin-bottom: 20px;
+    }
+    .search-form input[type="text"] {
+        width: 300px;
+        margin-right: 10px;
+    }
+    .alphabet-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin: 20px 0;
+    }
+    .alphabet-filter a {
+        display: inline-block;
+        padding: 5px 10px;
+        text-decoration: none;
+        color: var(--text-color);
+        background: var(--light-gray);
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    .alphabet-filter a.active,
+    .alphabet-filter a:hover {
+        background: var(--accent-color);
+        color: white;
+        text-decoration: none;
+    }
+    .alphabet-filter a.all { width: auto; padding: 0 10px; }
+</style>
+{% endblock %}
 
-    {% block content %}
+{% block content %}
     {% if messages %}
         <ul class="message-list">
             {% for message in messages %}
@@ -456,9 +342,9 @@
       </div>
     </div>
     {% endcache %}
-    {% endblock %}
-    </div> <!-- Close main-content div -->
+{% endblock %}
 
+{% block extra_js %}
 <script>
 // Client-side filtering functionality and real-time updates
 document.addEventListener('DOMContentLoaded', function() {
@@ -644,5 +530,4 @@ document.addEventListener('DOMContentLoaded', function() {
     filterEmployees();
 });
 </script>
-</body>
-</html>
+{% endblock %}
