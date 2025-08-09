@@ -180,8 +180,23 @@ STATICFILES_DIRS = [
 ]
 
 # Security settings
-# Allow same-origin iframe loading for reports
-X_FRAME_OPTIONS = 'SAMEORIGIN'
+# Phase 1: Production Security hardening (can be toggled via env)
+X_FRAME_OPTIONS = config("X_FRAME_OPTIONS", default='DENY')
+
+# Enable secure cookies and HTTPS-related headers when not in DEBUG
+SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", default=not DEBUG, cast=bool)
+CSRF_COOKIE_SECURE = config("CSRF_COOKIE_SECURE", default=not DEBUG, cast=bool)
+SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=not DEBUG, cast=bool)
+
+# HSTS only when SSL redirect is enabled
+SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=31536000, cast=int) if SECURE_SSL_REDIRECT else 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = config("SECURE_HSTS_INCLUDE_SUBDOMAINS", default=True, cast=bool) if SECURE_SSL_REDIRECT else False
+SECURE_HSTS_PRELOAD = config("SECURE_HSTS_PRELOAD", default=True, cast=bool) if SECURE_SSL_REDIRECT else False
+
+# Additional security headers
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
