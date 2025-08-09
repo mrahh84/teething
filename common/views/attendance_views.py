@@ -3,7 +3,6 @@ Attendance management views.
 
 This module contains all attendance-related functionality including
 listing, entry, editing, and bulk operations.
-Migrated from legacy_views.py as part of Phase 2 modularization.
 """
 
 from django.contrib import messages

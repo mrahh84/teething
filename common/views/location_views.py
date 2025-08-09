@@ -2,8 +2,7 @@
 Location tracking and assignment views.
 
 This module contains all location-related functionality including
-location dashboards, assignments, and analytics.
-Migrated from legacy_views.py as part of Phase 2 modularization.
+location dashboards, assignments, and analytics. 
 """
 
 from django.contrib import messages

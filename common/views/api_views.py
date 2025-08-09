@@ -2,7 +2,6 @@
 REST API views (class-based views).
 
 This module contains all DRF-based API endpoints for the attendance system.
-Migrated from legacy_views.py as part of Phase 2 modularization.
 """
 
 from drf_spectacular.utils import extend_schema

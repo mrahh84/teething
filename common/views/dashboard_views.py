@@ -3,7 +3,6 @@ Dashboard and analytics views.
 
 This module contains advanced analytics dashboards including
 pattern recognition and predictive analytics.
-Migrated from legacy_views.py as part of Phase 2 modularization.
 """
 
 from django.contrib import messages

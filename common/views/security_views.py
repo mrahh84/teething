@@ -2,7 +2,6 @@
 Security-related views (clock-in/out operations).
 
 This module contains all security dashboard and clock management functionality.
-Migrated from legacy_views.py as part of Phase 2 modularization.
 """
 
 from django.contrib import messages

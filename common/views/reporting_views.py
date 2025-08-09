@@ -2,8 +2,7 @@
 Reporting and analytics views.
 
 This module contains all reporting functionality including
-dashboards, exports, and analytical reports.
-Migrated from legacy_views.py as part of Phase 2 modularization.
+dashboards, exports, and analytical 
 """
 
 from django.contrib import messages
