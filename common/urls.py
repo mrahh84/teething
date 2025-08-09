@@ -1,5 +1,5 @@
 from django.urls import path
-from common import views
+from common import legacy_views as views
 
 # URLs organized by section for easier permission implementation in the future
 

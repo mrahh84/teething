@@ -57,6 +57,9 @@ from .services.attendance_service import (
 )
 from .decorators import security_required, attendance_required, reporting_required, admin_required
 from django.views.defaults import bad_request, permission_denied, page_not_found, server_error
+
+# Phase 1 modularization: Scaffold modular structure without circular imports
+# Note: The .views package exists but functions remain here until Phase 2 migration
 from .permissions import SecurityPermission, AttendancePermission, ReportingPermission, AdminPermission
 
 # --- API Views ---
