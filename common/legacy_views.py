@@ -74,8 +74,20 @@ from .views.system_views import (
     custom_server_error
 )
 
+# API VIEWS MIGRATED TO: common/views/api_views.py
+# Import from modular location (partial migration)
+from .views.api_views import (
+    SingleEventView,
+    SingleLocationView,
+    SingleEmployeeView,
+    ListEventsView,
+    ListDepartmentsView,
+    SingleDepartmentView
+)
 
-class SingleEventView(generics.RetrieveUpdateDestroyAPIView):
+
+# MIGRATED TO: common/views/api_views.py
+class _LegacySingleEventView(generics.RetrieveUpdateDestroyAPIView):
     """
     API endpoint for retrieving, updating, or deleting a single Event.
     Requires authentication for creating, updating or deleting.
