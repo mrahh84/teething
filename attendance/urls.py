@@ -24,6 +24,7 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
 )
 from common import views
+from django.conf.urls import handler400, handler403, handler404, handler500
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -40,3 +41,9 @@ urlpatterns = [
     # path("redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
 ]
+
+# Custom error handlers (Phase 3)
+handler400 = 'common.views.custom_bad_request'
+handler403 = 'common.views.custom_permission_denied'
+handler404 = 'common.views.custom_page_not_found'
+handler500 = 'common.views.custom_server_error'

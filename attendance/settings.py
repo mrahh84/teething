@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "common",
     "rest_framework",
     "drf_spectacular",
+    # Local app namespaces for services, etc. (no explicit app needed for services)
 ]
 
 # Login Details
@@ -202,3 +203,28 @@ SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Logging configuration (Phase 3)
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "%(asctime)s %(levelname)s %(name)s %(module)s:%(lineno)d %(message)s",
+        },
+        "json": {
+            "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
+            "fmt": "%(asctime)s %(levelname)s %(name)s %(module)s %(lineno)d %(message)s",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+    },
+    "loggers": {
+        "django.request": {"handlers": ["console"], "level": "WARNING", "propagate": True},
+        "common": {"handlers": ["console"], "level": "INFO", "propagate": True},
+    },
+}

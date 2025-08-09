@@ -50,7 +50,13 @@ from .serializers import (
     SystemPerformanceSerializer,
 )
 from .utils import performance_monitor, query_count_monitor
+from .services.attendance_service import (
+    normalize_department_from_designation as svc_normalize_department_from_designation,
+    list_available_departments as svc_list_available_departments,
+    filter_employees_by_department as svc_filter_employees_by_department,
+)
 from .decorators import security_required, attendance_required, reporting_required, admin_required
+from django.views.defaults import bad_request, permission_denied, page_not_found, server_error
 
 # Phase 1: Code Modularization scaffolding
 # The views in this file are being gradually moved into dedicated modules under common/views/.
@@ -100,6 +106,20 @@ from .permissions import SecurityPermission, AttendancePermission, ReportingPerm
 
 # --- API Views ---
 # Apply authentication and permissions to all API views
+def custom_bad_request(request, exception):
+    return render(request, "errors/400.html", {"error": str(exception)}, status=400)
+
+
+def custom_permission_denied(request, exception):
+    return render(request, "errors/403.html", {"error": str(exception)}, status=403)
+
+
+def custom_page_not_found(request, exception):
+    return render(request, "errors/404.html", {"path": request.path}, status=404)
+
+
+def custom_server_error(request):
+    return render(request, "errors/500.html", status=500)
 
 
 class SingleEventView(generics.RetrieveUpdateDestroyAPIView):
@@ -3485,71 +3505,16 @@ def comprehensive_attendance_report(request):
 
 
 def get_department_from_designation(designation):
-    """
-    Extract and normalize department from card designation.
-    Returns the normalized department name or None if not found.
-    """
-    if not designation:
-        return None
-    
-    # Extract department from designation (e.g., "Digitization Tech.1" -> "Digitization Tech")
-    match = re.match(r'^([^.]+)', designation.strip())
-    if match:
-        raw_dept = match.group(1).strip()
-        
-        # Normalize department names to main departments
-        dept = raw_dept.lower()
-        
-        # Map to main departments
-        if ('digitization' in dept or 'digitzation' in dept) and 'tech' in dept:
-            return 'Digitization Tech'
-        elif 'digitization' in dept or 'digitzation' in dept:
-            return 'Digitization Tech'
-        elif 'tech' in dept and 'compute' in dept:
-            return 'Tech Compute'
-        elif 'tech' in dept or 'tch' in dept:
-            return 'Tech Compute'
-        elif 'con' in dept:
-            return 'Con'
-        elif 'custodian' in dept:
-            return 'Custodian'
-        elif 'material' in dept and 'retriever' in dept:
-            return 'Material Retriever'
-        elif 'material' in dept and 'retriver' in dept:
-            return 'Material Retriever'
-        elif 'admin' in dept:
-            return 'Con'  # Map Admin to Con as specified
-        else:
-            # Return original if no match found
-            return raw_dept
-    return None
+    """Deprecated: use services.attendance_service.normalize_department_from_designation."""
+    return svc_normalize_department_from_designation(designation)
 
 def get_available_departments():
-    """
-    Get list of all available departments from card designations.
-    """
-    departments = set()
-    for card in Card.objects.all():
-        dept = get_department_from_designation(card.designation)
-        if dept:
-            departments.add(dept)
-    return sorted(list(departments))
+    """Deprecated: use services.attendance_service.list_available_departments."""
+    return svc_list_available_departments()
 
 def filter_employees_by_department(employees, department):
-    """
-    Filter employees by department using their card designation.
-    """
-    if not department:
-        return employees
-    
-    filtered_employees = []
-    for employee in employees:
-        if employee.card_number:
-            emp_dept = get_department_from_designation(employee.card_number.designation)
-            if emp_dept == department:
-                filtered_employees.append(employee)
-    
-    return filtered_employees
+    """Deprecated: use services.attendance_service.filter_employees_by_department."""
+    return svc_filter_employees_by_department(employees, department)
 
 
 @admin_required  # Admin role only
