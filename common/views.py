@@ -57,51 +57,6 @@ from .services.attendance_service import (
 )
 from .decorators import security_required, attendance_required, reporting_required, admin_required
 from django.views.defaults import bad_request, permission_denied, page_not_found, server_error
-
-# Phase 1: Code Modularization scaffolding
-# The views in this file are being gradually moved into dedicated modules under common/views/.
-# Import wrappers keep URLnames stable while we migrate.
-try:
-    # Lazy imports so that development remains uninterrupted during the split
-    from .views.attendance_views import (
-        attendance_list as attendance_list,
-        progressive_entry as progressive_entry,
-        historical_progressive_entry as historical_progressive_entry,
-        bulk_historical_update as bulk_historical_update,
-    )
-except Exception:
-    # Fall back to existing implementations in this module until split is complete
-    pass
-
-try:
-    from .views.security_views import (
-        main_security as main_security,
-        main_security_clocked_in_status_flip as main_security_clocked_in_status_flip,
-        main_security_clock_out as main_security_clock_out,
-        main_security_clock_in as main_security_clock_in,
-    )
-except Exception:
-    pass
-
-try:
-    from .views.reporting_views import (
-        comprehensive_attendance_report as comprehensive_attendance_report,
-        comprehensive_reports as comprehensive_reports,
-        employee_history_report as employee_history_report,
-        attendance_export_csv as attendance_export_csv,
-    )
-except Exception:
-    pass
-
-try:
-    from .views.dashboard_views import (
-        performance_dashboard as performance_dashboard,
-        attendance_analytics as attendance_analytics,
-        pattern_recognition_dashboard as pattern_recognition_dashboard,
-        predictive_analytics_dashboard as predictive_analytics_dashboard,
-    )
-except Exception:
-    pass
 from .permissions import SecurityPermission, AttendancePermission, ReportingPermission, AdminPermission
 
 # --- API Views ---
