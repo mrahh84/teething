@@ -9,6 +9,8 @@ from django.contrib import messages
 from django.urls import reverse
 
 
+# Error handling views migrated from legacy_views.py
+
 def custom_bad_request(request, exception):
     return render(request, "errors/400.html", {"error": str(exception)}, status=400)
 

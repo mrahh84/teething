@@ -64,20 +64,15 @@ from .permissions import SecurityPermission, AttendancePermission, ReportingPerm
 
 # --- API Views ---
 # Apply authentication and permissions to all API views
-def custom_bad_request(request, exception):
-    return render(request, "errors/400.html", {"error": str(exception)}, status=400)
 
-
-def custom_permission_denied(request, exception):
-    return render(request, "errors/403.html", {"error": str(exception)}, status=403)
-
-
-def custom_page_not_found(request, exception):
-    return render(request, "errors/404.html", {"path": request.path}, status=404)
-
-
-def custom_server_error(request):
-    return render(request, "errors/500.html", status=500)
+# ERROR HANDLING VIEWS MIGRATED TO: common/views/system_views.py
+# Import from modular location
+from .views.system_views import (
+    custom_bad_request,
+    custom_permission_denied, 
+    custom_page_not_found,
+    custom_server_error
+)
 
 
 class SingleEventView(generics.RetrieveUpdateDestroyAPIView):
@@ -1243,11 +1238,19 @@ def attendance_export_csv(request):
 # Apply login_required decorator
 
 
-@security_required  # Security role and above
-@extend_schema(exclude=True)
-# NOTE: Keep exclude if you don't want this in API docs
+# SECURITY VIEWS MIGRATED TO: common/views/security_views.py
+# Import from modular location
+from .views.security_views import (
+    main_security,
+    main_security_clocked_in_status_flip,
+    employee_events,
+    update_event,
+    delete_event
+)
+
+# LEGACY IMPLEMENTATION BELOW (commented out in favor of modular imports)
 # Link: https://drf-spectacular.readthedocs.io/en/latest/drf_spectacular.html#drf_spectacular.utils.extend_schema
-def main_security(request):
+def _legacy_main_security(request):
     """
     Displays the main security dashboard, listing all employees
     and their current clock-in/out status. Requires login.
