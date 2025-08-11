@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load attendance_extras %}
 
 {% block title %}Location Assignments - Road Attendance System{% endblock %}
 
@@ -115,7 +116,13 @@
                             <td>
                                 <strong>{{ assignment.employee.given_name }} {{ assignment.employee.surname }}</strong>
                                 <br>
-                                <small>{{ assignment.employee.department.name|default:"No Department" }}</small>
+                                <small>
+                                    {% if assignment.employee.card_number %}
+                                        {{ assignment.employee.card_number.designation|get_department_from_designation }}
+                                    {% else %}
+                                        No Department
+                                    {% endif %}
+                                </small>
                             </td>
                             <td>
                                 <strong>{{ assignment.location.name }}</strong>

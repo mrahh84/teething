@@ -1042,7 +1042,7 @@ def historical_progressive_results(request):
             employee__in=present_employee_objects
         ).select_related('employee').order_by('employee__surname', 'employee__given_name')
         
-        # Create a list of present employees with their records (or create new records if needed)
+        # Create a list of employees with INCOMPLETE records only
         employee_records = []
         for emp in present_employee_objects:
             # Find existing record for this employee on this date
@@ -1064,14 +1064,28 @@ def historical_progressive_results(request):
                 elif event.event_type.name == 'Clock Out':
                     clock_out_time = event.timestamp
             
+            # Check if record is incomplete (needs data entry)
+            is_incomplete = False
+            
             if existing_record:
-                # Add clock times to existing record
-                existing_record.clock_in_time = clock_in_time
-                existing_record.clock_out_time = clock_out_time
-                employee_records.append(existing_record)
+                # Check if existing record is incomplete
+                if (existing_record.status in ['DRAFT', 'PARTIAL'] or
+                    not existing_record.arrival_time or
+                    not existing_record.departure_time or
+                    not existing_record.lunch_time or
+                    existing_record.left_lunch_on_time is None or
+                    existing_record.returned_on_time_after_lunch is None or
+                    existing_record.returned_after_lunch is None or
+                    existing_record.standup_attendance is None):
+                    is_incomplete = True
+                    # Add clock times to existing record
+                    existing_record.clock_in_time = clock_in_time
+                    existing_record.clock_out_time = clock_out_time
+                    employee_records.append(existing_record)
             else:
+                # No record exists - definitely incomplete
+                is_incomplete = True
                 # Create a dummy record object for present employees without attendance records
-                # This allows the template to show present employees and create records on demand
                 dummy_record = type('DummyRecord', (), {
                     'id': None,
                     'employee': emp,

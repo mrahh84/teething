@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% load static %}
+{% load attendance_extras %}
 
-{% block title %}Employee Attendance History - Road Attendance System{% endblock %}
+{% block title %}Employee History Report - Road Attendance System{% endblock %}
 
 {% block content %}
 <div class="attendance-card">
@@ -53,7 +54,13 @@
                 </div>
                 <div class="summary-item">
                     <span class="summary-label">Department:</span>
-                    <span class="summary-value">{{ selected_employee.department.name|default:"No Department" }}</span>
+                    <span class="summary-value">
+                        {% if selected_employee.card_number %}
+                            {{ selected_employee.card_number.designation|get_department_from_designation }}
+                        {% else %}
+                            No Department
+                        {% endif %}
+                    </span>
                 </div>
                 <div class="summary-item">
                     <span class="summary-label">Employee ID:</span>

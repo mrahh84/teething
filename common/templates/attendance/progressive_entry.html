@@ -1,9 +1,7 @@
-{% extends "base.html" %}
+{% extends "attendance/base.html" %}
 {% load static %}
 
-{% block title %}Progressive Entry - Road Attendance System{% endblock %}
-
-{% block content %}
+{% block attendance_content %}
 <div class="attendance-card">
     <div class="card-header">
         <h2>📊 Progressive Entry</h2>
@@ -55,7 +53,7 @@
                     <thead>
                         <tr>
                             <th>Employee</th>
-                            <th>Department</th>
+                            <th>Clock In/Out Time</th>
                             <th>Stand-up</th>
                             <th>Lunch Time</th>
                             <th>Left On Time</th>
@@ -73,7 +71,17 @@
                                 <strong>{{ item.employee.given_name }} {{ item.employee.surname }}</strong>
                                 <br><small>{{ item.employee.card_number.designation|default:"No Designation" }}</small>
                             </td>
-                            <td>{{ item.employee.department.name|default:"No Department" }}</td>
+                            <td>
+                                {% if item.arrival_time %}
+                                    <strong>In:</strong> {{ item.arrival_time|time:"H:i" }}<br>
+                                {% endif %}
+                                {% if item.departure_time %}
+                                    <strong>Out:</strong> {{ item.departure_time|time:"H:i" }}
+                                {% endif %}
+                                {% if not item.arrival_time and not item.departure_time %}
+                                    <em>No clock events</em>
+                                {% endif %}
+                            </td>
                             <td>
                                 <select class="inline-select" data-field="standup_attendance" data-employee-id="{{ item.employee.id }}" onchange="updateField(this)">
                                     <option value="">-</option>
@@ -158,327 +166,7 @@
     </div>
 </div>
 
-<style>
-.attendance-card {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    overflow: hidden;
-    margin: 20px;
-}
 
-.card-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 20px;
-    text-align: center;
-}
-
-.card-header h2 {
-    margin: 0 0 5px 0;
-    font-size: 1.5rem;
-}
-
-.card-header p {
-    margin: 0;
-    opacity: 0.9;
-    font-size: 0.9rem;
-}
-
-.card-body {
-    padding: 20px;
-}
-
-.filter-section {
-    margin-bottom: 2rem;
-    padding: 1rem;
-    background: #f8f9fa;
-    border-radius: 8px;
-}
-
-.filter-section h3 {
-    margin-top: 0;
-    margin-bottom: 1rem;
-    color: #495057;
-}
-
-.filter-form {
-    display: flex;
-    gap: 1rem;
-    align-items: end;
-    flex-wrap: wrap;
-}
-
-.form-group {
-    display: flex;
-    flex-direction: column;
-    min-width: 150px;
-}
-
-.form-group label {
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    color: #495057;
-}
-
-.form-control {
-    padding: 0.5rem;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
-    font-size: 0.9rem;
-}
-
-.form-control:focus {
-    outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.25);
-}
-
-.employee-section {
-    margin-bottom: 2rem;
-}
-
-.employee-section h3 {
-    margin-top: 0;
-    margin-bottom: 0.5rem;
-    color: #495057;
-}
-
-.table-responsive {
-    overflow-x: auto;
-}
-
-.attendance-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: white;
-    font-size: 0.9rem;
-}
-
-.attendance-table th,
-.attendance-table td {
-    padding: 12px;
-    text-align: left;
-    border-bottom: 1px solid #dee2e6;
-}
-
-.attendance-table th {
-    background: #f8f9fa;
-    font-weight: 600;
-    color: #495057;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
-
-.attendance-table tr:hover {
-    background: #f8f9fa;
-}
-
-.inline-select {
-    padding: 0.5rem;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
-    background: white;
-    font-size: 0.9rem;
-    transition: all 0.2s ease;
-}
-
-.inline-select:focus {
-    outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.25);
-}
-
-.inline-select.changed {
-    border-color: #f6ad55;
-    background: #fffbf0;
-}
-
-.inline-select.saving {
-    border-color: #38a169;
-    background: #f0fff4;
-}
-
-.notes-field {
-    padding: 0.5rem;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
-    background: white;
-    font-size: 0.9rem;
-    transition: all 0.2s ease;
-    resize: none;
-    font-family: inherit;
-    width: 100%;
-    min-height: 40px;
-}
-
-.notes-field:focus {
-    outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.25);
-}
-
-.notes-field.changed {
-    border-color: #f6ad55;
-    background: #fffbf0;
-}
-
-.notes-field.saving {
-    border-color: #38a169;
-    background: #f0fff4;
-}
-
-.completion-bar {
-    position: relative;
-    width: 100%;
-    height: 20px;
-    background: #e2e8f0;
-    border-radius: 10px;
-    overflow: hidden;
-}
-
-.completion-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #38a169, #667eea);
-    transition: width 0.3s ease;
-}
-
-.completion-text {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: white;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-}
-
-.status-badge {
-    padding: 0.25rem 0.5rem;
-    border-radius: 12px;
-    font-size: 0.8rem;
-    font-weight: 600;
-}
-
-.status-pending { background: #e2e8f0; color: #4a5568; }
-.status-partial { background: #fef5e7; color: #d69e2e; }
-.status-complete { background: #c6f6d5; color: #2f855a; }
-.status-reviewed { background: #e2e3e5; color: #383d41; }
-
-.batch-actions {
-    margin-top: 2rem;
-    padding: 1rem;
-    background: #f8f9fa;
-    border-radius: 8px;
-}
-
-.batch-actions h3 {
-    margin-top: 0;
-    margin-bottom: 1rem;
-    color: #495057;
-}
-
-.batch-buttons {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-}
-
-.btn {
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 4px;
-    font-weight: 500;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    transition: all 0.2s ease;
-    cursor: pointer;
-    font-size: 0.9rem;
-}
-
-.btn-primary {
-    background: #667eea;
-    color: white;
-}
-
-.btn-primary:hover {
-    background: #5a67d8;
-    color: white;
-}
-
-.btn-secondary {
-    background: #6c757d;
-    color: white;
-}
-
-.btn-secondary:hover {
-    background: #5a6268;
-    color: white;
-}
-
-.btn-success {
-    background: #38a169;
-    color: white;
-}
-
-.btn-success:hover {
-    background: #2f855a;
-    color: white;
-}
-
-.btn-warning {
-    background: #f6ad55;
-    color: white;
-}
-
-.btn-warning:hover {
-    background: #ed8936;
-    color: white;
-}
-
-.btn-danger {
-    background: #e53e3e;
-    color: white;
-}
-
-.btn-danger:hover {
-    background: #c53030;
-    color: white;
-}
-
-.btn-sm {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.8rem;
-}
-
-@media (max-width: 768px) {
-    .filter-form {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .form-group {
-        min-width: auto;
-    }
-    
-    .attendance-table {
-        font-size: 0.8rem;
-    }
-    
-    .attendance-table th,
-    .attendance-table td {
-        padding: 8px 6px;
-    }
-    
-    .batch-buttons {
-        flex-direction: column;
-    }
-}
-</style>
 
 <script>
 // Track changes for each employee

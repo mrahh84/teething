@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load attendance_extras %}
 
 {% block title %}Location Dashboard - Road Attendance System{% endblock %}
 
@@ -111,7 +112,13 @@
                             <td>
                                 <strong>{{ assignment.employee.given_name }} {{ assignment.employee.surname }}</strong>
                                 <br>
-                                <small>{{ assignment.employee.department.name|default:"No Department" }}</small>
+                                <small>
+                                    {% if assignment.employee.card_number %}
+                                        {{ assignment.employee.card_number.designation|get_department_from_designation }}
+                                    {% else %}
+                                        No Department
+                                    {% endif %}
+                                </small>
                             </td>
                             <td>{{ assignment.location.name }}</td>
                             <td>{{ assignment.task_type|default:"General Assignment" }}</td>
@@ -157,7 +164,13 @@
                             <td>
                                 <strong>{{ movement.employee.given_name }} {{ movement.employee.surname }}</strong>
                                 <br>
-                                <small>{{ movement.employee.department.name|default:"No Department" }}</small>
+                                <small>
+                                    {% if movement.employee.card_number %}
+                                        {{ movement.employee.card_number.designation|get_department_from_designation }}
+                                    {% else %}
+                                        No Department
+                                    {% endif %}
+                                </small>
                             </td>
                             <td>{{ movement.movement_type|title }}</td>
                             <td>{{ movement.to_location.name }}</td>
