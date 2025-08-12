@@ -11,9 +11,10 @@ from django.core.paginator import Paginator
 from django.http import HttpResponse, HttpResponseBadRequest, StreamingHttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone as django_timezone
+from zoneinfo import ZoneInfo
 from drf_spectacular.utils import extend_schema
 from django.db.models import Q, Count, Prefetch, Avg
-from datetime import datetime, timedelta, date, timezone, time
+from datetime import datetime, timedelta, date, time
 from django.urls import reverse
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 import json
@@ -271,8 +272,8 @@ def progressive_entry(request):
     end_of_day_local = django_timezone.make_aware(datetime.combine(today, time.max))
     
     # Convert to UTC for database query
-    start_of_day_utc = start_of_day_local.astimezone(timezone.utc)
-    end_of_day_utc = end_of_day_local.astimezone(timezone.utc)
+    start_of_day_utc = start_of_day_local.astimezone(ZoneInfo("UTC"))
+    end_of_day_utc = end_of_day_local.astimezone(ZoneInfo("UTC"))
     
     # Get employees who clocked in today (using UTC timestamps)
     present_employees = Event.objects.filter(
@@ -347,13 +348,12 @@ def progressive_entry(request):
 @extend_schema(exclude=True)
 def attendance_list(request):
     """
-    List view of attendance records with filtering and search.
+    Daily attendance overview dashboard showing who's present, absent, and late.
     """
     # Get filter parameters
     date_filter = request.GET.get('date')
-    employee_filter = request.GET.get('employee')
-    status_filter = request.GET.get('status')
     department_filter = request.GET.get('department', 'Digitization Tech')  # Default to Digitization Tech
+    status_filter = request.GET.get('status')  # New: filter by attendance status
     
     # Default to today if no date specified
     if not date_filter:
@@ -374,33 +374,14 @@ def attendance_list(request):
     # Get attendance records for the target date with optimized prefetch
     records = AttendanceRecord.objects.filter(date=target_date).select_related('employee', 'employee__card_number')
     
-    # Apply department filter to records using the same logic
-    if department_filter:
-        # Filter records by department using the same logic as employees
-        filtered_records = []
-        for record in records:
-            if record.employee.card_number:
-                emp_dept = svc_normalize_department_from_designation(record.employee.card_number.designation)
-                if emp_dept == department_filter:
-                    filtered_records.append(record)
-        records = filtered_records
-    
-    # Filter by employee if specified
-    if employee_filter:
-        records = records.filter(employee_id=employee_filter)
-    
-    # Filter by status if specified
-    if status_filter:
-        records = records.filter(status=status_filter)
-    
     # Identify absent employees (those who didn't clock in) - OPTIMIZED
     # Convert local date to UTC for proper timezone handling
     start_of_day_local = django_timezone.make_aware(datetime.combine(target_date, time.min))
     end_of_day_local = django_timezone.make_aware(datetime.combine(target_date, time.max))
     
     # Convert to UTC for database query
-    start_of_day = start_of_day_local.astimezone(timezone.utc)
-    end_of_day = end_of_day_local.astimezone(timezone.utc)
+    start_of_day = start_of_day_local.astimezone(ZoneInfo("UTC"))
+    end_of_day = end_of_day_local.astimezone(ZoneInfo("UTC"))
     
     # Single optimized query to get all clocked-in employee IDs
     clocked_in_employees = set(
@@ -411,50 +392,131 @@ def attendance_list(request):
         ).values_list('employee_id', flat=True)
     )
     
+    # Apply status filter if specified
+    if status_filter:
+        # Convert to list if it's a QuerySet to handle filtering consistently
+        if hasattr(all_employees, 'filter'):
+            # It's a QuerySet, convert to list for consistent processing
+            all_employees = list(all_employees)
+        
+        if status_filter == 'present':
+            # Show only employees with attendance records
+            all_employees = [emp for emp in all_employees if emp.id in clocked_in_employees]
+        elif status_filter == 'absent':
+            # Show only employees without attendance records
+            all_employees = [emp for emp in all_employees if emp.id not in clocked_in_employees]
+        elif status_filter == 'late':
+            # Show only employees who arrived late (after 9:00 AM)
+            late_employees = []
+            for employee in all_employees:
+                if employee.id in clocked_in_employees:
+                    arrival_event = Event.objects.filter(
+                        event_type__name='Clock In',
+                        employee=employee,
+                        timestamp__date=target_date
+                    ).order_by('timestamp').first()
+                    if arrival_event:
+                        local_arrival = django_timezone.localtime(arrival_event.timestamp)
+                        if local_arrival.time() > time(9, 0):  # After 9:00 AM
+                            late_employees.append(employee)
+            all_employees = late_employees
+        elif status_filter == 'on_time':
+            # Show only employees who arrived on time (before or at 9:00 AM)
+            on_time_employees = []
+            for employee in all_employees:
+                if employee.id in clocked_in_employees:
+                    arrival_event = Event.objects.filter(
+                        event_type__name='Clock In',
+                        employee=employee,
+                        timestamp__date=target_date
+                    ).order_by('timestamp').first()
+                    if arrival_event:
+                        local_arrival = django_timezone.localtime(arrival_event.timestamp)
+                        if local_arrival.time() <= time(9, 0):  # Before or at 9:00 AM
+                            on_time_employees.append(employee)
+            all_employees = on_time_employees
+    
+    # Apply department filter to records using the same logic
+    if department_filter:
+        filtered_records = []
+        for record in records:
+            if record.employee.card_number:
+                emp_dept = svc_normalize_department_from_designation(record.employee.card_number.designation)
+                if emp_dept == department_filter:
+                    filtered_records.append(record)
+        records = filtered_records
+    
     absentees = [emp for emp in all_employees if emp.id not in clocked_in_employees]
     
-    # Filter by employee if specified
-    if employee_filter:
-        absentees = [emp for emp in absentees if str(emp.id) == employee_filter]
+    # Calculate summary statistics
+    total_employees = len(all_employees)
+    present_count = len(clocked_in_employees)
+    absent_count = len(absentees)
+    late_count = 0
+    on_time_count = 0
     
-    # Build a list of display records: attendance records + absentees + clocked-in with no record
-    # Filter out attendance records for absent employees to avoid duplicates
-    absentee_ids = {emp.id for emp in absentees}
-    filtered_records = [r for r in records if r.employee.id not in absentee_ids]
-    display_records = list(filtered_records)
+    # Check for late arrivals (after 9:00 AM)
+    for employee in all_employees:
+        if employee.id in clocked_in_employees:
+            # Get arrival time for this employee
+            arrival_event = Event.objects.filter(
+                event_type__name='Clock In',
+                employee=employee,
+                timestamp__date=target_date
+            ).order_by('timestamp').first()
+            
+            if arrival_event:
+                local_arrival = django_timezone.localtime(arrival_event.timestamp)
+                if local_arrival.time() > time(9, 0):  # After 9:00 AM
+                    late_count += 1
+                else:
+                    on_time_count += 1
     
-    # Add absent employees as dummy records
+    # Build a list of display records for the overview table
+    display_records = []
+    
+    # Add present employees
+    for employee in all_employees:
+        if employee.id in clocked_in_employees:
+            # Get attendance record if exists
+            record = next((r for r in records if r.employee.id == employee.id), None)
+            
+            # Get arrival time
+            arrival_event = Event.objects.filter(
+                event_type__name='Clock In',
+                employee=employee,
+                timestamp__date=target_date
+            ).order_by('timestamp').first()
+            
+            arrival_time = None
+            if arrival_event:
+                local_arrival = django_timezone.localtime(arrival_event.timestamp)
+                arrival_time = local_arrival.time()
+            
+            # Create overview record
+            overview_record = type('OverviewRecord', (), {
+                'employee': employee,
+                'date': target_date,
+                'arrival_time': arrival_time,
+                'is_absent': False,
+                'is_late': arrival_time and arrival_time > time(9, 0),
+                'status': record.status if record else 'PRESENT',
+                'has_attendance_record': record is not None,
+            })()
+            display_records.append(overview_record)
+    
+    # Add absent employees
     for employee in absentees:
-        # Create a dummy record-like object for template
-        dummy_record = type('DummyRecord', (), {
+        overview_record = type('OverviewRecord', (), {
             'employee': employee,
             'date': target_date,
             'arrival_time': None,
-            'departure_time': None,
             'is_absent': True,
-            'is_problematic_day': lambda: False,
-            'total_issues': 0,
+            'is_late': False,
             'status': 'ABSENT',
+            'has_attendance_record': False,
         })()
-        display_records.append(dummy_record)
-    
-    # Add employees who clocked in but don't have attendance records
-    clocked_in_no_record = []
-    for employee in all_employees:
-        if (employee.id in clocked_in_employees and 
-            not any(r.employee.id == employee.id for r in display_records)):
-            # Create a dummy record for clocked-in employee without attendance record
-            dummy_record = type('DummyRecord', (), {
-                'employee': employee,
-                'date': target_date,
-                'arrival_time': None,  # Will be calculated by property
-                'departure_time': None,  # Will be calculated by property
-                'is_absent': False,
-                'is_problematic_day': lambda: False,
-                'total_issues': 0,
-                'status': 'DRAFT',
-            })()
-            display_records.append(dummy_record)
+        display_records.append(overview_record)
     
     # Sort display records
     display_records.sort(key=lambda x: (x.employee.surname, x.employee.given_name))
@@ -469,15 +531,17 @@ def attendance_list(request):
     
     context = {
         'date_filter': target_date,
-        'employee_filter': employee_filter,
-        'status_filter': status_filter,
         'department_filter': department_filter,
+        'status_filter': status_filter,  # Add status filter to context
         'available_departments': available_departments,
         'page_obj': page_obj,
-        'employees': all_employees,
-        'total_records': len(display_records),
-        'absent_count': len(absentees),
-        'present_count': len(display_records) - len(absentees),
+        'total_employees': total_employees,
+        'present_count': present_count,
+        'absent_count': absent_count,
+        'late_count': late_count,
+        'on_time_count': on_time_count,
+        'attendance_rate': (present_count / total_employees * 100) if total_employees > 0 else 0,
+        'punctuality_rate': (on_time_count / present_count * 100) if present_count > 0 else 0,
     }
     
     return render(request, 'attendance/list.html', context)
@@ -692,7 +756,7 @@ def historical_progressive_results(request):
             employee__in=present_employee_objects
         ).select_related('employee').order_by('employee__surname', 'employee__given_name')
         
-        # Create a list of employees with INCOMPLETE records only
+        # Create a list of employees with INCOMPLETE records only (completion < 100%)
         employee_records = []
         for emp in present_employee_objects:
             # Find existing record for this employee on this date
@@ -718,14 +782,8 @@ def historical_progressive_results(request):
             is_incomplete = False
             
             if existing_record:
-                # Check if existing record is incomplete
-                if (existing_record.status in ['DRAFT', 'PARTIAL'] or
-                    not existing_record.arrival_time or
-                    not existing_record.departure_time or
-                    not existing_record.lunch_time or
-                    existing_record.left_lunch_on_time is None or
-                    existing_record.returned_on_time_after_lunch is None or
-                    existing_record.standup_attendance is None):
+                # Check if existing record is incomplete based on completion percentage
+                if existing_record.completion_percentage < 100:
                     is_incomplete = True
                     # Add clock times to existing record
                     existing_record.clock_in_time = clock_in_time
@@ -1064,8 +1122,8 @@ def debug_view(request):
     # Test progressive entry logic
     start_of_day_local = django_timezone.make_aware(datetime.combine(today, time.min))
     end_of_day_local = django_timezone.make_aware(datetime.combine(today, time.max))
-    start_of_day_utc = start_of_day_local.astimezone(timezone.utc)
-    end_of_day_utc = end_of_day_local.astimezone(timezone.utc)
+    start_of_day_utc = start_of_day_local.astimezone(ZoneInfo("UTC"))
+    end_of_day_utc = end_of_day_local.astimezone(ZoneInfo("UTC"))
     
     present_employees = Event.objects.filter(
         event_type__name='Clock In',

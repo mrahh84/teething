@@ -66,3 +66,20 @@ def custom_login(request):
         form = AuthenticationForm()
     
     return render(request, "registration/login.html", {"form": form})
+
+
+def redirect_based_on_role(user):
+    """Redirect user based on their role."""
+    if hasattr(user, 'user_roles') and user.user_roles.exists():
+        role = user.user_roles.first().role
+        if role == 'admin':
+            return 'admin:index'
+        elif role == 'reporting':
+            return 'reports_dashboard'
+        elif role == 'attendance':
+            return 'attendance_list'
+        else:  # security role or default
+            return 'main_security'
+    else:
+        # Default redirect for users without explicit roles
+        return 'main_security'
