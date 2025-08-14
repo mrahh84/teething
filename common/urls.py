@@ -90,7 +90,7 @@ from common.views import (
 urlpatterns = [
     path('', main_security, name='main_security'),
     path('employee-events/<int:id>/', employee_events, name='employee_events'),
-    path('main-security-clocked-in-status-flip/', main_security_clocked_in_status_flip, name='main_security_clocked_in_status_flip'),
+    path('main-security-clocked-in-status-flip/<int:id>/', main_security_clocked_in_status_flip, name='main_security_clocked_in_status_flip'),
     path('update-event/<int:event_id>/', update_event, name='update_event'),
     path('delete-event/<int:event_id>/', delete_event, name='delete_event'),
     
