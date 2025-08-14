@@ -19,9 +19,6 @@ plotly
 
 # Performance optimization dependencies
 psycopg2-binary>=2.9.0  # PostgreSQL optimization
-redis>=4.0.0            # Enhanced caching (optional)
-celery>=5.0.0           # Async task processing (optional)
-django-redis>=2.0.0     # Redis cache backend (optional)
 
 # # Notebooks
 # # uv add --group nbook [package]

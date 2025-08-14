@@ -20,10 +20,7 @@
                         <a href="{% url 'attendance_list' %}" class="nav-link">Attendance Summary</a>
                         <a href="{% url 'paginated_attendance_list' %}" class="nav-link">Paginated List</a>
                     </div>
-                    <div class="nav-section">
-                        <span class="nav-label">⏱️ Phase 4 - Async:</span>
-                        <a href="{% url 'async_report_generation' %}" class="nav-link">Generate Reports</a>
-                    </div>
+                    
                     <div class="nav-section">
                         <span class="nav-label">🔬 Analytics:</span>
                         <a href="{% url 'pattern_recognition_dashboard' %}" class="nav-link">Pattern Recognition</a>
@@ -112,63 +109,7 @@
         </div>
     </div>
 
-    <!-- Async Report Generation -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <h4><i class="fas fa-clock"></i> Asynchronous Report Generation (Phase 4)</h4>
-            <p class="text-muted">Generate reports in the background without blocking the interface</p>
-        </div>
-        <div class="col-md-6 col-lg-4 mb-3">
-            <div class="card h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-plus-circle fa-3x text-warning mb-3"></i>
-                    <h5 class="card-title">Async Report Generation</h5>
-                    <p class="card-text">Queue reports for background processing</p>
-                    <a href="{% url 'async_report_generation' %}" class="btn btn-warning">
-                        <i class="fas fa-play"></i> Generate Report
-                    </a>
-                </div>
-                <div class="card-footer text-muted">
-                    <small><i class="fas fa-clock"></i> Non-blocking processing</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6 col-lg-4 mb-3">
-            <div class="card h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-download fa-3x text-success mb-3"></i>
-                    <h5 class="card-title">Multiple Formats</h5>
-                    <p class="card-text">Download reports in CSV, JSON, or view online</p>
-                    <div class="btn-group-vertical w-100">
-                        <button class="btn btn-outline-success mb-1">
-                            <i class="fas fa-file-csv"></i> CSV Export
-                        </button>
-                        <button class="btn btn-outline-info">
-                            <i class="fas fa-file-code"></i> JSON Export
-                        </button>
-                    </div>
-                </div>
-                <div class="card-footer text-muted">
-                    <small><i class="fas fa-download"></i> Multiple export formats</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6 col-lg-4 mb-3">
-            <div class="card h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-tasks fa-3x text-primary mb-3"></i>
-                    <h5 class="card-title">Queue Management</h5>
-                    <p class="card-text">Monitor and manage report generation queue</p>
-                    <a href="{% url 'async_report_generation' %}" class="btn btn-primary">
-                        <i class="fas fa-list"></i> View Queue
-                    </a>
-                </div>
-                <div class="card-footer text-muted">
-                    <small><i class="fas fa-tasks"></i> Priority-based processing</small>
-                </div>
-            </div>
-        </div>
-    </div>
+
 
     <!-- Standard Reports -->
     <div class="row mb-4">

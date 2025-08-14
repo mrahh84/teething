@@ -33,10 +33,7 @@ from common.views import (
     performance_dashboard,
     generate_marimo_report,
     
-    # Phase 3 & 4 Optimized Reporting Views
-    async_report_generation,
-    async_report_status,
-    async_report_download,
+    # Phase 3 Optimized Reporting Views
     paginated_attendance_list,
     
     # Location views
@@ -121,9 +118,7 @@ urlpatterns = [
     path('reports/marimo/', generate_marimo_report, name='generate_marimo_report'),
     
     # Phase 3 & 4 Optimized Reporting URLs
-    path('reports/async-generation/', async_report_generation, name='async_report_generation'),
-    path('reports/async-status/<str:report_id>/', async_report_status, name='async_report_status'),
-    path('reports/async-download/<str:report_id>/', async_report_download, name='async_report_download'),
+
 
     path('reports/paginated-attendance-list/', paginated_attendance_list, name='paginated_attendance_list'),
     
