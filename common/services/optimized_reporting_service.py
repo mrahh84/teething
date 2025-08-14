@@ -8,7 +8,7 @@ and template rendering optimization to improve performance.
 import logging
 from typing import Dict, Any, List, Optional, Tuple
 from datetime import date, datetime, timedelta
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from django.db import connection
 from django.db.models import Count, Q, Avg, Prefetch
 from django.core.paginator import Paginator
@@ -39,10 +39,11 @@ class OptimizedReportingService:
             e.surname,
             d.name as department_name,
             COUNT(ar.id) as total_days,
-            SUM(CASE WHEN ar.status = 'On Time' THEN 1 ELSE 0 END) as on_time_days,
-            SUM(CASE WHEN ar.status = 'Late' THEN 1 ELSE 0 END) as late_days,
-            SUM(CASE WHEN ar.status = 'Absent' THEN 1 ELSE 0 END) as absent_days,
-            AVG(CAST(ar.arrival_time AS FLOAT)) as avg_arrival_time
+            SUM(CASE WHEN ar.status = 'COMPLETE' THEN 1 ELSE 0 END) as completed_days,
+            SUM(CASE WHEN ar.status = 'DRAFT' THEN 1 ELSE 0 END) as draft_days,
+            SUM(CASE WHEN ar.status = 'PARTIAL' THEN 1 ELSE 0 END) as partial_days,
+            SUM(CASE WHEN ar.status = 'REVIEWED' THEN 1 ELSE 0 END) as reviewed_days,
+            COUNT(ar.standup_attendance) as standup_attendance_count
         FROM common_employee e
         LEFT JOIN common_department d ON e.department_id = d.id
         LEFT JOIN common_attendancerecord ar ON e.id = ar.employee_id 
@@ -73,17 +74,18 @@ class OptimizedReportingService:
             d.name as department_name,
             COUNT(DISTINCT e.id) as total_employees,
             COUNT(ar.id) as total_attendance_records,
-            SUM(CASE WHEN ar.status = 'On Time' THEN 1 ELSE 0 END) as on_time_count,
-            SUM(CASE WHEN ar.status = 'Late' THEN 1 ELSE 0 END) as late_count,
-            SUM(CASE WHEN ar.status = 'Absent' THEN 1 ELSE 0 END) as absent_count,
-            AVG(CASE WHEN ar.status = 'On Time' THEN 1.0 ELSE 0.0 END) * 100 as attendance_rate
+            SUM(CASE WHEN ar.status = 'COMPLETE' THEN 1 ELSE 0 END) as completed_count,
+            SUM(CASE WHEN ar.status = 'DRAFT' THEN 1 ELSE 0 END) as draft_count,
+            SUM(CASE WHEN ar.status = 'PARTIAL' THEN 1 ELSE 0 END) as partial_count,
+            SUM(CASE WHEN ar.status = 'REVIEWED' THEN 1 ELSE 0 END) as reviewed_count,
+            AVG(CASE WHEN ar.status = 'COMPLETE' THEN 1.0 ELSE 0.0 END) * 100 as completion_rate
         FROM common_department d
         LEFT JOIN common_employee e ON d.id = e.department_id AND e.is_active = 1
         LEFT JOIN common_attendancerecord ar ON e.id = ar.employee_id 
             AND ar.date BETWEEN %s AND %s
         WHERE d.is_active = 1
         GROUP BY d.id, d.name
-        ORDER BY attendance_rate DESC
+        ORDER BY completion_rate DESC
         """
         
         with connection.cursor() as cursor:
@@ -98,23 +100,23 @@ class OptimizedReportingService:
         SELECT 
             DATE(ar.date) as attendance_date,
             ar.status,
-            ar.arrival_time,
-            ar.departure_time,
+            ar.standup_attendance,
+            ar.lunch_time,
             CASE 
-                WHEN ar.arrival_time > '09:00:00' THEN 1 
+                WHEN ar.status = 'COMPLETE' THEN 1 
                 ELSE 0 
-            END as is_late,
+            END as is_complete,
             CASE 
-                WHEN ar.departure_time < '17:00:00' THEN 1 
+                WHEN ar.standup_attendance = 'YES' THEN 1 
                 ELSE 0 
-            END as is_early_departure
+            END as attended_standup
         FROM common_attendancerecord ar
         WHERE ar.employee_id = %s 
             AND ar.date >= %s
         ORDER BY ar.date DESC
         """
         
-        end_date = timezone.now().date()
+        end_date = django_timezone.now().date()
         start_date = end_date - timedelta(days=days)
         
         with connection.cursor() as cursor:
