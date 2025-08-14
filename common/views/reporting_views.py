@@ -13,7 +13,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone as django_timezone
 from drf_spectacular.utils import extend_schema
 from django.db.models import Q, Count, Prefetch, Avg
-from datetime import datetime, timedelta, date, timezone, time
+from datetime import datetime, timedelta, date, time
 from django.urls import reverse
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 import json
@@ -1360,7 +1360,7 @@ def _generate_csv_response(report_data, report_type):
     from django.http import HttpResponse
     
     response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = f'attachment; filename="{report_type}_{timezone.now().strftime("%Y%m%d_%H%M%S")}.csv"'
+    response['Content-Disposition'] = f'attachment; filename="{report_type}_{django_timezone.now().strftime("%Y%m%d_%H%M%S")}.csv"'
     
     writer = csv.writer(response)
     
@@ -1448,14 +1448,14 @@ def optimized_attendance_summary(request):
     
     # Default to last 30 days
     if not start_date or not end_date:
-        end_date = timezone.now().date()
+        end_date = django_timezone.now().date()
         start_date = end_date - timedelta(days=30)
     else:
         try:
             start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
             end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
         except ValueError:
-            end_date = timezone.now().date()
+            end_date = django_timezone.now().date()
             start_date = end_date - timedelta(days=30)
     
     # Convert department_id to int if provided
@@ -1508,12 +1508,12 @@ def paginated_attendance_list(request):
     
     # Default to today if no date specified
     if not date_filter:
-        date_filter = timezone.now().date().isoformat()
+        date_filter = django_timezone.now().date().isoformat()
     
     try:
         target_date = datetime.strptime(date_filter, '%Y-%m-%d').date()
     except ValueError:
-        target_date = timezone.now().date()
+        target_date = django_timezone.now().date()
     
     # Get paginated data
     service = PaginatedReportService(page_size=25)
