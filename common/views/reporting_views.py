@@ -121,12 +121,12 @@ def daily_dashboard_report(request):
     present_today = Event.objects.filter(
         event_type__name='Clock In',
         timestamp__date=today
-    ).distinct('employee').count()
+    ).values('employee').distinct().count()
     
     present_yesterday = Event.objects.filter(
         event_type__name='Clock In',
         timestamp__date=yesterday
-    ).distinct('employee').count()
+    ).values('employee').distinct().count()
     
     # Calculate change
     change = present_today - present_yesterday
@@ -141,7 +141,9 @@ def daily_dashboard_report(request):
         'present_today': present_today,
         'present_yesterday': present_yesterday,
         'change': change,
-        'change_percentage': round(change_percentage, 1)
+        'change_percentage': round(change_percentage, 1),
+        'change_abs': abs(change),
+        'change_percentage_abs': abs(round(change_percentage, 1))
     }
     return render(request, 'reports/daily_dashboard_report.html', context)
 
@@ -328,7 +330,7 @@ def generate_marimo_report(request, report_type):
     # Calculate statistics
     total_events = events.count()
     total_employees = Employee.objects.filter(is_active=True).count()
-    present_employees = events.filter(event_type__name='Clock In').distinct('employee').count()
+    present_employees = events.filter(event_type__name='Clock In').values('employee').distinct().count()
     
     # Department breakdown
     department_stats = {}
@@ -447,7 +449,7 @@ def generate_daily_dashboard_html(request, selected_date):
         present_today = Event.objects.filter(
             event_type__name='Clock In',
             timestamp__date=selected_date
-        ).distinct('employee').count()
+        ).values('employee').distinct().count()
         
         absent_today = total_employees - present_today
         attendance_rate = (present_today / total_employees * 100) if total_employees > 0 else 0
@@ -799,11 +801,12 @@ def comprehensive_reports(request):
             timestamp__date__gte=last_30_days
         ).count()
         
+        # Count unique employees who clocked in (SQLite compatible)
         dept_clock_ins = Event.objects.filter(
             employee__department=department,
             event_type__name='Clock In',
             timestamp__date__gte=last_30_days
-        ).distinct('employee').count()
+        ).values('employee').distinct().count()
         
         attendance_rate = (dept_clock_ins / dept_employees * 100) if dept_employees > 0 else 0
         
@@ -1079,9 +1082,11 @@ def employee_history_report_csv(request):
         
         # Write data rows
         for event in events:
+            # Convert to local timezone for display
+            local_timestamp = timezone.localtime(event.timestamp)
             writer.writerow([
-                event.timestamp.date(),
-                event.timestamp.time(),
+                local_timestamp.date(),
+                local_timestamp.time(),
                 event.event_type.name,
                 event.location.name if event.location else 'N/A',
                 event.notes or '',
