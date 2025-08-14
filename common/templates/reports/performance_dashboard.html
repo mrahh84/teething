@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Performance Dashboard - Road Attendance System{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">📊 Performance Dashboard</h1>
+        <p class="dashboard-subtitle">System performance metrics and analytics</p>
+    </div>
+    
+    <!-- Performance Metrics -->
+    <div class="card-grid">
+        <div class="card">
+            <div class="card-value text-primary">{{ total_employees }}</div>
+            <div class="card-label">Total Employees</div>
+        </div>
+        <div class="card">
+            <div class="card-value text-success">{{ avg_attendance_rate }}%</div>
+            <div class="card-label">Avg Attendance Rate</div>
+        </div>
+        <div class="card">
+            <div class="card-value text-warning">{{ system_metrics.count }}</div>
+            <div class="card-label">System Metrics</div>
+        </div>
+        <div class="card">
+            <div class="card-value text-info">{{ attendance_rates|length }}</div>
+            <div class="card-label">Active Employees</div>
+        </div>
+    </div>
+    
+    <!-- System Performance Metrics -->
+    {% if system_metrics %}
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">⚡ System Performance Metrics</h3>
+        </div>
+        <div class="section-body">
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Response Time (ms)</th>
+                            <th>Database Queries</th>
+                            <th>Memory Usage (MB)</th>
+                            <th>CPU Usage (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for metric in system_metrics|slice:":10" %}
+                        <tr>
+                            <td>{{ metric.measurement_date|date:"M d, Y" }}</td>
+                            <td>{{ metric.avg_response_time|default:"N/A" }}</td>
+                            <td>{{ metric.total_queries|default:"N/A" }}</td>
+                            <td>{{ metric.memory_usage|default:"N/A" }}</td>
+                            <td>{{ metric.cpu_usage|default:"N/A" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Employee Attendance Performance -->
+    {% if attendance_rates %}
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">👥 Employee Attendance Performance</h3>
+        </div>
+        <div class="section-body">
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Department</th>
+                            <th>Attendance Rate (%)</th>
+                            <th>Total Events</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for employee in attendance_rates|slice:":20" %}
+                        <tr>
+                            <td>{{ employee.employee_name }}</td>
+                            <td>{{ employee.department }}</td>
+                            <td>
+                                <span class="badge {% if employee.attendance_rate >= 90 %}badge-success{% elif employee.attendance_rate >= 80 %}badge-warning{% else %}badge-danger{% endif %}">
+                                    {{ employee.attendance_rate }}%
+                                </span>
+                            </td>
+                            <td>{{ employee.total_events }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Quick Actions -->
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">🚀 Quick Actions</h3>
+        </div>
+        <div class="section-body">
+            <div class="action-buttons">
+                <a href="{% url 'performance_monitoring_dashboard' %}" class="btn btn-primary">
+                    📊 Advanced Performance Monitoring
+                </a>
+                <a href="{% url 'reports_dashboard' %}" class="btn btn-secondary">
+                    📋 Back to Reports
+                </a>
+                <a href="{% url 'optimized_attendance_summary' %}" class="btn btn-success">
+                    ⚡ Optimized Reports
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.badge-success {
+    background: #38a169;
+    color: white;
+}
+
+.badge-warning {
+    background: #f6ad55;
+    color: white;
+}
+
+.badge-danger {
+    background: #e53e3e;
+    color: white;
+}
+</style>
+{% endblock %}

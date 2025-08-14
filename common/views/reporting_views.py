@@ -104,7 +104,7 @@ def performance_dashboard(request):
             sum(r['attendance_rate'] for r in attendance_rates) / len(attendance_rates), 1
         ) if attendance_rates else 0
     }
-    return render(request, 'performance_dashboard.html', context)
+    return render(request, 'reports/performance_dashboard.html', context)
 
 
 @reporting_required  # Reporting role and above
