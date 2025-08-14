@@ -384,9 +384,21 @@
                 <div class="nav-dropdown">
                     <button class="nav-dropdown-btn">📊 Reports</button>
                     <div class="nav-dropdown-content">
-                        <a href="{% url 'comprehensive_reports' %}">Comprehensive Reports</a>
-                        <a href="{% url 'pattern_recognition_dashboard' %}">Pattern Recognition</a>
-                        <a href="{% url 'predictive_analytics_dashboard' %}">Predictive Analytics</a>
+                        <a href="{% url 'reports_dashboard' %}">📋 Reports Dashboard</a>
+                        <a href="{% url 'comprehensive_reports' %}">📈 Comprehensive Reports</a>
+                        <a href="{% url 'daily_dashboard_report' %}">📅 Daily Dashboard</a>
+                        <a href="{% url 'performance_dashboard' %}">📊 Performance Dashboard</a>
+                        <hr style="margin: 0.5rem 0; border-color: #e2e8f0;">
+                        <span style="padding: 0.5rem 1rem; font-size: 0.8rem; color: #718096; font-weight: bold;">🚀 Phase 3 - Optimized Reports</span>
+                        <a href="{% url 'optimized_attendance_summary' %}">⚡ Optimized Attendance Summary</a>
+                        <a href="{% url 'paginated_attendance_list' %}">📄 Paginated Attendance List</a>
+                        <hr style="margin: 0.5rem 0; border-color: #e2e8f0;">
+                        <span style="padding: 0.5rem 1rem; font-size: 0.8rem; color: #718096; font-weight: bold;">⏱️ Phase 4 - Async Reports</span>
+                        <a href="{% url 'async_report_generation' %}">🔄 Async Report Generation</a>
+                        <hr style="margin: 0.5rem 0; border-color: #e2e8f0;">
+                        <span style="padding: 0.5rem 1rem; font-size: 0.8rem; color: #718096; font-weight: bold;">🔬 Advanced Analytics</span>
+                        <a href="{% url 'pattern_recognition_dashboard' %}">🔍 Pattern Recognition</a>
+                        <a href="{% url 'predictive_analytics_dashboard' %}">🔮 Predictive Analytics</a>
                     </div>
                 </div>
             </div>
@@ -408,6 +420,9 @@
                     <button class="nav-dropdown-btn">⚙️ Admin</button>
                     <div class="nav-dropdown-content">
                         <a href="/admin/">Django Admin</a>
+                        <hr style="margin: 0.5rem 0; border-color: #e2e8f0;">
+                        <span style="padding: 0.5rem 1rem; font-size: 0.8rem; color: #718096; font-weight: bold;">📊 Performance Monitoring</span>
+                        <a href="{% url 'performance_monitoring_dashboard' %}">📈 Performance Monitoring</a>
                     </div>
                 </div>
             </div>

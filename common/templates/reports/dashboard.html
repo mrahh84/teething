@@ -3,6 +3,39 @@
 
 {% block title %}{{ page_title }}{% endblock %}
 
+{% block secondary_nav %}
+<div class="secondary-nav">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <nav class="secondary-navbar">
+                    <div class="nav-section">
+                        <span class="nav-label">📊 Standard Reports:</span>
+                        <a href="{% url 'comprehensive_reports' %}" class="nav-link">Comprehensive</a>
+                        <a href="{% url 'daily_dashboard_report' %}" class="nav-link">Daily Dashboard</a>
+                        <a href="{% url 'performance_dashboard' %}" class="nav-link">Performance</a>
+                    </div>
+                    <div class="nav-section">
+                        <span class="nav-label">🚀 Phase 3 - Optimized:</span>
+                        <a href="{% url 'optimized_attendance_summary' %}" class="nav-link">Attendance Summary</a>
+                        <a href="{% url 'paginated_attendance_list' %}" class="nav-link">Paginated List</a>
+                    </div>
+                    <div class="nav-section">
+                        <span class="nav-label">⏱️ Phase 4 - Async:</span>
+                        <a href="{% url 'async_report_generation' %}" class="nav-link">Generate Reports</a>
+                    </div>
+                    <div class="nav-section">
+                        <span class="nav-label">🔬 Analytics:</span>
+                        <a href="{% url 'pattern_recognition_dashboard' %}" class="nav-link">Pattern Recognition</a>
+                        <a href="{% url 'predictive_analytics_dashboard' %}" class="nav-link">Predictive Analytics</a>
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <div class="row">
