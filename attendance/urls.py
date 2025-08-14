@@ -23,7 +23,8 @@ from drf_spectacular.views import (
     # SpectacularRedocView,
     SpectacularSwaggerView,
 )
-from common import views
+from common.views import custom_login
+from django.conf.urls import handler400, handler403, handler404, handler500
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -31,7 +32,7 @@ urlpatterns = [
     # Custom login view with role-based redirects
     path(
         "login/",
-        views.custom_login,
+        custom_login,
         name="login",
     ),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
@@ -40,3 +41,9 @@ urlpatterns = [
     # path("redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
 ]
+
+# Custom error handlers (Phase 3)
+handler400 = 'common.views.system_views.custom_bad_request'
+handler403 = 'common.views.system_views.custom_permission_denied'
+handler404 = 'common.views.system_views.custom_page_not_found'
+handler500 = 'common.views.system_views.custom_server_error'

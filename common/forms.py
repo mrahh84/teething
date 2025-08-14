@@ -20,7 +20,7 @@ class AttendanceRecordForm(forms.ModelForm):
         model = AttendanceRecord
         fields = [
             'employee', 'date', 'lunch_time', 'left_lunch_on_time',
-            'returned_on_time_after_lunch', 'returned_after_lunch',
+            'returned_on_time_after_lunch',
             'standup_attendance', 'notes'
         ]
         widgets = {
@@ -88,14 +88,6 @@ class BulkAttendanceForm(forms.Form):
                 label=f"{employee.surname}, {employee.given_name} - Returned On Time"
             )
             
-            # Returned after lunch
-            self.fields[f'returned_after_{employee.id}'] = forms.ChoiceField(
-                choices=[('', '---------')] + list(AttendanceRecord.ATTENDANCE_CHOICES),
-                required=False,
-                widget=forms.Select(attrs={'class': 'form-select'}),
-                label=f"{employee.surname}, {employee.given_name} - Returned After Lunch"
-            )
-            
             # Note: Departure time is automatically pulled from clock-in system
 
 
@@ -127,13 +119,6 @@ class ProgressiveEntryForm(forms.Form):
         required=False,
         widget=forms.Select(attrs={'class': 'form-select'}),
         label="Returned On Time After Lunch"
-    )
-    
-    returned_after_lunch = forms.ChoiceField(
-        choices=[('', '---------')] + list(AttendanceRecord.ATTENDANCE_CHOICES),
-        required=False,
-        widget=forms.Select(attrs={'class': 'form-select'}),
-        label="Returned After Lunch"
     )
     
     LUNCH_TIME_CHOICES = [
@@ -253,7 +238,6 @@ class BulkHistoricalUpdateForm(forms.Form):
             ('standup_attendance', 'Stand-up Meeting Attendance'),
             ('left_lunch_on_time', 'Left Lunch On Time'),
             ('returned_on_time_after_lunch', 'Returned On Time After Lunch'),
-            ('returned_after_lunch', 'Returned After Lunch'),
             ('lunch_time', 'Lunch Time'),
             ('notes', 'Notes'),
         ],
