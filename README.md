@@ -13,7 +13,7 @@ It includes a basic web interface for security personnel and a RESTful API for p
 * **Models:** Defines data structures for `Card`, `Employee`, `Location`, `EventType`, and `Event`.
 * **Clock Status:** The `Employee` model calculates current clock-in/out status based on the latest relevant `Event`.
 * **Web Interface (Login Required):**
-    * `/common/main_security/`: Displays a list of employees, their current clock-in/out status, and provides buttons to manually clock them in or out. Includes links to individual employee event history.
+    * `/common/`: Displays a list of employees, their current clock-in/out status, and provides buttons to manually clock them in or out. Includes links to individual employee event history.
     * `/common/employee_events/<id>/`: Shows a detailed, timestamped list of events for a specific employee, including event type and location. Provides a link to the Django admin for editing specific events.
 * **REST API:**
     * Provides endpoints for listing and managing Events, Employees, and Locations.
@@ -80,7 +80,7 @@ It includes a basic web interface for security personnel and a RESTful API for p
     docker-compose up
     # python3 manage.py runserver
     ```
-2.  Access the web interface by logging in and navigating to `/common/main_security/`.
+2.  Access the web interface by logging in and navigating to `/common/`.
 3.  Access the API endpoints under `/common/api/` and the Swagger UI at `/` i.e. the home page.
 
 ## Production Deployment
