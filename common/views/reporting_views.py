@@ -22,6 +22,7 @@ import csv
 import re
 import logging
 from typing import Optional
+from django.core.cache import cache
 
 from ..models import (
     Employee, Event, EventType, Location, AttendanceRecord, Card, Department,
@@ -1215,3 +1216,322 @@ def period_summary_report_csv(request):
         return HttpResponse(
             f"Error generating CSV report: {str(e)}", status=500
         )
+
+
+@reporting_required  # Reporting role and above
+@extend_schema(exclude=True)
+def async_report_generation(request):
+    """Async report generation dashboard."""
+    
+    if request.method == 'POST':
+        from ..services.async_report_service import AsyncReportService
+        
+        async_service = AsyncReportService()
+        
+        # Get report parameters
+        report_type = request.POST.get('report_type')
+        start_date = request.POST.get('start_date')
+        end_date = request.POST.get('end_date')
+        department = request.POST.get('department')
+        
+        # Validate parameters
+        if not all([report_type, start_date, end_date]):
+            messages.error(request, 'Missing required parameters')
+            return redirect('async_report_generation')
+        
+        try:
+            # Convert dates
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+        except ValueError:
+            messages.error(request, 'Invalid date format')
+            return redirect('async_report_generation')
+        
+        # Prepare parameters
+        report_params = {
+            'start_date': start_date,
+            'end_date': end_date,
+            'department': department
+        }
+        
+        # Queue report generation
+        report_id = async_service.queue_report_generation(
+            request.user.id, report_type, report_params
+        )
+        
+        messages.success(
+            request, 
+            f'Report queued successfully. Report ID: {report_id}'
+        )
+        
+        return redirect('async_report_status', report_id=report_id)
+    
+    # Get available report types
+    report_types = [
+        {'value': 'attendance_summary', 'label': 'Attendance Summary'},
+        {'value': 'department_performance', 'label': 'Department Performance'},
+        {'value': 'comprehensive_report', 'label': 'Comprehensive Report'},
+    ]
+    
+    # Get user's queued reports
+    from ..services.async_report_service import AsyncReportService
+    async_service = AsyncReportService()
+    
+    user_reports = []
+    for report_type in ['attendance_summary', 'department_performance', 'comprehensive_report']:
+        # Check for cached reports
+        cache_key = f"async_report:{request.user.id}:{report_type}"
+        cached_report = cache.get(cache_key)
+        if cached_report:
+            user_reports.append({
+                'type': report_type,
+                'status': 'ready',
+                'generated_at': cached_report.get('generated_at'),
+                'data': cached_report
+            })
+    
+    context = {
+        'page_title': 'Async Report Generation',
+        'active_tab': 'async_reports',
+        'report_types': report_types,
+        'user_reports': user_reports,
+    }
+    
+    return render(request, 'reports/async_report_generation.html', context)
+
+
+@reporting_required  # Reporting role and above
+@extend_schema(exclude=True)
+def async_report_status(request, report_id):
+    """Check status of async report generation."""
+    
+    from ..services.async_report_service import AsyncReportService
+    
+    async_service = AsyncReportService()
+    status = async_service.get_report_status(report_id)
+    
+    context = {
+        'page_title': 'Report Status',
+        'active_tab': 'async_reports',
+        'report_id': report_id,
+        'status': status,
+    }
+    
+    return render(request, 'reports/async_report_status.html', context)
+
+
+@reporting_required  # Reporting role and above
+@extend_schema(exclude=True)
+def async_report_download(request, report_id):
+    """Download completed async report."""
+    
+    from ..services.async_report_service import AsyncReportService
+    
+    async_service = AsyncReportService()
+    status = async_service.get_report_status(report_id)
+    
+    if status['status'] != 'ready':
+        messages.error(request, 'Report not ready for download')
+        return redirect('async_report_status', report_id=report_id)
+    
+    # Generate download response based on report type
+    report_data = status['data']
+    report_type = report_data['report_type']
+    
+    if request.GET.get('format') == 'csv':
+        return _generate_csv_response(report_data, report_type)
+    elif request.GET.get('format') == 'json':
+        return _generate_json_response(report_data, report_type)
+    else:
+        # Default to HTML view
+        context = {
+            'page_title': f'{report_type.replace("_", " ").title()} Report',
+            'active_tab': 'async_reports',
+            'report_data': report_data,
+            'report_id': report_id,
+        }
+        return render(request, 'reports/async_report_view.html', context)
+
+
+def _generate_csv_response(report_data, report_type):
+    """Generate CSV response for report data."""
+    
+    import csv
+    from django.http import HttpResponse
+    
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="{report_type}_{timezone.now().strftime("%Y%m%d_%H%M%S")}.csv"'
+    
+    writer = csv.writer(response)
+    
+    if report_type == 'attendance_summary':
+        # Write header
+        writer.writerow(['Employee ID', 'Given Name', 'Surname', 'Department', 'Total Days', 'On Time Days', 'Late Days', 'Absent Days'])
+        
+        # Write data
+        for row in report_data['data']:
+            writer.writerow([
+                row['employee_id'],
+                row['given_name'],
+                row['surname'],
+                row['department_name'],
+                row['total_days'],
+                row['on_time_days'],
+                row['late_days'],
+                row['absent_days']
+            ])
+    
+    elif report_type == 'department_performance':
+        # Write header
+        writer.writerow(['Department ID', 'Department Name', 'Total Employees', 'Total Records', 'On Time Count', 'Late Count', 'Absent Count', 'Attendance Rate'])
+        
+        # Write data
+        for row in report_data['data']:
+            writer.writerow([
+                row['department_id'],
+                row['department_name'],
+                row['total_employees'],
+                row['total_attendance_records'],
+                row['on_time_count'],
+                row['late_count'],
+                row['absent_count'],
+                f"{row['attendance_rate']:.1f}%"
+            ])
+    
+    elif report_type == 'comprehensive_report':
+        # Write summary
+        writer.writerow(['Metric', 'Value'])
+        writer.writerow(['Total Employees', report_data['summary']['total_employees']])
+        writer.writerow(['Total Events', report_data['summary']['total_events']])
+        writer.writerow(['Total Departments', report_data['summary']['total_departments']])
+        writer.writerow(['Report Period', report_data['summary']['report_period']])
+        writer.writerow([])
+        
+        # Write attendance summary
+        writer.writerow(['Attendance Summary'])
+        writer.writerow(['Employee ID', 'Given Name', 'Surname', 'Department', 'Total Days', 'On Time Days', 'Late Days', 'Absent Days'])
+        
+        for row in report_data['data']['attendance_summary']:
+            writer.writerow([
+                row['employee_id'],
+                row['given_name'],
+                row['surname'],
+                row['department_name'],
+                row['total_days'],
+                row['on_time_days'],
+                row['late_days'],
+                row['absent_days']
+            ])
+    
+    return response
+
+
+def _generate_json_response(report_data, report_type):
+    """Generate JSON response for report data."""
+    
+    from django.http import JsonResponse
+    
+    return JsonResponse(report_data, json_dumps_params={'indent': 2})
+
+
+@reporting_required  # Reporting role and above
+@extend_schema(exclude=True)
+def optimized_attendance_summary(request):
+    """Optimized attendance summary using Phase 3 optimizations."""
+    
+    from ..services.optimized_reporting_service import OptimizedReportingService
+    
+    # Get parameters
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    department_id = request.GET.get('department_id')
+    
+    # Default to last 30 days
+    if not start_date or not end_date:
+        end_date = timezone.now().date()
+        start_date = end_date - timedelta(days=30)
+    else:
+        try:
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+        except ValueError:
+            end_date = timezone.now().date()
+            start_date = end_date - timedelta(days=30)
+    
+    # Convert department_id to int if provided
+    if department_id:
+        try:
+            department_id = int(department_id)
+        except ValueError:
+            department_id = None
+    
+    # Get optimized data
+    service = OptimizedReportingService()
+    attendance_data = service.get_attendance_summary_sql(
+        start_date, end_date, department_id
+    )
+    
+    # Get departments for filter
+    departments = Department.objects.filter(is_active=True).order_by('name')
+    
+    context = {
+        'page_title': 'Optimized Attendance Summary',
+        'active_tab': 'optimized_reports',
+        'attendance_data': attendance_data,
+        'start_date': start_date,
+        'end_date': end_date,
+        'department_id': department_id,
+        'departments': departments,
+        'total_employees': len(attendance_data),
+        'total_days': sum(d['total_days'] for d in attendance_data) if attendance_data else 0,
+    }
+    
+    return render(request, 'reports/optimized_attendance_summary.html', context)
+
+
+@reporting_required  # Reporting role and above
+@extend_schema(exclude=True)
+def paginated_attendance_list(request):
+    """Paginated attendance list using Phase 3 optimizations."""
+    
+    from ..services.optimized_reporting_service import PaginatedReportService
+    
+    # Get parameters
+    date_filter = request.GET.get('date')
+    department_filter = request.GET.get('department')
+    page = request.GET.get('page', 1)
+    
+    try:
+        page = int(page)
+    except ValueError:
+        page = 1
+    
+    # Default to today if no date specified
+    if not date_filter:
+        date_filter = timezone.now().date().isoformat()
+    
+    try:
+        target_date = datetime.strptime(date_filter, '%Y-%m-%d').date()
+    except ValueError:
+        target_date = timezone.now().date()
+    
+    # Get paginated data
+    service = PaginatedReportService(page_size=25)
+    result = service.get_paginated_attendance_data(
+        target_date, department_filter, page
+    )
+    
+    # Get departments for filter
+    departments = Department.objects.filter(is_active=True).order_by('name')
+    
+    context = {
+        'page_title': 'Paginated Attendance List',
+        'active_tab': 'optimized_reports',
+        'records': result['records'],
+        'pagination': result['pagination'],
+        'date_filter': target_date.isoformat(),
+        'department_filter': department_filter,
+        'departments': departments,
+    }
+    
+    return render(request, 'reports/paginated_attendance_list.html', context)

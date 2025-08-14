@@ -333,13 +333,31 @@ def predictive_analytics_dashboard(request):
 @extend_schema(exclude=True)
 def performance_monitoring_dashboard(request):
     """
-    Performance monitoring dashboard for tracking query performance and optimization.
-    Part of Phase 1 performance optimization implementation.
+    Advanced performance monitoring dashboard for Phase 4 performance optimization.
+    Provides comprehensive performance tracking, database connection monitoring,
+    and optimization recommendations.
     """
     from ..utils import performance_monitor
+    from ..services.async_report_service import (
+        AdvancedPerformanceMonitoringService, 
+        DatabaseConnectionPoolService
+    )
     
-    # Get performance report
-    performance_report = performance_monitor.get_performance_report()
+    # Initialize advanced performance monitoring
+    advanced_monitor = AdvancedPerformanceMonitoringService()
+    db_pool_service = DatabaseConnectionPoolService()
+    
+    # Get basic performance report
+    basic_performance_report = performance_monitor.get_performance_report()
+    
+    # Get advanced performance metrics
+    advanced_performance_report = advanced_monitor.get_performance_report()
+    
+    # Get database connection information
+    db_connection_info = db_pool_service.get_connection_info()
+    
+    # Get connection optimization recommendations
+    db_recommendations = db_pool_service.get_connection_recommendations()
     
     # Get system performance metrics
     from ..models import SystemPerformance
@@ -352,12 +370,33 @@ def performance_monitoring_dashboard(request):
         date__gte=last_7_days
     ).order_by('-date')[:7]
     
+    # Get cache statistics
+    cache_stats = {
+        'total_keys': len(cache._cache) if hasattr(cache, '_cache') else 'Unknown',
+        'cache_hit_rate': cache.get('cache_hit_rate', 0),
+        'total_requests': cache.get('total_cache_requests', 0),
+        'cache_misses': cache.get('cache_misses', 0)
+    }
+    
+    # Calculate cache hit rate if we have the data
+    if cache_stats['total_requests'] > 0:
+        cache_stats['calculated_hit_rate'] = round(
+            ((cache_stats['total_requests'] - cache_stats['cache_misses']) / cache_stats['total_requests']) * 100, 1
+        )
+    else:
+        cache_stats['calculated_hit_rate'] = 0
+    
     context = {
-        'page_title': 'Performance Monitoring Dashboard',
+        'page_title': 'Advanced Performance Monitoring Dashboard',
         'active_tab': 'performance_monitoring',
-        'performance_report': performance_report,
+        'basic_performance_report': basic_performance_report,
+        'advanced_performance_report': advanced_performance_report,
+        'db_connection_info': db_connection_info,
+        'db_recommendations': db_recommendations,
         'system_metrics': system_metrics,
+        'cache_stats': cache_stats,
         'last_updated': django_timezone.now(),
+        'performance_thresholds': advanced_monitor.performance_thresholds,
     }
     
     return render(request, 'performance_monitoring_dashboard.html', context)

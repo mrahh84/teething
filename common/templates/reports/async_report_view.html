@@ -1,0 +1,230 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">{{ page_title }}</h1>
+                <div>
+                    <a href="{% url 'async_report_generation' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Generation
+                    </a>
+                    <a href="{% url 'async_report_download' report_id=report_id %}?format=csv" class="btn btn-success">
+                        <i class="fas fa-download"></i> Download CSV
+                    </a>
+                    <a href="{% url 'async_report_download' report_id=report_id %}?format=json" class="btn btn-info">
+                        <i class="fas fa-code"></i> Download JSON
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Information -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle"></i> Report Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <strong>Report Type:</strong><br>
+                            <span class="badge badge-primary">{{ report_data.report_type|title|replace:"_":" " }}</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Generated At:</strong><br>
+                            <small>{{ report_data.generated_at|date:"M d, Y H:i:s" }}</small>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Report ID:</strong><br>
+                            <code>{{ report_id }}</code>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Status:</strong><br>
+                            <span class="badge badge-success">Ready</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Summary -->
+    {% if report_data.summary %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-pie"></i> Report Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for key, value in report_data.summary.items %}
+                        <div class="col-md-3 mb-3">
+                            <div class="text-center">
+                                <h6>{{ key|title|replace:"_":" " }}</h6>
+                                <span class="badge badge-info">{{ value }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Report Data -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-table"></i> Report Data
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if report_data.data %}
+                        {% if report_data.report_type == 'comprehensive_report' %}
+                            <!-- Comprehensive Report View -->
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Attendance Summary</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>Employee</th>
+                                                    <th>Department</th>
+                                                    <th>Total Days</th>
+                                                    <th>On Time</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for record in report_data.data.attendance_summary|slice:":10" %}
+                                                <tr>
+                                                    <td>{{ record.given_name }} {{ record.surname }}</td>
+                                                    <td>{{ record.department_name|default:"N/A" }}</td>
+                                                    <td>{{ record.total_days }}</td>
+                                                    <td>{{ record.on_time_days }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {% if report_data.data.attendance_summary|length > 10 %}
+                                    <p class="text-muted">Showing first 10 records. Download full report for complete data.</p>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Department Performance</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>Department</th>
+                                                    <th>Employees</th>
+                                                    <th>Attendance Rate</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for record in report_data.data.department_performance %}
+                                                <tr>
+                                                    <td>{{ record.department_name }}</td>
+                                                    <td>{{ record.total_employees }}</td>
+                                                    <td>{{ record.attendance_rate|floatformat:1 }}%</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        {% elif report_data.report_type == 'attendance_summary' %}
+                            <!-- Attendance Summary View -->
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead class="thead-dark">
+                                        <tr>
+                                            <th>Employee</th>
+                                            <th>Department</th>
+                                            <th>Total Days</th>
+                                            <th>On Time</th>
+                                            <th>Late</th>
+                                            <th>Absent</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for record in report_data.data %}
+                                        <tr>
+                                            <td><strong>{{ record.given_name }} {{ record.surname }}</strong></td>
+                                            <td>{{ record.department_name|default:"N/A" }}</td>
+                                            <td>{{ record.total_days }}</td>
+                                            <td><span class="badge badge-success">{{ record.on_time_days }}</span></td>
+                                            <td><span class="badge badge-warning">{{ record.late_days }}</span></td>
+                                            <td><span class="badge badge-danger">{{ record.absent_days }}</span></td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% elif report_data.report_type == 'department_performance' %}
+                            <!-- Department Performance View -->
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead class="thead-dark">
+                                        <tr>
+                                            <th>Department</th>
+                                            <th>Employees</th>
+                                            <th>Records</th>
+                                            <th>On Time</th>
+                                            <th>Late</th>
+                                            <th>Absent</th>
+                                            <th>Attendance Rate</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for record in report_data.data %}
+                                        <tr>
+                                            <td><strong>{{ record.department_name }}</strong></td>
+                                            <td>{{ record.total_employees }}</td>
+                                            <td>{{ record.total_attendance_records }}</td>
+                                            <td><span class="badge badge-success">{{ record.on_time_count }}</span></td>
+                                            <td><span class="badge badge-warning">{{ record.late_count }}</span></td>
+                                            <td><span class="badge badge-danger">{{ record.absent_count }}</span></td>
+                                            <td><span class="badge badge-info">{{ record.attendance_rate|floatformat:1 }}%</span></td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <!-- Generic Data View -->
+                            <div class="alert alert-info">
+                                <h6><i class="fas fa-info-circle"></i> Report Data Available</h6>
+                                <p class="mb-0">This report contains {{ report_data.data|length }} data records. Use the download buttons above to export the data.</p>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No Data Available</h5>
+                            <p class="text-muted">This report doesn't contain any data.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
