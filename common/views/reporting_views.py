@@ -1435,58 +1435,7 @@ def _generate_json_response(report_data, report_type):
 
 
 @reporting_required  # Reporting role and above
-@extend_schema(exclude=True)
-def optimized_attendance_summary(request):
-    """Optimized attendance summary using Phase 3 optimizations."""
-    
-    from ..services.optimized_reporting_service import OptimizedReportingService
-    
-    # Get parameters
-    start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')
-    department_id = request.GET.get('department_id')
-    
-    # Default to last 30 days
-    if not start_date or not end_date:
-        end_date = django_timezone.now().date()
-        start_date = end_date - timedelta(days=30)
-    else:
-        try:
-            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
-            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
-        except ValueError:
-            end_date = django_timezone.now().date()
-            start_date = end_date - timedelta(days=30)
-    
-    # Convert department_id to int if provided
-    if department_id:
-        try:
-            department_id = int(department_id)
-        except ValueError:
-            department_id = None
-    
-    # Get optimized data
-    service = OptimizedReportingService()
-    attendance_data = service.get_attendance_summary_sql(
-        start_date, end_date, department_id
-    )
-    
-    # Get departments for filter
-    departments = Department.objects.filter(is_active=True).order_by('name')
-    
-    context = {
-        'page_title': 'Optimized Attendance Summary',
-        'active_tab': 'optimized_reports',
-        'attendance_data': attendance_data,
-        'start_date': start_date,
-        'end_date': end_date,
-        'department_id': department_id,
-        'departments': departments,
-        'total_employees': len(attendance_data),
-        'total_days': sum(d['total_days'] for d in attendance_data) if attendance_data else 0,
-    }
-    
-    return render(request, 'reports/optimized_attendance_summary.html', context)
+
 
 
 @reporting_required  # Reporting role and above

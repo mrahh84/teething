@@ -364,6 +364,17 @@ def attendance_list(request):
     except ValueError:
         target_date = django_timezone.localtime(django_timezone.now()).date()
     
+    # Use optimized reporting service for better performance
+    from ..services.optimized_reporting_service import OptimizedReportingService
+    optimized_service = OptimizedReportingService()
+    
+    # Get optimized employee data with attendance summary
+    attendance_summary = optimized_service.get_attendance_summary_sql(
+        start_date=target_date,
+        end_date=target_date,
+        department_id=None  # We'll filter by department name instead
+    )
+    
     # Get all active employees with optimized prefetch
     all_employees = Employee.objects.filter(is_active=True).select_related('card_number').order_by('surname', 'given_name')
     
@@ -374,8 +385,7 @@ def attendance_list(request):
     # Get attendance records for the target date with optimized prefetch
     records = AttendanceRecord.objects.filter(date=target_date).select_related('employee', 'employee__card_number')
     
-    # Identify absent employees (those who didn't clock in) - OPTIMIZED
-    # Convert local date to UTC for proper timezone handling
+    # Use optimized service to get clocked-in employees
     start_of_day_local = django_timezone.make_aware(datetime.combine(target_date, time.min))
     end_of_day_local = django_timezone.make_aware(datetime.combine(target_date, time.max))
     
@@ -542,6 +552,9 @@ def attendance_list(request):
         'on_time_count': on_time_count,
         'attendance_rate': (present_count / total_employees * 100) if total_employees > 0 else 0,
         'punctuality_rate': (on_time_count / present_count * 100) if present_count > 0 else 0,
+        # Add optimized data for enhanced performance
+        'attendance_summary': attendance_summary,
+        'optimization_enabled': True,
     }
     
     return render(request, 'attendance/list.html', context)

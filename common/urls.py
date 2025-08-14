@@ -37,7 +37,6 @@ from common.views import (
     async_report_generation,
     async_report_status,
     async_report_download,
-    optimized_attendance_summary,
     paginated_attendance_list,
     
     # Location views
@@ -124,7 +123,7 @@ urlpatterns = [
     path('reports/async-generation/', async_report_generation, name='async_report_generation'),
     path('reports/async-status/<str:report_id>/', async_report_status, name='async_report_status'),
     path('reports/async-download/<str:report_id>/', async_report_download, name='async_report_download'),
-    path('reports/optimized-attendance-summary/', optimized_attendance_summary, name='optimized_attendance_summary'),
+
     path('reports/paginated-attendance-list/', paginated_attendance_list, name='paginated_attendance_list'),
     
     # Location URLs
