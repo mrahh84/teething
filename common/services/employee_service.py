@@ -389,3 +389,55 @@ class EmployeeService:
             'department_breakdown': departments,
             'last_updated': timezone.now(),
         }
+
+    @staticmethod
+    def get_optimized_employee_data(days_back=30):
+        """Get employee data with optimized bulk prefetch patterns."""
+        from django.db.models import Prefetch
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        # Calculate date range for recent events
+        cutoff_date = timezone.now() - timedelta(days=days_back)
+        
+        # Get employees with optimized prefetch
+        employees = Employee.objects.filter(
+            is_active=True
+        ).select_related(
+            'department', 'card_number'
+        ).prefetch_related(
+            Prefetch(
+                'employee_events',
+                queryset=Event.objects.filter(
+                    timestamp__gte=cutoff_date
+                ).select_related('event_type', 'location').order_by('-timestamp'),
+                to_attr='recent_events'
+            )
+        ).order_by('surname', 'given_name')
+        
+        return employees
+
+    @staticmethod
+    def get_employees_with_attendance_records(date, department=None):
+        """Get employees with their attendance records for a specific date."""
+        from django.db.models import Prefetch
+        
+        # Base employee query
+        employees = Employee.objects.filter(is_active=True)
+        
+        # Apply department filter if specified
+        if department:
+            employees = employees.filter(department__name=department)
+        
+        # Optimize with select_related and prefetch_related
+        employees = employees.select_related(
+            'department', 'card_number'
+        ).prefetch_related(
+            Prefetch(
+                'attendance_records',
+                queryset=AttendanceRecord.objects.filter(date=date),
+                to_attr='today_record'
+            )
+        ).order_by('surname', 'given_name')
+        
+        return employees

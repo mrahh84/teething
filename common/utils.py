@@ -8,6 +8,7 @@ import logging
 from typing import Dict, Any, Optional
 from django.core.cache import cache
 from django.conf import settings
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -263,3 +264,132 @@ def get_bulk_metrics(operation_name: str) -> Dict[str, Any]:
     """Get bulk operation metrics for a specific operation."""
     metric_key = f"bulk_metrics:{operation_name}"
     return cache.get(metric_key, {}) 
+
+
+class PerformanceMonitoringService:
+    """Service for monitoring and tracking performance metrics."""
+    
+    def __init__(self):
+        self.metrics = {}
+    
+    def track_query_performance(self, view_name, query_count, execution_time):
+        """Track query performance metrics for a view."""
+        
+        if view_name not in self.metrics:
+            self.metrics[view_name] = {
+                'total_requests': 0,
+                'total_queries': 0,
+                'total_time': 0,
+                'avg_queries': 0,
+                'avg_time': 0,
+                'performance_score': 0,
+                'last_updated': timezone.now()
+            }
+        
+        metrics = self.metrics[view_name]
+        metrics['total_requests'] += 1
+        metrics['total_queries'] += query_count
+        metrics['total_time'] += execution_time
+        metrics['last_updated'] = timezone.now()
+        
+        # Calculate averages
+        metrics['avg_queries'] = metrics['total_queries'] / metrics['total_requests']
+        metrics['avg_time'] = metrics['total_time'] / metrics['total_requests']
+        
+        # Calculate performance score (lower is better)
+        metrics['performance_score'] = (
+            metrics['avg_queries'] * 0.6 + 
+            metrics['avg_time'] * 0.4
+        )
+        
+        # Cache the metrics
+        cache.set(f"performance_metrics:{view_name}", metrics, 3600)
+    
+    def get_performance_report(self):
+        """Generate performance report for all views."""
+        return {
+            'views': self.metrics,
+            'recommendations': self.generate_recommendations(),
+            'summary': self.generate_summary()
+        }
+    
+    def generate_recommendations(self):
+        """Generate performance improvement recommendations."""
+        recommendations = []
+        
+        for view_name, metrics in self.metrics.items():
+            if metrics['avg_queries'] > 10:
+                recommendations.append({
+                    'view': view_name,
+                    'issue': 'High query count',
+                    'priority': 'HIGH',
+                    'suggestion': 'Implement select_related/prefetch_related',
+                    'current_value': f"{metrics['avg_queries']:.1f} queries",
+                    'target_value': '< 10 queries'
+                })
+            
+            if metrics['avg_time'] > 1.0:
+                recommendations.append({
+                    'view': view_name,
+                    'issue': 'Slow execution',
+                    'priority': 'HIGH',
+                    'suggestion': 'Add database indexes or optimize queries',
+                    'current_value': f"{metrics['avg_time']:.3f}s",
+                    'target_value': '< 1.0s'
+                })
+            
+            if metrics['avg_queries'] > 5 and metrics['avg_queries'] <= 10:
+                recommendations.append({
+                    'view': view_name,
+                    'issue': 'Moderate query count',
+                    'priority': 'MEDIUM',
+                    'suggestion': 'Consider query optimization',
+                    'current_value': f"{metrics['avg_queries']:.1f} queries",
+                    'target_value': '< 5 queries'
+                })
+        
+        # Sort by priority (HIGH first)
+        priority_order = {'HIGH': 0, 'MEDIUM': 1, 'LOW': 2}
+        recommendations.sort(key=lambda x: priority_order.get(x['priority'], 3))
+        
+        return recommendations
+    
+    def generate_summary(self):
+        """Generate performance summary statistics."""
+        if not self.metrics:
+            return {}
+        
+        total_views = len(self.metrics)
+        high_priority_issues = sum(
+            1 for rec in self.generate_recommendations() 
+            if rec['priority'] == 'HIGH'
+        )
+        avg_performance_score = sum(
+            m['performance_score'] for m in self.metrics.values()
+        ) / total_views
+        
+        return {
+            'total_views': total_views,
+            'high_priority_issues': high_priority_issues,
+            'avg_performance_score': round(avg_performance_score, 2),
+            'overall_health': 'GOOD' if high_priority_issues == 0 else 'NEEDS_ATTENTION'
+        }
+    
+    def get_view_metrics(self, view_name):
+        """Get metrics for a specific view."""
+        return self.metrics.get(view_name, {})
+    
+    def clear_metrics(self, view_name=None):
+        """Clear metrics for a specific view or all views."""
+        if view_name:
+            if view_name in self.metrics:
+                del self.metrics[view_name]
+                cache.delete(f"performance_metrics:{view_name}")
+        else:
+            self.metrics.clear()
+            # Clear all cached metrics
+            for key in cache.keys("performance_metrics:*"):
+                cache.delete(key)
+
+# Global performance monitoring instance
+performance_monitor = PerformanceMonitoringService() 

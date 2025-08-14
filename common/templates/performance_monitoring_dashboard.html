@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .performance-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+    
+    .performance-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        text-align: center;
+    }
+    
+    .performance-header h1 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 300;
+    }
+    
+    .performance-header p {
+        margin: 5px 0 0 0;
+        opacity: 0.9;
+        font-size: 14px;
+    }
+    
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        padding: 20px;
+    }
+    
+    .metric-card {
+        background: #f8f9fa;
+        border-radius: 6px;
+        padding: 20px;
+        text-align: center;
+        border-left: 4px solid #007bff;
+    }
+    
+    .metric-value {
+        font-size: 32px;
+        font-weight: bold;
+        color: #007bff;
+        margin: 10px 0;
+    }
+    
+    .metric-label {
+        color: #6c757d;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .recommendations-section {
+        padding: 20px;
+    }
+    
+    .recommendation-item {
+        background: white;
+        border-radius: 6px;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-left: 4px solid #dc3545;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .recommendation-item.medium {
+        border-left-color: #ffc107;
+    }
+    
+    .recommendation-item.low {
+        border-left-color: #28a745;
+    }
+    
+    .recommendation-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    
+    .priority-badge {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+    
+    .priority-high {
+        background: #dc3545;
+        color: white;
+    }
+    
+    .priority-medium {
+        background: #ffc107;
+        color: #212529;
+    }
+    
+    .priority-low {
+        background: #28a745;
+        color: white;
+    }
+    
+    .view-metrics {
+        background: white;
+        border-radius: 6px;
+        padding: 20px;
+        margin: 20px;
+    }
+    
+    .view-metric-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .view-metric-item:last-child {
+        border-bottom: none;
+    }
+    
+    .health-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 8px;
+    }
+    
+    .health-good {
+        background: #28a745;
+    }
+    
+    .health-warning {
+        background: #ffc107;
+    }
+    
+    .health-critical {
+        background: #dc3545;
+    }
+    
+    .refresh-button {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        margin: 20px;
+    }
+    
+    .refresh-button:hover {
+        background: #0056b3;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="performance-card">
+    <div class="performance-header">
+        <h1>🚀 Performance Monitoring Dashboard</h1>
+        <p>Track query performance and optimization recommendations</p>
+        <p>Last updated: {{ last_updated|date:"F j, Y g:i A" }}</p>
+    </div>
+    
+    <!-- Performance Summary -->
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <div class="metric-label">Total Views Monitored</div>
+            <div class="metric-value">{{ performance_report.summary.total_views|default:0 }}</div>
+        </div>
+        
+        <div class="metric-card">
+            <div class="metric-label">High Priority Issues</div>
+            <div class="metric-value">{{ performance_report.summary.high_priority_issues|default:0 }}</div>
+        </div>
+        
+        <div class="metric-card">
+            <div class="metric-label">Average Performance Score</div>
+            <div class="metric-value">{{ performance_report.summary.avg_performance_score|default:0 }}</div>
+        </div>
+        
+        <div class="metric-card">
+            <div class="metric-label">Overall Health</div>
+            <div class="metric-value">
+                {% if performance_report.summary.overall_health == 'GOOD' %}
+                    <span class="health-indicator health-good"></span>GOOD
+                {% elif performance_report.summary.overall_health == 'NEEDS_ATTENTION' %}
+                    <span class="health-indicator health-warning"></span>ATTENTION
+                {% else %}
+                    <span class="health-indicator health-critical"></span>CRITICAL
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Performance Recommendations -->
+    {% if performance_report.recommendations %}
+    <div class="recommendations-section">
+        <h3>🔧 Performance Recommendations</h3>
+        {% for rec in performance_report.recommendations %}
+        <div class="recommendation-item {% if rec.priority == 'MEDIUM' %}medium{% elif rec.priority == 'LOW' %}low{% endif %}">
+            <div class="recommendation-header">
+                <h4>{{ rec.view }}</h4>
+                <span class="priority-badge priority-{{ rec.priority|lower }}">{{ rec.priority }}</span>
+            </div>
+            <p><strong>Issue:</strong> {{ rec.issue }}</p>
+            <p><strong>Suggestion:</strong> {{ rec.suggestion }}</p>
+            <p><strong>Current:</strong> {{ rec.current_value }} | <strong>Target:</strong> {{ rec.target_value }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="recommendations-section">
+        <h3>✅ No Performance Issues Detected</h3>
+        <p>All views are performing within acceptable parameters.</p>
+    </div>
+    {% endif %}
+    
+    <!-- View Performance Metrics -->
+    {% if performance_report.views %}
+    <div class="view-metrics">
+        <h3>📊 View Performance Metrics</h3>
+        {% for view_name, metrics in performance_report.views.items %}
+        <div class="view-metric-item">
+            <div>
+                <strong>{{ view_name }}</strong>
+                <br>
+                <small>Last updated: {{ metrics.last_updated|date:"g:i A" }}</small>
+            </div>
+            <div>
+                <span class="health-indicator 
+                    {% if metrics.avg_queries <= 5 %}health-good
+                    {% elif metrics.avg_queries <= 10 %}health-warning
+                    {% else %}health-critical{% endif %}"></span>
+                {{ metrics.avg_queries|floatformat:1 }} queries
+            </div>
+            <div>
+                <span class="health-indicator 
+                    {% if metrics.avg_time <= 0.5 %}health-good
+                    {% elif metrics.avg_time <= 1.0 %}health-warning
+                    {% else %}health-critical{% endif %}"></span>
+                {{ metrics.avg_time|floatformat:3 }}s
+            </div>
+            <div>
+                Score: {{ metrics.performance_score|floatformat:2 }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <!-- System Performance Metrics -->
+    {% if system_metrics %}
+    <div class="view-metrics">
+        <h3>⚙️ System Performance Metrics (Last 7 Days)</h3>
+        {% for metric in system_metrics %}
+        <div class="view-metric-item">
+            <div>
+                <strong>{{ metric.date|date:"M j" }}</strong>
+            </div>
+            <div>
+                Events: {{ metric.total_events_processed|default:0 }}
+            </div>
+            <div>
+                Users: {{ metric.active_users|default:0 }}
+            </div>
+            <div>
+                API: {{ metric.api_requests|default:0 }}
+            </div>
+            <div>
+                Cache: {{ metric.cache_hit_rate|default:0 }}%
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<button class="refresh-button" onclick="location.reload()">
+    🔄 Refresh Metrics
+</button>
+
+<script>
+// Auto-refresh every 5 minutes
+setTimeout(function() {
+    location.reload();
+}, 300000);
+</script>
+{% endblock %}

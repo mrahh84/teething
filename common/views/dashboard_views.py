@@ -327,3 +327,37 @@ def predictive_analytics_dashboard(request):
         'attendance_data': attendance_data,
     }
     return render(request, 'attendance/predictive_analytics_dashboard.html', context)
+
+
+@admin_required
+@extend_schema(exclude=True)
+def performance_monitoring_dashboard(request):
+    """
+    Performance monitoring dashboard for tracking query performance and optimization.
+    Part of Phase 1 performance optimization implementation.
+    """
+    from ..utils import performance_monitor
+    
+    # Get performance report
+    performance_report = performance_monitor.get_performance_report()
+    
+    # Get system performance metrics
+    from ..models import SystemPerformance
+    from datetime import timedelta
+    
+    today = django_timezone.localtime(django_timezone.now()).date()
+    last_7_days = today - timedelta(days=7)
+    
+    system_metrics = SystemPerformance.objects.filter(
+        date__gte=last_7_days
+    ).order_by('-date')[:7]
+    
+    context = {
+        'page_title': 'Performance Monitoring Dashboard',
+        'active_tab': 'performance_monitoring',
+        'performance_report': performance_report,
+        'system_metrics': system_metrics,
+        'last_updated': django_timezone.now(),
+    }
+    
+    return render(request, 'performance_monitoring_dashboard.html', context)

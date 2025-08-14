@@ -122,6 +122,10 @@ class Department(models.Model):
     
     class Meta:
         ordering = ['name']
+        indexes = [
+            models.Index(fields=['is_active', 'name']),
+            models.Index(fields=['code', 'is_active']),
+        ]
     
     def __str__(self):
         return self.name
@@ -176,6 +180,7 @@ class Employee(models.Model):
         indexes = [
             models.Index(fields=['is_active', 'surname', 'given_name']),
             models.Index(fields=['card_number', 'is_active']),
+            models.Index(fields=['department', 'is_active']),
         ]
 
     def __str__(self):
@@ -310,6 +315,8 @@ class AttendanceRecord(models.Model):
         indexes = [
             models.Index(fields=['employee', 'date']),
             models.Index(fields=['date', 'status']),
+            models.Index(fields=['date', 'employee']),
+            models.Index(fields=['status', 'date']),
             models.Index(fields=['created_by', 'created_at']),
         ]
 
@@ -489,6 +496,7 @@ class Event(models.Model):
         indexes = [
             models.Index(fields=['employee', 'timestamp']),
             models.Index(fields=['event_type', 'timestamp']),
+            models.Index(fields=['timestamp', 'event_type']),
             models.Index(fields=['location', 'timestamp']),
             models.Index(fields=['created_by', 'timestamp']),
         ]
@@ -612,14 +620,22 @@ class AnalyticsCache(models.Model):
             ('attendance_heatmap', 'Attendance Heatmap'),
             ('movement_patterns', 'Movement Patterns'),
             ('anomaly_detection', 'Anomaly Detection'),
+            ('department_stats', 'Department Statistics'),
+            ('employee_status', 'Employee Status'),
+            ('system_performance', 'System Performance'),
+            ('comprehensive_report', 'Comprehensive Report'),
         ],
         help_text="Type of cached analytics data"
     )
+    user_specific = models.BooleanField(default=False, help_text="Whether this cache entry is user-specific")
+    user_id = models.IntegerField(null=True, blank=True, help_text="User ID for user-specific cache entries")
     
     class Meta:
         indexes = [
             models.Index(fields=['cache_type', 'expires_at']),
             models.Index(fields=['cache_key']),
+            models.Index(fields=['user_specific', 'user_id']),
+            models.Index(fields=['cache_key', 'expires_at']),
         ]
     
     def __str__(self):

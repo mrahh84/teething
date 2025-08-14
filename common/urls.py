@@ -74,6 +74,7 @@ from common.views import (
     # Dashboard views
     pattern_recognition_dashboard,
     predictive_analytics_dashboard,
+    performance_monitoring_dashboard,
 )
 
 # URLs organized by section for easier permission implementation in the future
@@ -131,6 +132,7 @@ report_urls = [
     path("reports/period_summary/csv/", period_summary_report_csv, name="period_summary_report_csv"),
 
     path("reports/performance/", performance_dashboard, name="performance_dashboard"),
+    path("reports/performance-monitoring/", performance_monitoring_dashboard, name="performance_monitoring_dashboard"),
     path(
         "reports/generate/<str:report_type>/",
         generate_marimo_report,

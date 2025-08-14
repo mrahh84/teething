@@ -786,37 +786,40 @@ def comprehensive_reports(request):
         timestamp__date__gte=last_30_days
     ).count()
     
-    # Get department statistics
-    departments = Department.objects.filter(is_active=True)
-    department_stats = []
+    # Get department statistics - OPTIMIZED with single query aggregation
+    department_stats = Employee.objects.filter(
+        is_active=True
+    ).values('department__name').annotate(
+        employee_count=Count('id'),
+        event_count=Count(
+            'employee_events',
+            filter=Q(employee_events__timestamp__date__gte=last_30_days)
+        ),
+        clock_in_count=Count(
+            'employee_events',
+            filter=Q(
+                employee_events__event_type__name='Clock In',
+                employee_events__timestamp__date__gte=last_30_days
+            )
+        )
+    ).filter(
+        department__isnull=False
+    ).order_by('-clock_in_count')
     
-    for department in departments:
-        dept_employees = Employee.objects.filter(
-            department=department,
-            is_active=True
-        ).count()
-        
-        dept_events = Event.objects.filter(
-            employee__department=department,
-            timestamp__date__gte=last_30_days
-        ).count()
-        
-        # Count unique employees who clocked in (SQLite compatible)
-        dept_clock_ins = Event.objects.filter(
-            employee__department=department,
-            event_type__name='Clock In',
-            timestamp__date__gte=last_30_days
-        ).values('employee').distinct().count()
-        
-        attendance_rate = (dept_clock_ins / dept_employees * 100) if dept_employees > 0 else 0
-        
-        department_stats.append({
-            'name': department.name,
-            'employees': dept_employees,
-            'events': dept_events,
-            'clock_ins': dept_clock_ins,
-            'attendance_rate': round(attendance_rate, 1)
-        })
+    # Calculate attendance rates and format data
+    department_stats = [
+        {
+            'name': stat['department__name'],
+            'employees': stat['employee_count'],
+            'events': stat['event_count'],
+            'clock_ins': stat['clock_in_count'],
+            'attendance_rate': round(
+                (stat['clock_in_count'] / stat['employee_count'] * 100) 
+                if stat['employee_count'] > 0 else 0, 1
+            )
+        }
+        for stat in department_stats
+    ]
     
     # Sort by attendance rate
     department_stats.sort(key=lambda x: x['attendance_rate'], reverse=True)
@@ -862,34 +865,36 @@ def generate_period_summary_html(request, start_date, end_date, department_filte
         if department_filter:
             events = events.filter(employee__department__name__icontains=department_filter)
         
-        # Calculate statistics by department
+        # Calculate statistics by department - OPTIMIZED with aggregation
+        from django.db.models import Count, Q
+        
+        # Get department statistics in a single query
+        dept_stats = events.values('employee__department__name').annotate(
+            total_events=Count('id'),
+            clock_ins=Count('id', filter=Q(event_type__name='Clock In')),
+            clock_outs=Count('id', filter=Q(event_type__name='Clock Out')),
+            unique_employees=Count('employee', distinct=True)
+        ).filter(
+            employee__department__isnull=False
+        ).order_by('-total_events')
+        
+        # Convert to the expected format
         department_stats = {}
         total_events = 0
         total_employees = set()
         
-        for event in events:
-            total_events += 1
-            total_employees.add(event.employee.id)
-            
-            dept_name = event.employee.department.name if event.employee.department else 'Unknown'
-            if dept_name not in department_stats:
-                department_stats[dept_name] = {
-                    'total_events': 0,
-                    'clock_ins': 0,
-                    'clock_outs': 0,
-                    'employees': set(),
-                    'total_hours': 0
-                }
-            
-            department_stats[dept_name]['total_events'] += 1
-            department_stats[dept_name]['employees'].add(event.employee.id)
-            
-            if event.event_type.name == 'Clock In':
-                department_stats[dept_name]['clock_ins'] += 1
-            elif event.event_type.name == 'Clock Out':
-                department_stats[dept_name]['clock_outs'] += 1
+        for stat in dept_stats:
+            dept_name = stat['employee__department__name']
+            department_stats[dept_name] = {
+                'total_events': stat['total_events'],
+                'clock_ins': stat['clock_ins'],
+                'clock_outs': stat['clock_outs'],
+                'unique_employees': stat['unique_employees'],
+                'total_hours': 0  # Will be calculated below
+            }
+            total_events += stat['total_events']
         
-        # Calculate hours worked for each department
+        # Calculate hours worked for each department (this part is more complex and kept as is)
         for dept_name, stats in department_stats.items():
             dept_events = events.filter(employee__department__name=dept_name)
             clock_ins = dept_events.filter(event_type__name='Clock In')
@@ -907,15 +912,6 @@ def generate_period_summary_html(request, start_date, end_date, department_filte
                     total_hours += duration.total_seconds() / 3600
             
             stats['total_hours'] = round(total_hours, 2)
-            stats['unique_employees'] = len(stats['employees'])
-            del stats['employees']
-        
-        # Sort departments by total events
-        department_stats = dict(sorted(
-            department_stats.items(), 
-            key=lambda x: x[1]['total_events'], 
-            reverse=True
-        ))
         
         # Generate HTML report
         html = f"""
