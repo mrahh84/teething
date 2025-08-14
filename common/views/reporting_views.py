@@ -151,15 +151,18 @@ def daily_dashboard_report(request):
 
 @reporting_required  # Reporting role and above
 @extend_schema(exclude=True)
-def employee_history_report(request):
+def employee_history_report(request, employee_id=None, start_date_str=None, end_date_str=None):
     """Employee history report."""
     from django.db.models import Count, Q
     from datetime import timedelta
     
-    # Get filter parameters
-    employee_id = request.GET.get('employee_id')
-    start_date_str = request.GET.get('start_date')
-    end_date_str = request.GET.get('end_date')
+    # Get filter parameters - check URL parameters first, then GET parameters
+    if employee_id is None:
+        employee_id = request.GET.get('employee_id')
+    if start_date_str is None:
+        start_date_str = request.GET.get('start_date')
+    if end_date_str is None:
+        end_date_str = request.GET.get('end_date')
     
     if not all([employee_id, start_date_str, end_date_str]):
         # Show form for selecting parameters
