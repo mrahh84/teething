@@ -14,24 +14,30 @@
     }
     
     .metric-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
+        background: rgba(255, 255, 255, 0.95);
         border-radius: 15px;
         padding: 1.5rem;
         margin-bottom: 1.5rem;
         box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: var(--text-color);
     }
     
     .metric-card.success {
-        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        border-left: 4px solid var(--success-color);
     }
     
     .metric-card.warning {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        border-left: 4px solid var(--warning-color);
     }
     
     .metric-card.info {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        border-left: 4px solid var(--accent-color);
+    }
+    
+    .metric-card.primary {
+        border-left: 4px solid var(--primary-color);
     }
     
     .heatmap-cell {
@@ -58,11 +64,11 @@
         display: inline-block;
     }
     
-    .tier-excellent { background-color: #10b981; color: white; }
-    .tier-good { background-color: #3b82f6; color: white; }
-    .tier-average { background-color: #f59e0b; color: white; }
+    .tier-excellent { background-color: var(--success-color); color: white; }
+    .tier-good { background-color: var(--accent-color); color: white; }
+    .tier-average { background-color: var(--warning-color); color: white; }
     .tier-below-average { background-color: #f97316; color: white; }
-    .tier-poor { background-color: #ef4444; color: white; }
+    .tier-poor { background-color: var(--danger-color); color: white; }
     
     .real-time-indicator {
         animation: pulse 2s infinite;
@@ -75,26 +81,32 @@
     }
     
     .dashboard-container {
-        max-width: 1400px;
-        margin: 0 auto;
-        padding: 20px;
+        padding: 2rem;
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        min-height: calc(100vh - 200px);
     }
     
     .dashboard-header {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 15px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(10px);
         text-align: center;
-        margin-bottom: 30px;
     }
     
     .dashboard-title {
         font-size: 2.5rem;
-        color: #2d3748;
-        margin-bottom: 10px;
+        font-weight: 700;
+        color: var(--text-color);
+        margin-bottom: 0.5rem;
     }
     
     .dashboard-subtitle {
-        font-size: 1.2rem;
-        color: #718096;
-        margin-bottom: 20px;
+        font-size: 1.1rem;
+        color: var(--text-secondary);
+        margin-bottom: 2rem;
     }
     
     .section {
@@ -113,15 +125,17 @@
     }
     
     .card {
-        background: white;
+        background: rgba(255, 255, 255, 0.95);
         border-radius: 15px;
         box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         margin-bottom: 20px;
         overflow: hidden;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
     }
     
     .card-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
         color: white;
         padding: 1.5rem;
         border-bottom: none;
@@ -149,27 +163,27 @@
     }
     
     .btn-primary {
-        background: #667eea;
+        background: var(--primary-color);
         color: white;
     }
     
     .btn-success {
-        background: #10b981;
+        background: var(--success-color);
         color: white;
     }
     
     .btn-info {
-        background: #3b82f6;
+        background: var(--accent-color);
         color: white;
     }
     
     .btn-warning {
-        background: #f59e0b;
+        background: var(--warning-color);
         color: white;
     }
     
     .btn-danger {
-        background: #ef4444;
+        background: var(--danger-color);
         color: white;
     }
     
@@ -187,22 +201,22 @@
     }
     
     .badge-success {
-        background: #10b981;
+        background: var(--success-color);
         color: white;
     }
     
     .badge-warning {
-        background: #f59e0b;
+        background: var(--warning-color);
         color: white;
     }
     
     .badge-danger {
-        background: #ef4444;
+        background: var(--danger-color);
         color: white;
     }
     
     .badge-info {
-        background: #3b82f6;
+        background: var(--accent-color);
         color: white;
     }
     
@@ -221,7 +235,7 @@
     .table th {
         background: #f7fafc;
         font-weight: 600;
-        color: #2d3748;
+        color: var(--text-color);
     }
     
     .table-striped tbody tr:nth-child(odd) {
@@ -233,23 +247,23 @@
     }
     
     .text-success {
-        color: #10b981;
+        color: var(--success-color);
     }
     
     .text-danger {
-        color: #ef4444;
+        color: var(--danger-color);
     }
     
     .text-primary {
-        color: #667eea;
+        color: var(--primary-color);
     }
     
     .text-info {
-        color: #3b82f6;
+        color: var(--accent-color);
     }
     
     .text-muted {
-        color: #718096;
+        color: var(--text-secondary);
     }
     
     .mb-0 { margin-bottom: 0; }
@@ -415,6 +429,18 @@
         .justify-content-between {
             justify-content: center;
         }
+        
+        .dashboard-container {
+            padding: 1rem;
+        }
+        
+        .dashboard-header {
+            padding: 1.5rem;
+        }
+        
+        .dashboard-title {
+            font-size: 2rem;
+        }
     }
 </style>
 {% endblock %}
@@ -430,6 +456,9 @@
                     <span class="badge badge-success mr-3">
                         <i class="fas fa-circle real-time-indicator"></i> Live Data
                     </span>
+                    <span class="badge badge-info mr-3">
+                        <i class="fas fa-clock"></i> {{ real_time_status.working_status }}
+                    </span>
                     <button onclick="showDebugInfo()" class="btn btn-info mr-2">
                         <i class="fas fa-bug"></i> Debug
                     </button>
@@ -441,7 +470,7 @@
     <!-- Real-time Attendance Status -->
     <div class="row mb-4">
         <div class="col-md-3">
-            <div class="metric-card {% if real_time_status.attendance_status == 'above_expectation' %}success{% else %}warning{% endif %}">
+            <div class="metric-card {% if real_time_status.attendance_status == 'above_expectation' %}success{% elif real_time_status.attendance_status == 'weekend' %}info{% elif real_time_status.attendance_status == 'outside_hours' %}info{% else %}warning{% endif %}">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h2 class="mb-0">{{ real_time_status.current_clocked_in }}</h2>
@@ -452,7 +481,15 @@
                     </div>
                 </div>
                 <div class="mt-2">
-                    <small>{{ real_time_status.current_percentage }}% of {{ real_time_status.total_employees }} employees</small>
+                    <small>
+                        {% if real_time_status.attendance_status == 'weekend' %}
+                            Weekend - No work expected
+                        {% elif real_time_status.attendance_status == 'outside_hours' %}
+                            Outside working hours
+                        {% else %}
+                            {{ real_time_status.current_percentage }}% of {{ real_time_status.total_employees }} employees
+                        {% endif %}
+                    </small>
                 </div>
             </div>
         </div>
@@ -468,7 +505,15 @@
                     </div>
                 </div>
                 <div class="mt-2">
-                    <small>Target: {{ real_time_status.expected_percentage }}%</small>
+                    <small>
+                        {% if real_time_status.attendance_status == 'weekend' %}
+                            Weekend - No expectations
+                        {% elif real_time_status.attendance_status == 'outside_hours' %}
+                            Outside working hours
+                        {% else %}
+                            Target: {{ real_time_status.expected_percentage }}%
+                        {% endif %}
+                    </small>
                 </div>
             </div>
         </div>

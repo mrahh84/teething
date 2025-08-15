@@ -48,24 +48,29 @@ class DashboardAnalyticsService:
         current_date = start_date
         
         while current_date <= end_date:
-            # Count employees who clocked in on this date
-            clock_in_count = Event.objects.filter(
-                event_type__name='Clock In',
-                timestamp__date=current_date
-            ).values('employee').distinct().count()
+            # Only count working days (Monday = 0, Sunday = 6)
+            is_working_day = current_date.weekday() < 5
             
-            # Get total active employees for this date
-            total_employees = Employee.objects.filter(is_active=True).count()
-            
-            # Calculate attendance rate
-            attendance_rate = (clock_in_count / total_employees * 100) if total_employees > 0 else 0
-            
-            daily_data.append({
-                'date': current_date.strftime('%Y-%m-%d'),
-                'attendance_count': clock_in_count,
-                'total_employees': total_employees,
-                'attendance_rate': round(attendance_rate, 1)
-            })
+            if is_working_day:
+                # Count employees who clocked in on this date
+                clock_in_count = Event.objects.filter(
+                    event_type__name='Clock In',
+                    timestamp__date=current_date
+                ).values('employee').distinct().count()
+                
+                # Get total active employees for this date
+                total_employees = Employee.objects.filter(is_active=True).count()
+                
+                # Calculate attendance rate
+                attendance_rate = (clock_in_count / total_employees * 100) if total_employees > 0 else 0
+                
+                daily_data.append({
+                    'date': current_date.strftime('%Y-%m-%d'),
+                    'attendance_count': clock_in_count,
+                    'total_employees': total_employees,
+                    'attendance_rate': round(attendance_rate, 1),
+                    'is_working_day': True
+                })
             
             current_date += timedelta(days=1)
         
@@ -333,7 +338,8 @@ class DashboardAnalyticsService:
     
     def get_real_time_attendance_status(self) -> Dict[str, Any]:
         """
-        Get real-time attendance status.
+        Get real-time attendance status with proper working hours logic.
+        Working hours: Monday-Friday, 9 AM to 5 PM
         
         Returns:
             Dictionary containing current attendance status
@@ -347,7 +353,48 @@ class DashboardAnalyticsService:
         today = timezone.now().date()
         now = timezone.now().time()
         
-        # Get current clocked-in employees
+        # Check if today is a working day (Monday = 0, Sunday = 6)
+        is_working_day = today.weekday() < 5  # Monday to Friday
+        
+        # Check if current time is within working hours (9 AM to 5 PM)
+        working_start = time(9, 0)  # 9:00 AM
+        working_end = time(17, 0)   # 5:00 PM
+        is_working_hours = working_start <= now <= working_end
+        
+        # If it's not a working day or working hours, return appropriate status
+        if not is_working_day:
+            result = {
+                'current_time': now.strftime('%H:%M:%S'),
+                'current_date': today.strftime('%Y-%m-%d'),
+                'current_clocked_in': 0,
+                'total_employees': Employee.objects.filter(is_active=True).count(),
+                'current_percentage': 0,
+                'expected_percentage': 0,
+                'expected_attendance': 0,
+                'attendance_status': 'weekend',
+                'working_status': 'Weekend - No work expected',
+                'department_breakdown': []
+            }
+            cache.set(cache_key, result, 300)  # Cache for 5 minutes on weekends
+            return result
+        
+        if not is_working_hours:
+            result = {
+                'current_time': now.strftime('%H:%M:%S'),
+                'current_date': today.strftime('%Y-%m-%d'),
+                'current_clocked_in': 0,
+                'total_employees': Employee.objects.filter(is_active=True).count(),
+                'current_percentage': 0,
+                'expected_percentage': 0,
+                'expected_attendance': 0,
+                'attendance_status': 'outside_hours',
+                'working_status': 'Outside working hours (9 AM - 5 PM)',
+                'department_breakdown': []
+            }
+            cache.set(cache_key, result, 300)  # Cache for 5 minutes outside hours
+            return result
+        
+        # Get current clocked-in employees (only count those who haven't clocked out)
         current_clocked_in = Event.objects.filter(
             event_type__name='Clock In',
             timestamp__date=today
@@ -393,16 +440,32 @@ class DashboardAnalyticsService:
                     'percentage': round((dept_clocked_in / dept_total) * 100, 1)
                 })
         
-        # Calculate expected vs actual
-        # For now, use a simple heuristic: if it's before 10 AM, expect 80% attendance
-        # if it's after 10 AM, expect 95% attendance
-        if now.hour < 10:
-            expected_percentage = 80
-        else:
+        # Calculate expected attendance based on time of day
+        if now.hour < 10:  # Before 10 AM - early arrival period
+            expected_percentage = 70
+        elif now.hour < 12:  # 10 AM - 12 PM - core working hours
             expected_percentage = 95
+        elif now.hour < 14:  # 12 PM - 2 PM - lunch period
+            expected_percentage = 85
+        elif now.hour < 17:  # 2 PM - 5 PM - afternoon working hours
+            expected_percentage = 95
+        else:  # After 5 PM - end of day
+            expected_percentage = 60
         
         expected_attendance = int((expected_percentage / 100) * total_employees)
         actual_percentage = (current_clocked_in / total_employees * 100) if total_employees > 0 else 0
+        
+        # Determine working status message
+        if now.hour < 10:
+            working_status = "Early arrival period (9 AM - 10 AM)"
+        elif now.hour < 12:
+            working_status = "Core working hours (10 AM - 12 PM)"
+        elif now.hour < 14:
+            working_status = "Lunch period (12 PM - 2 PM)"
+        elif now.hour < 17:
+            working_status = "Afternoon working hours (2 PM - 5 PM)"
+        else:
+            working_status = "End of day (after 5 PM)"
         
         result = {
             'current_time': now.strftime('%H:%M:%S'),
@@ -413,6 +476,9 @@ class DashboardAnalyticsService:
             'expected_percentage': expected_percentage,
             'expected_attendance': expected_attendance,
             'attendance_status': 'above_expectation' if actual_percentage >= expected_percentage else 'below_expectation',
+            'working_status': working_status,
+            'is_working_day': is_working_day,
+            'is_working_hours': is_working_hours,
             'department_breakdown': dept_breakdown
         }
         
