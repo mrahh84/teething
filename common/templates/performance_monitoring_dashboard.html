@@ -9,22 +9,22 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h1 class="h3 mb-0">{{ page_title }}</h1>
-                <a href="{% url 'reports_dashboard' %}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i> Back to Reports
+                <a href="{% url 'performance_dashboard' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Basic Performance
                 </a>
             </div>
         </div>
     </div>
 
-    <!-- Performance Overview -->
+        <!-- Performance Overview -->
     <div class="row mb-4">
         <div class="col-md-3">
             <div class="card bg-primary text-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h4 class="mb-0">{{ advanced_performance_report.summary.total_views|default:0 }}</h4>
-                            <small>Total Views</small>
+                            <h4 class="mb-0">{{ basic_performance_report.views|length|default:0 }}</h4>
+                            <small>Monitored Views</small>
                         </div>
                         <div class="align-self-center">
                             <i class="fas fa-eye fa-2x"></i>
@@ -38,8 +38,8 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h4 class="mb-0">{{ advanced_performance_report.summary.excellent_views|default:0 }}</h4>
-                            <small>Excellent Performance</small>
+                            <h4 class="mb-0">{{ performance_recommendations|length|default:0 }}</h4>
+                            <small>Optimization Suggestions</small>
                         </div>
                         <div class="align-self-center">
                             <i class="fas fa-star fa-2x"></i>
@@ -53,11 +53,11 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h4 class="mb-0">{{ advanced_performance_report.summary.critical_alerts|default:0 }}</h4>
-                            <small>Critical Alerts</small>
+                            <h4 class="mb-0">{{ cache_stats.calculated_hit_rate|default:0|floatformat:1 }}%</h4>
+                            <small>Cache Hit Rate</small>
                         </div>
                         <div class="align-self-center">
-                            <i class="fas fa-exclamation-triangle fa-2x"></i>
+                            <i class="fas fa-database fa-2x"></i>
                         </div>
                     </div>
                 </div>
@@ -68,8 +68,8 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h4 class="mb-0">{{ advanced_performance_report.summary.avg_performance_score|default:0|floatformat:1 }}</h4>
-                            <small>Avg Performance Score</small>
+                            <h4 class="mb-0">{{ system_metrics|length|default:0 }}</h4>
+                            <small>System Metrics</small>
                         </div>
                         <div class="align-self-center">
                             <i class="fas fa-tachometer-alt fa-2x"></i>
@@ -80,103 +80,44 @@
         </div>
     </div>
 
-    <!-- Performance Thresholds -->
+    <!-- Performance Recommendations -->
+    {% if performance_recommendations %}
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
-                        <i class="fas fa-cog"></i> Performance Thresholds
+                        <i class="fas fa-lightbulb"></i> Performance Optimization Recommendations
                     </h5>
                 </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-3">
-                            <div class="text-center">
-                                <h6>Max Query Count</h6>
-                                <span class="badge badge-{% if performance_thresholds.max_query_count <= 10 %}success{% else %}warning{% endif %}">
-                                    {{ performance_thresholds.max_query_count }}
-                                </span>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="text-center">
-                                <h6>Max Execution Time</h6>
-                                <span class="badge badge-{% if performance_thresholds.max_execution_time <= 2.0 %}success{% else %}warning{% endif %}">
-                                    {{ performance_thresholds.max_execution_time }}s
-                                </span>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="text-center">
-                                <h6>Min Cache Hit Rate</h6>
-                                <span class="badge badge-{% if performance_thresholds.min_cache_hit_rate >= 80 %}success{% else %}warning{% endif %}">
-                                    {{ performance_thresholds.min_cache_hit_rate }}%
-                                </span>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="text-center">
-                                <h6>Max Memory Usage</h6>
-                                <span class="badge badge-{% if performance_thresholds.max_memory_usage <= 80 %}success{% else %}warning{% endif %}">
-                                    {{ performance_thresholds.max_memory_usage }}%
-                                </span>
-                            </div>
-                        </div>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>View</th>
+                                    <th>Issue</th>
+                                    <th>Suggestion</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for rec in performance_recommendations %}
+                                <tr>
+                                    <td><code>{{ rec.view }}</code></td>
+                                    <td><span class="badge badge-warning">{{ rec.issue }}</span></td>
+                                    <td>{{ rec.suggestion }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+    {% endif %}
 
-    <!-- Database Connection Information -->
-    <div class="row mb-4">
-        <div class="col-lg-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-database"></i> Database Connections
-                    </h5>
-                </div>
-                <div class="card-body">
-                    {% if db_connection_info.error %}
-                        <div class="alert alert-danger">
-                            <strong>Error:</strong> {{ db_connection_info.error }}
-                        </div>
-                    {% else %}
-                        <div class="row">
-                            <div class="col-md-6">
-                                <strong>Current Connections:</strong>
-                                <span class="badge badge-info">{{ db_connection_info.current_connections|default:"N/A" }}</span>
-                            </div>
-                            <div class="col-md-6">
-                                <strong>Active Connections:</strong>
-                                <span class="badge badge-success">{{ db_connection_info.active_connections|default:"N/A" }}</span>
-                            </div>
-                        </div>
-                        <div class="row mt-2">
-                            <div class="col-md-6">
-                                <strong>Max Connections:</strong>
-                                <span class="badge badge-secondary">{{ db_connection_info.max_connections|default:"N/A" }}</span>
-                            </div>
-                            <div class="col-md-6">
-                                <strong>Utilization:</strong>
-                                <span class="badge badge-{% if db_connection_info.connection_utilization > 80 %}danger{% elif db_connection_info.connection_utilization > 60 %}warning{% else %}success{% endif %}">
-                                    {{ db_connection_info.connection_utilization|default:0|floatformat:1 }}%
-                                </span>
-                            </div>
-                        </div>
-                        {% if db_connection_info.last_optimization %}
-                        <div class="mt-2">
-                            <small class="text-muted">
-                                <i class="fas fa-clock"></i> Last optimized: {{ db_connection_info.last_optimization|date:"M d, Y H:i" }}
-                            </small>
-                        </div>
-                        {% endif %}
-                    {% endif %}
-                </div>
-            </div>
-        </div>
+
 
         <!-- Cache Statistics -->
         <div class="col-lg-6">
@@ -221,11 +162,11 @@
                 <div class="card-header">
                     <h5 class="card-title mb-0">
                         <i class="fas fa-lightbulb"></i> Performance Recommendations
-                        <span class="badge badge-primary ml-2">{{ advanced_performance_report.recommendations|length }}</span>
+                        <span class="badge badge-primary ml-2">{{ performance_recommendations|length }}</span>
                     </h5>
                 </div>
                 <div class="card-body">
-                    {% if advanced_performance_report.recommendations %}
+                    {% if performance_recommendations %}
                         <div class="table-responsive">
                             <table class="table table-striped">
                                 <thead class="thead-dark">
@@ -233,28 +174,18 @@
                                         <th>View</th>
                                         <th>Issue</th>
                                         <th>Suggestion</th>
-                                        <th>Priority</th>
-                                        <th>Impact</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for rec in advanced_performance_report.recommendations %}
+                                    {% for rec in performance_recommendations %}
                                     <tr>
                                         <td>
                                             <strong>{{ rec.view }}</strong>
                                         </td>
                                         <td>
-                                            <span class="badge badge-{% if rec.priority == 'critical' %}danger{% elif rec.priority == 'high' %}warning{% else %}info{% endif %}">
-                                                {{ rec.issue }}
-                                            </span>
+                                            <span class="badge badge-warning">{{ rec.issue }}</span>
                                         </td>
                                         <td>{{ rec.suggestion }}</td>
-                                        <td>
-                                            <span class="badge badge-{% if rec.priority == 'critical' %}danger{% elif rec.priority == 'high' %}warning{% elif rec.priority == 'medium' %}info{% else %}secondary{% endif %}">
-                                                {{ rec.priority|title }}
-                                            </span>
-                                        </td>
-                                        <td>{{ rec.impact }}</td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>

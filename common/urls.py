@@ -23,19 +23,14 @@ from common.views import (
     
     # Reporting views
     reports_dashboard,
-    comprehensive_reports,
     comprehensive_attendance_report,
-    daily_dashboard_report,
+
     employee_history_report,
     employee_history_report_csv,
     period_summary_report,
     period_summary_report_csv,
     performance_dashboard,
     generate_marimo_report,
-    
-    # Phase 3 Optimized Reporting Views
-    paginated_attendance_list,
-    
     # Location views
     location_dashboard,
     location_assignment_list,
@@ -74,10 +69,10 @@ from common.views import (
     # System views
     health_check,
     
-    # Dashboard views
-    pattern_recognition_dashboard,
-    predictive_analytics_dashboard,
-    performance_monitoring_dashboard,
+    # Dashboard views - REMOVED (nonsense functionality)
+    # pattern_recognition_dashboard,
+    # predictive_analytics_dashboard,
+    # performance_monitoring_dashboard,
 )
 
 # URLs organized by section for easier permission implementation in the future
@@ -106,9 +101,8 @@ urlpatterns = [
     
     # Reporting URLs
     path('reports/', reports_dashboard, name='reports_dashboard'),
-    path('reports/comprehensive/', comprehensive_reports, name='comprehensive_reports'),
     path('reports/comprehensive-attendance/', comprehensive_attendance_report, name='comprehensive_attendance_report'),
-    path('reports/daily-dashboard/', daily_dashboard_report, name='daily_dashboard_report'),
+
     path('reports/employee-history/', employee_history_report, name='employee_history_report'),
     path('reports/employee-history/<int:employee_id>/<str:start_date>/<str:end_date>/', employee_history_report, name='employee_history_report_detail'),
     path('reports/employee-history-csv/<int:employee_id>/<str:start_date>/<str:end_date>/', employee_history_report_csv, name='employee_history_report_csv'),
@@ -119,9 +113,6 @@ urlpatterns = [
     
     # Phase 3 & 4 Optimized Reporting URLs
 
-
-    path('reports/paginated-attendance-list/', paginated_attendance_list, name='paginated_attendance_list'),
-    
     # Location URLs
     path('locations/', location_dashboard, name='location_dashboard'),
     path('locations/assignments/', location_assignment_list, name='location_assignment_list'),
@@ -169,7 +160,7 @@ system_urls = [
 # Combine all URL patterns
 urlpatterns = urlpatterns + system_urls
 
-# Phase 3: Advanced Analytics Dashboards
-urlpatterns.append(path("pattern-recognition/", pattern_recognition_dashboard, name="pattern_recognition_dashboard"))
-urlpatterns.append(path("predictive-analytics/", predictive_analytics_dashboard, name="predictive_analytics_dashboard"))
-urlpatterns.append(path("performance-monitoring/", performance_monitoring_dashboard, name="performance_monitoring_dashboard"))
+# Phase 3: Advanced Analytics Dashboards - REMOVED (nonsense functionality)
+# urlpatterns.append(path("pattern-recognition/", pattern_recognition_dashboard, name="pattern_recognition_dashboard"))
+# urlpatterns.append(path("predictive-analytics/", predictive_analytics_dashboard, name="predictive_analytics_dashboard"))
+# urlpatterns.append(path("performance-monitoring/", performance_monitoring_dashboard, name="performance_monitoring_dashboard"))

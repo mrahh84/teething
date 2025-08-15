@@ -299,8 +299,8 @@ class ListSystemPerformanceView(generics.ListAPIView):
                 start = datetime.strptime(start_date, '%Y-%m-%d').date()
                 end = datetime.strptime(end_date, '%Y-%m-%d').date()
                 queryset = queryset.filter(
-                    measurement_date__gte=start,
-                    measurement_date__lte=end
+                    date__gte=start,
+                    date__lte=end
                 )
             except ValueError:
                 pass
@@ -310,7 +310,7 @@ class ListSystemPerformanceView(generics.ListAPIView):
         if metric_type:
             queryset = queryset.filter(metric_type=metric_type)
         
-        return queryset.order_by('-measurement_date')
+        return queryset.order_by('-date')
 
 
 class SingleSystemPerformanceView(generics.RetrieveUpdateDestroyAPIView):

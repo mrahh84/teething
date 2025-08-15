@@ -333,35 +333,19 @@ def predictive_analytics_dashboard(request):
 @extend_schema(exclude=True)
 def performance_monitoring_dashboard(request):
     """
-    Advanced performance monitoring dashboard for Phase 4 performance optimization.
-    Provides comprehensive performance tracking, database connection monitoring,
+    Advanced performance monitoring dashboard for system optimization.
+    Provides comprehensive performance tracking, query monitoring,
     and optimization recommendations.
     """
     from ..utils import performance_monitor
-    from ..services.async_report_service import (
-        AdvancedPerformanceMonitoringService, 
-        DatabaseConnectionPoolService
-    )
+    from django.core.cache import cache
+    from datetime import timedelta
     
-    # Initialize advanced performance monitoring
-    advanced_monitor = AdvancedPerformanceMonitoringService()
-    db_pool_service = DatabaseConnectionPoolService()
-    
-    # Get basic performance report
+    # Get basic performance report from existing service
     basic_performance_report = performance_monitor.get_performance_report()
-    
-    # Get advanced performance metrics
-    advanced_performance_report = advanced_monitor.get_performance_report()
-    
-    # Get database connection information
-    db_connection_info = db_pool_service.get_connection_info()
-    
-    # Get connection optimization recommendations
-    db_recommendations = db_pool_service.get_connection_recommendations()
     
     # Get system performance metrics
     from ..models import SystemPerformance
-    from datetime import timedelta
     
     today = django_timezone.localtime(django_timezone.now()).date()
     last_7_days = today - timedelta(days=7)
@@ -386,17 +370,33 @@ def performance_monitoring_dashboard(request):
     else:
         cache_stats['calculated_hit_rate'] = 0
     
+    # Generate performance recommendations based on available data
+    performance_recommendations = []
+    
+    if basic_performance_report and 'views' in basic_performance_report:
+        for view_name, metrics in basic_performance_report['views'].items():
+            if metrics.get('avg_queries', 0) > 10:
+                performance_recommendations.append({
+                    'view': view_name,
+                    'issue': 'High query count',
+                    'suggestion': 'Implement select_related/prefetch_related'
+                })
+            
+            if metrics.get('avg_time', 0) > 1.0:
+                performance_recommendations.append({
+                    'view': view_name,
+                    'issue': 'Slow execution',
+                    'suggestion': 'Add database indexes or optimize queries'
+                })
+    
     context = {
         'page_title': 'Advanced Performance Monitoring Dashboard',
         'active_tab': 'performance_monitoring',
         'basic_performance_report': basic_performance_report,
-        'advanced_performance_report': advanced_performance_report,
-        'db_connection_info': db_connection_info,
-        'db_recommendations': db_recommendations,
         'system_metrics': system_metrics,
         'cache_stats': cache_stats,
+        'performance_recommendations': performance_recommendations,
         'last_updated': django_timezone.now(),
-        'performance_thresholds': advanced_monitor.performance_thresholds,
     }
     
     return render(request, 'performance_monitoring_dashboard.html', context)

@@ -57,94 +57,20 @@ def reports_dashboard(request):
 @admin_required  # Admin role only
 @extend_schema(exclude=True)
 def performance_dashboard(request):
-    """Performance monitoring dashboard."""
-    from django.db.models import Count, Avg, Q
-    from datetime import timedelta
-    
-    today = django_timezone.localtime(django_timezone.now()).date()
-    last_30_days = today - timedelta(days=30)
-    
-    # Get system performance metrics
-    system_metrics = SystemPerformance.objects.filter(
-        measurement_date__gte=last_30_days
-    ).order_by('-measurement_date')
-    
-    # Use optimized service for better performance
-    from ..services.optimized_reporting_service import OptimizedReportingService
-    optimized_service = OptimizedReportingService()
-    
-    # Get optimized attendance summary
-    attendance_summary = optimized_service.get_attendance_summary_sql(
-        start_date=last_30_days,
-        end_date=today
-    )
-    
-    # Convert to attendance rates format
-    attendance_rates = []
-    for record in attendance_summary:
-        attendance_rates.append({
-            'employee_name': f"{record['given_name']} {record['surname']}",
-            'department': record['department_name'] or 'N/A',
-            'attendance_rate': round((record['completed_days'] / record['total_days'] * 100) if record['total_days'] > 0 else 0, 1),
-            'total_events': record['total_days']
-        })
-    
-    # Sort by attendance rate
-    attendance_rates.sort(key=lambda x: x['attendance_rate'], reverse=True)
+    """Performance monitoring dashboard - UNDER REDESIGN - Currently shows placeholder."""
+    # TODO: Implement meaningful visualizations based on PERFORMANCE_DASHBOARD_REDESIGN_PLAN.md
     
     context = {
-        'page_title': 'Performance Dashboard',
+        'page_title': 'Performance Dashboard - Under Redesign',
         'active_tab': 'performance_dashboard',
-        'system_metrics': system_metrics,
-        'attendance_rates': attendance_rates,
-        'total_employees': employees.count(),
-        'avg_attendance_rate': round(
-            sum(r['attendance_rate'] for r in attendance_rates) / len(attendance_rates), 1
-        ) if attendance_rates else 0
+        'status': 'redesign_in_progress',
+        'message': 'This dashboard is being redesigned to show meaningful, actionable insights instead of useless duplicated data.',
+        'redesign_plan': 'See PERFORMANCE_DASHBOARD_REDESIGN_PLAN.md for details'
     }
     return render(request, 'reports/performance_dashboard.html', context)
 
 
-@reporting_required  # Reporting role and above
-@extend_schema(exclude=True)
-def daily_dashboard_report(request):
-    """Daily dashboard report."""
-    from django.db.models import Count, Q
-    from datetime import timedelta
-    
-    today = django_timezone.localtime(django_timezone.now()).date()
-    yesterday = today - timedelta(days=1)
-    
-    # Get daily statistics
-    total_employees = Employee.objects.filter(is_active=True).count()
-    present_today = Event.objects.filter(
-        event_type__name='Clock In',
-        timestamp__date=today
-    ).values('employee').distinct().count()
-    
-    present_yesterday = Event.objects.filter(
-        event_type__name='Clock In',
-        timestamp__date=yesterday
-    ).values('employee').distinct().count()
-    
-    # Calculate change
-    change = present_today - present_yesterday
-    change_percentage = (change / present_yesterday * 100) if present_yesterday > 0 else 0
-    
-    context = {
-        'page_title': 'Daily Dashboard Report',
-        'active_tab': 'daily_dashboard',
-        'today': today,
-        'yesterday': yesterday,
-        'total_employees': total_employees,
-        'present_today': present_today,
-        'present_yesterday': present_yesterday,
-        'change': change,
-        'change_percentage': round(change_percentage, 1),
-        'change_abs': abs(change),
-        'change_percentage_abs': abs(round(change_percentage, 1))
-    }
-    return render(request, 'reports/daily_dashboard_report.html', context)
+
 
 
 @reporting_required  # Reporting role and above
@@ -766,78 +692,7 @@ def generate_employee_history_html(request, employee_id, start_date, end_date):
         )
 
 
-@reporting_required  # Reporting role and above
-@extend_schema(exclude=True)
-def comprehensive_reports(request):
-    """Comprehensive reports dashboard."""
-    from django.db.models import Count, Q
-    from datetime import timedelta
-    
-    today = django_timezone.localtime(django_timezone.now()).date()
-    last_30_days = today - timedelta(days=30)
-    
-    # Get overall statistics
-    total_employees = Employee.objects.filter(is_active=True).count()
-    total_events = Event.objects.filter(
-        timestamp__date__gte=last_30_days
-    ).count()
-    
-    # Get department statistics - OPTIMIZED with single query aggregation
-    department_stats = Employee.objects.filter(
-        is_active=True
-    ).values('department__name').annotate(
-        employee_count=Count('id'),
-        event_count=Count(
-            'employee_events',
-            filter=Q(employee_events__timestamp__date__gte=last_30_days)
-        ),
-        clock_in_count=Count(
-            'employee_events',
-            filter=Q(
-                employee_events__event_type__name='Clock In',
-                employee_events__timestamp__date__gte=last_30_days
-            )
-        )
-    ).filter(
-        department__isnull=False
-    ).order_by('-clock_in_count')
-    
-    # Calculate attendance rates and format data
-    department_stats = [
-        {
-            'name': stat['department__name'],
-            'employees': stat['employee_count'],
-            'events': stat['event_count'],
-            'clock_ins': stat['clock_in_count'],
-            'attendance_rate': round(
-                (stat['clock_in_count'] / stat['employee_count'] * 100) 
-                if stat['employee_count'] > 0 else 0, 1
-            )
-        }
-        for stat in department_stats
-    ]
-    
-    # Sort by attendance rate
-    department_stats.sort(key=lambda x: x['attendance_rate'], reverse=True)
-    
-    # Get recent activity
-    recent_events = Event.objects.filter(
-        timestamp__date__gte=today
-    ).select_related('employee', 'employee__department', 'event_type').order_by('-timestamp')[:10]
-    
-    context = {
-        'page_title': 'Comprehensive Reports',
-        'active_tab': 'comprehensive_reports',
-        'total_employees': total_employees,
-        'total_events': total_events,
-        'department_stats': department_stats,
-        'recent_events': recent_events,
-        'period': {
-            'start_date': last_30_days,
-            'end_date': today
-        }
-    }
-    return render(request, 'reports/comprehensive_reports.html', context)
+# REMOVED: comprehensive_reports function - functionality consolidated into reports_dashboard
 
 
 def generate_period_summary_html(request, start_date, end_date, department_filter=None):
@@ -1213,49 +1068,3 @@ def period_summary_report_csv(request):
         )
 
 
-@reporting_required  # Reporting role and above
-@extend_schema(exclude=True)
-def paginated_attendance_list(request):
-    """Paginated attendance list using Phase 3 optimizations."""
-    
-    from ..services.optimized_reporting_service import PaginatedReportService
-    
-    # Get parameters
-    date_filter = request.GET.get('date')
-    department_filter = request.GET.get('department')
-    page = request.GET.get('page', 1)
-    
-    try:
-        page = int(page)
-    except ValueError:
-        page = 1
-    
-    # Default to today if no date specified
-    if not date_filter:
-        date_filter = django_timezone.now().date().isoformat()
-    
-    try:
-        target_date = datetime.strptime(date_filter, '%Y-%m-%d').date()
-    except ValueError:
-        target_date = django_timezone.now().date()
-    
-    # Get paginated data
-    service = PaginatedReportService(page_size=25)
-    result = service.get_paginated_attendance_data(
-        target_date, department_filter, page
-    )
-    
-    # Get departments for filter
-    departments = Department.objects.filter(is_active=True).order_by('name')
-    
-    context = {
-        'page_title': 'Paginated Attendance List',
-        'active_tab': 'optimized_reports',
-        'records': result['records'],
-        'pagination': result['pagination'],
-        'date_filter': target_date.isoformat(),
-        'department_filter': department_filter,
-        'departments': departments,
-    }
-    
-    return render(request, 'reports/paginated_attendance_list.html', context)
