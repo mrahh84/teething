@@ -45,7 +45,7 @@ class OpeningHoursService:
             '2026-12-26': 'Boxing Day',
         }
         
-        # Department-specific schedules based on actual departments in the system
+        # Department-specific schedules based on your actual departments
         self.department_schedules = {
             'default': {
                 'monday': {'start': time(9, 0), 'end': time(17, 0), 'open': True},
@@ -53,36 +53,6 @@ class OpeningHoursService:
                 'wednesday': {'start': time(9, 0), 'end': time(17, 0), 'open': True},
                 'thursday': {'start': time(9, 0), 'end': time(17, 0), 'open': True},
                 'friday': {'start': time(9, 0), 'end': time(17, 0), 'open': True},
-                'saturday': {'start': time(9, 0), 'end': time(13, 0), 'open': False},
-                'sunday': {'start': time(9, 0), 'end': time(17, 0), 'open': False},
-            },
-            # Main Security - 24/7 operation
-            'main security': {
-                'monday': {'start': time(0, 0), 'end': time(23, 59), 'open': True},
-                'tuesday': {'start': time(0, 0), 'end': time(23, 59), 'open': True},
-                'wednesday': {'start': time(0, 0), 'end': time(23, 59), 'open': True},
-                'thursday': {'start': time(0, 0), 'end': time(23, 59), 'open': True},
-                'friday': {'start': time(0, 0), 'end': time(23, 59), 'open': True},
-                'saturday': {'start': time(0, 0), 'end': time(23, 59), 'open': True},
-                'sunday': {'start': time(0, 0), 'end': time(23, 59), 'open': True},
-            },
-            # IT Support - Extended hours for maintenance
-            'it support': {
-                'monday': {'start': time(7, 0), 'end': time(18, 0), 'open': True},
-                'tuesday': {'start': time(7, 0), 'end': time(18, 0), 'open': True},
-                'wednesday': {'start': time(7, 0), 'end': time(18, 0), 'open': True},
-                'thursday': {'start': time(7, 0), 'end': time(18, 0), 'open': True},
-                'friday': {'start': time(7, 0), 'end': time(18, 0), 'open': True},
-                'saturday': {'start': time(8, 0), 'end': time(16, 0), 'open': True},
-                'sunday': {'start': time(8, 0), 'end': time(16, 0), 'open': True},
-            },
-            # Administration - Standard office hours
-            'administration': {
-                'monday': {'start': time(8, 30), 'end': time(17, 30), 'open': True},
-                'tuesday': {'start': time(8, 30), 'end': time(17, 30), 'open': True},
-                'wednesday': {'start': time(8, 30), 'end': time(17, 30), 'open': True},
-                'thursday': {'start': time(8, 30), 'end': time(17, 30), 'open': True},
-                'friday': {'start': time(8, 30), 'end': time(17, 30), 'open': True},
                 'saturday': {'start': time(9, 0), 'end': time(17, 0), 'open': False},
                 'sunday': {'start': time(9, 0), 'end': time(17, 0), 'open': False},
             },
@@ -96,8 +66,8 @@ class OpeningHoursService:
                 'saturday': {'start': time(9, 0), 'end': time(17, 0), 'open': False},
                 'sunday': {'start': time(9, 0), 'end': time(17, 0), 'open': False},
             },
-            # Repository and Conservation - Standard hours
-            'repository and conservation': {
+            # Conservation - Standard hours
+            'conservation': {
                 'monday': {'start': time(9, 0), 'end': time(17, 0), 'open': True},
                 'tuesday': {'start': time(9, 0), 'end': time(17, 0), 'open': True},
                 'wednesday': {'start': time(9, 0), 'end': time(17, 0), 'open': True},
@@ -106,18 +76,38 @@ class OpeningHoursService:
                 'saturday': {'start': time(9, 0), 'end': time(17, 0), 'open': False},
                 'sunday': {'start': time(9, 0), 'end': time(17, 0), 'open': False},
             },
-            # Human Resources - Standard office hours
-            'human resources': {
-                'monday': {'start': time(8, 30), 'end': time(17, 30), 'open': True},
-                'tuesday': {'start': time(8, 30), 'end': time(17, 30), 'open': True},
-                'wednesday': {'start': time(8, 30), 'end': time(17, 30), 'open': True},
-                'thursday': {'start': time(8, 30), 'end': time(17, 30), 'open': True},
-                'friday': {'start': time(8, 30), 'end': time(17, 30), 'open': True},
+            # Material Retriever - Standard hours
+            'material retriever': {
+                'monday': {'start': time(9, 0), 'end': time(17, 0), 'open': True},
+                'tuesday': {'start': time(9, 0), 'end': time(17, 0), 'open': True},
+                'wednesday': {'start': time(9, 0), 'end': time(17, 0), 'open': True},
+                'thursday': {'start': time(9, 0), 'end': time(17, 0), 'open': True},
+                'friday': {'start': time(9, 0), 'end': time(17, 0), 'open': True},
                 'saturday': {'start': time(9, 0), 'end': time(17, 0), 'open': False},
                 'sunday': {'start': time(9, 0), 'end': time(17, 0), 'open': False},
             },
-            # Finance - Standard office hours
-            'finance': {
+            # Tech Compute - Extended hours for technology operations
+            'tech compute': {
+                'monday': {'start': time(7, 0), 'end': time(18, 0), 'open': True},
+                'tuesday': {'start': time(7, 0), 'end': time(18, 0), 'open': True},
+                'wednesday': {'start': time(7, 0), 'end': time(18, 0), 'open': True},
+                'thursday': {'start': time(7, 0), 'end': time(18, 0), 'open': True},
+                'friday': {'start': time(7, 0), 'end': time(18, 0), 'open': True},
+                'saturday': {'start': time(8, 0), 'end': time(16, 0), 'open': True},
+                'sunday': {'start': time(8, 0), 'end': time(16, 0), 'open': True},
+            },
+            # Custodian - Extended hours for maintenance
+            'custodian': {
+                'monday': {'start': time(7, 0), 'end': time(18, 0), 'open': True},
+                'tuesday': {'start': time(7, 0), 'end': time(18, 0), 'open': True},
+                'wednesday': {'start': time(7, 0), 'end': time(18, 0), 'open': True},
+                'thursday': {'start': time(7, 0), 'end': time(18, 0), 'open': True},
+                'friday': {'start': time(7, 0), 'end': time(18, 0), 'open': True},
+                'saturday': {'start': time(8, 0), 'end': time(16, 0), 'open': True},
+                'sunday': {'start': time(8, 0), 'end': time(16, 0), 'open': True},
+            },
+            # Administration - Standard office hours
+            'administration': {
                 'monday': {'start': time(8, 30), 'end': time(17, 30), 'open': True},
                 'tuesday': {'start': time(8, 30), 'end': time(17, 30), 'open': True},
                 'wednesday': {'start': time(8, 30), 'end': time(17, 30), 'open': True},
@@ -231,13 +221,12 @@ class OpeningHoursService:
         
         # Fallback to hardcoded departments if database access fails
         return [
-            {'name': 'Main Security', 'code': 'MAINSEC', 'description': 'Main security and access control'},
-            {'name': 'IT Support', 'code': 'ITSUPP', 'description': 'Information technology support and maintenance'},
-            {'name': 'Administration', 'code': 'ADMIN', 'description': 'Administrative and management services'},
-            {'name': 'Digitization Tech', 'code': 'DIGITECH', 'description': 'Digital technology and digitization department'},
-            {'name': 'Repository and Conservation', 'code': 'REPCONS', 'description': 'Repository management and conservation services'},
-            {'name': 'Human Resources', 'code': 'HR', 'description': 'Human resources and personnel management'},
-            {'name': 'Finance', 'code': 'FINANCE', 'description': 'Financial management and accounting'},
+            {'name': 'Digitization Tech', 'code': 'DIGITECH', 'description': 'Digital technology and digitization services'},
+            {'name': 'Conservation', 'code': 'CON', 'description': 'Conservation and preservation services'},
+            {'name': 'Material Retriever', 'code': 'MATRET', 'description': 'Material retrieval and handling operations'},
+            {'name': 'Tech Compute', 'code': 'TECHCOMP', 'description': 'Technology and computing operations'},
+            {'name': 'Custodian', 'code': 'CUST', 'description': 'Custodial and maintenance services'},
+            {'name': 'Administration', 'code': 'ADM', 'description': 'Administrative and support functions'},
         ]
     
     def is_working_day(self, check_date: date, department_name: str = None) -> Tuple[bool, str]:
