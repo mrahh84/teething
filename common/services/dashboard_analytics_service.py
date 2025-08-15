@@ -8,7 +8,7 @@ including attendance trends, department performance, and employee analytics.
 from django.db.models import Q, Count, Avg, Min, Max, F
 from django.utils import timezone
 from django.core.cache import cache
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, time
 from typing import Dict, List, Any, Optional
 import json
 
