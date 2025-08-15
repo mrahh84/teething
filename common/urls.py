@@ -69,10 +69,10 @@ from common.views import (
     # System views
     health_check,
     
-    # Dashboard views - REMOVED (nonsense functionality)
+    # Dashboard views
     # pattern_recognition_dashboard,
     # predictive_analytics_dashboard,
-    # performance_monitoring_dashboard,
+    performance_monitoring_dashboard,
 )
 
 # URLs organized by section for easier permission implementation in the future
@@ -163,4 +163,4 @@ urlpatterns = urlpatterns + system_urls
 # Phase 3: Advanced Analytics Dashboards - REMOVED (nonsense functionality)
 # urlpatterns.append(path("pattern-recognition/", pattern_recognition_dashboard, name="pattern_recognition_dashboard"))
 # urlpatterns.append(path("predictive-analytics/", predictive_analytics_dashboard, name="predictive_analytics_dashboard"))
-# urlpatterns.append(path("performance-monitoring/", performance_monitoring_dashboard, name="performance_monitoring_dashboard"))
+urlpatterns.append(path("performance-monitoring/", performance_monitoring_dashboard, name="performance_monitoring_dashboard"))
