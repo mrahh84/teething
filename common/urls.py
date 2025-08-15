@@ -75,6 +75,7 @@ from common.views import (
     performance_monitoring_dashboard,
     performance_monitoring_dashboard_test,
     simple_test_view,
+    minimal_dashboard_test,
 )
 
 # URLs organized by section for easier permission implementation in the future
@@ -168,3 +169,4 @@ urlpatterns = urlpatterns + system_urls
 urlpatterns.append(path("performance-monitoring/", performance_monitoring_dashboard, name="performance_monitoring_dashboard"))
 urlpatterns.append(path("performance-monitoring-test/", performance_monitoring_dashboard_test, name="performance_monitoring_dashboard_test"))
 urlpatterns.append(path("simple-test/", simple_test_view, name="simple_test_view"))
+urlpatterns.append(path("minimal-dashboard-test/", minimal_dashboard_test, name="minimal_dashboard_test"))

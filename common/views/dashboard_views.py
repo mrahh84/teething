@@ -584,6 +584,35 @@ def performance_monitoring_dashboard_test(request):
 
 
 @extend_schema(exclude=True)
+def minimal_dashboard_test(request):
+    """
+    Minimal test version of dashboard without analytics service.
+    """
+    print("DEBUG: minimal_dashboard_test view called!")  # Debug line
+    
+    context = {
+        'page_title': 'Minimal Dashboard Test',
+        'active_tab': 'performance_monitoring',
+        'attendance_trends': {
+            'daily_data': [{'date': '2025-08-15', 'attendance_rate': 85.0}],
+            'summary': {'avg_attendance_rate': 85.0}
+        },
+        'department_heatmap': {'departments': []},
+        'employee_distribution': {'statistics': {'total_employees': 106}},
+        'real_time_status': {'current_clocked_in': 50, 'total_employees': 106},
+        'chart_data': {
+            'attendance_trends_labels': '["2025-08-15"]',
+            'attendance_trends_data': '[85.0]',
+            'department_comparison_labels': '["Test"]',
+            'department_comparison_data': '[85.0]',
+            'performance_tiers': '[0, 0, 0, 0, 106]'
+        }
+    }
+    
+    return render(request, 'advanced_performance_dashboard.html', context)
+
+
+@extend_schema(exclude=True)
 def simple_test_view(request):
     """
     Simple test view to verify routing is working.
