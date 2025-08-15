@@ -4,9 +4,9 @@
 {% block title %}Performance Dashboard - Road Attendance System{% endblock %}
 
 {% block extra_css %}
-<!-- Chart.js for interactive charts -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
+    /* Performance Dashboard Specific Styles Only */
     .chart-container {
         position: relative;
         height: 400px;
@@ -80,406 +80,52 @@
         100% { opacity: 1; }
     }
     
-    .dashboard-container {
-        padding: 2rem;
-        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-        min-height: calc(100vh - 200px);
-    }
-    
-    .dashboard-header {
-        background: rgba(255, 255, 255, 0.95);
-        border-radius: 15px;
-        padding: 2rem;
-        margin-bottom: 2rem;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-        backdrop-filter: blur(10px);
-        text-align: center;
-    }
-    
-    .dashboard-title {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: var(--text-color);
-        margin-bottom: 0.5rem;
-    }
-    
-    .dashboard-subtitle {
-        font-size: 1.1rem;
-        color: var(--text-secondary);
-        margin-bottom: 2rem;
-    }
-    
-    .section {
-        margin-bottom: 40px;
-    }
-    
-    .section-header {
-        margin-bottom: 20px;
-        text-align: center;
-    }
-    
-    .section-title {
-        font-size: 1.8rem;
-        color: #2d3748;
-        margin-bottom: 10px;
-    }
-    
-    .card {
-        background: rgba(255, 255, 255, 0.95);
-        border-radius: 15px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        margin-bottom: 20px;
-        overflow: hidden;
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    
-    .card-header {
-        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-        color: white;
-        padding: 1.5rem;
-        border-bottom: none;
-    }
-    
-    .card-title {
-        margin: 0;
-        font-size: 1.3rem;
-        font-weight: 600;
-    }
-    
-    .card-body {
-        padding: 1.5rem;
-    }
-    
-    .btn {
-        display: inline-block;
-        padding: 0.75rem 1.5rem;
-        border-radius: 8px;
-        text-decoration: none;
-        font-weight: 500;
-        transition: all 0.3s ease;
-        border: none;
-        cursor: pointer;
-    }
-    
-    .btn-primary {
-        background: var(--primary-color);
-        color: white;
-    }
-    
-    .btn-success {
-        background: var(--success-color);
-        color: white;
-    }
-    
-    .btn-info {
-        background: var(--accent-color);
-        color: white;
-    }
-    
-    .btn-warning {
-        background: var(--warning-color);
-        color: white;
-    }
-    
-    .btn-danger {
-        background: var(--danger-color);
-        color: white;
-    }
-    
-    .btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    }
-    
-    .badge {
-        display: inline-block;
-        padding: 0.25rem 0.75rem;
-        border-radius: 20px;
-        font-size: 0.875rem;
-        font-weight: 500;
-    }
-    
-    .badge-success {
-        background: var(--success-color);
-        color: white;
-    }
-    
-    .badge-warning {
-        background: var(--warning-color);
-        color: white;
-    }
-    
-    .badge-danger {
-        background: var(--danger-color);
-        color: white;
-    }
-    
-    .badge-info {
-        background: var(--accent-color);
-        color: white;
-    }
-    
-    .table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-    
-    .table th,
-    .table td {
-        padding: 0.75rem;
-        text-align: left;
-        border-bottom: 1px solid #e2e8f0;
-    }
-    
-    .table th {
-        background: #f7fafc;
-        font-weight: 600;
-        color: var(--text-color);
-    }
-    
-    .table-striped tbody tr:nth-child(odd) {
-        background: #f7fafc;
-    }
-    
-    .text-center {
-        text-align: center;
-    }
-    
-    .text-success {
-        color: var(--success-color);
-    }
-    
-    .text-danger {
-        color: var(--danger-color);
-    }
-    
-    .text-primary {
-        color: var(--primary-color);
-    }
-    
-    .text-info {
-        color: var(--accent-color);
-    }
-    
-    .text-muted {
-        color: var(--text-secondary);
-    }
-    
-    .mb-0 { margin-bottom: 0; }
-    .mb-1 { margin-bottom: 0.25rem; }
-    .mb-2 { margin-bottom: 0.5rem; }
-    .mb-3 { margin-bottom: 1rem; }
-    .mb-4 { margin-bottom: 1.5rem; }
-    
-    .mr-2 { margin-right: 0.5rem; }
-    .mr-3 { margin-right: 1rem; }
-    
-    .mt-2 { margin-top: 0.5rem; }
-    .mt-3 { margin-top: 1rem; }
-    
-    .ml-2 { margin-left: 0.5rem; }
-    
-    .d-flex {
-        display: flex;
-    }
-    
-    .justify-content-between {
-        justify-content: space-between;
-    }
-    
-    .justify-content-center {
-        justify-content: center;
-    }
-    
-    .align-items-center {
-        align-items: center;
-    }
-    
-    .align-self-center {
-        align-self: center;
-    }
-    
-    .float-right {
-        float: right;
-    }
-    
-    .d-inline-block {
-        display: inline-block;
-    }
-    
-    .container-fluid {
-        width: 100%;
-        padding-right: 15px;
-        padding-left: 15px;
-        margin-right: auto;
-        margin-left: auto;
-    }
-    
-    .row {
-        display: flex;
-        flex-wrap: wrap;
-        margin-right: -15px;
-        margin-left: -15px;
-    }
-    
-    .col-12 {
-        flex: 0 0 100%;
-        max-width: 100%;
-        padding-right: 15px;
-        padding-left: 15px;
-    }
-    
-    .col-md-3 {
-        flex: 0 0 25%;
-        max-width: 25%;
-        padding-right: 15px;
-        padding-left: 15px;
-    }
-    
-    .col-md-4 {
-        flex: 0 0 33.333333%;
-        max-width: 33.333333%;
-        padding-right: 15px;
-        padding-left: 15px;
-    }
-    
-    .col-md-6 {
-        flex: 0 0 50%;
-        max-width: 50%;
-        padding-right: 15px;
-        padding-left: 15px;
-    }
-    
-    .col-md-8 {
-        flex: 0 0 66.666667%;
-        max-width: 66.666667%;
-        padding-right: 15px;
-        padding-left: 15px;
-    }
-    
-    .col-lg-6 {
-        flex: 0 0 50%;
-        max-width: 50%;
-        padding-right: 15px;
-        padding-left: 15px;
-    }
-    
-    .h3 {
-        font-size: 1.75rem;
-        font-weight: 600;
-        margin-bottom: 0.5rem;
-    }
-    
-    .h6 {
-        font-size: 1rem;
-        font-weight: 600;
-        margin-bottom: 0.5rem;
-    }
-    
-    .small {
-        font-size: 0.875rem;
-    }
-    
-    .fa-2x {
-        font-size: 2em;
-    }
-    
-    .fa-3x {
-        font-size: 3em;
-    }
-    
-    .table-responsive {
-        overflow-x: auto;
-    }
-    
-    .table-sm th,
-    .table-sm td {
-        padding: 0.5rem;
-    }
-    
-    .thead-dark th {
-        background: #2d3748;
-        color: white;
-    }
-    
-    .table-striped tbody tr:nth-child(odd) {
-        background: #f7fafc;
-    }
-    
-    .hr {
-        border: 0;
-        border-top: 1px solid #e2e8f0;
-        margin: 1rem 0;
-    }
-    
-    @media (max-width: 768px) {
-        .col-md-3,
-        .col-md-4,
-        .col-md-6,
-        .col-md-8 {
-            flex: 0 0 100%;
-            max-width: 100%;
-        }
-        
-        .d-flex {
-            flex-direction: column;
-        }
-        
-        .justify-content-between {
-            justify-content: center;
-        }
-        
-        .dashboard-container {
-            padding: 1rem;
-        }
-        
-        .dashboard-header {
-            padding: 1.5rem;
-        }
-        
-        .dashboard-title {
-            font-size: 2rem;
-        }
-    }
+    .heatmap-excellent { background: rgba(56, 161, 105, 0.2); color: var(--success-color); }
+    .heatmap-good { background: rgba(52, 152, 219, 0.2); color: var(--accent-color); }
+    .heatmap-average { background: rgba(246, 173, 85, 0.2); color: var(--warning-color); }
+    .heatmap-poor { background: rgba(229, 62, 62, 0.2); color: var(--danger-color); }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <!-- Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <h1 class="h3 mb-0">{{ page_title }} 🚀 Performance Dashboard</h1>
-                <div class="d-flex align-items-center">
-                    <span class="badge badge-success mr-3">
-                        <i class="fas fa-circle real-time-indicator"></i> Live Data
-                    </span>
-                    <span class="badge badge-info mr-3">
-                        <i class="fas fa-clock"></i> {{ real_time_status.working_status }}
-                    </span>
-                    <button onclick="showDebugInfo()" class="btn btn-info mr-2">
-                        <i class="fas fa-bug"></i> Debug
-                    </button>
-                </div>
-            </div>
-        </div>
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">⚡ Performance Dashboard</h1>
+        <p class="dashboard-subtitle">Real-time system performance and employee attendance analytics</p>
+        
+        <!-- Working Status Badge -->
+        {% if real_time_status.working_hours_info %}
+            {% if real_time_status.working_hours_info.status == 'bank_holiday' %}
+                <span class="badge badge-danger">
+                    <i class="fas fa-calendar-times"></i> {{ real_time_status.working_hours_info.holiday_name }}
+                </span>
+            {% elif real_time_status.working_hours_info.status == 'special_period_closed' %}
+                <span class="badge badge-warning">
+                    <i class="fas fa-exclamation-triangle"></i> {{ real_time_status.working_hours_info.special_period_info.description }}
+                </span>
+            {% elif real_time_status.working_hours_info.status == 'closed' %}
+                <span class="badge badge-secondary">
+                    <i class="fas fa-door-closed"></i> {{ real_time_status.working_hours_info.message }}
+                </span>
+            {% elif real_time_status.working_hours_info.status == 'outside_hours' %}
+                <span class="badge badge-info">
+                    <i class="fas fa-clock"></i> {{ real_time_status.working_hours_info.message }}
+                </span>
+            {% else %}
+                <span class="badge badge-success">
+                    <i class="fas fa-door-open"></i> {{ real_time_status.working_hours_info.message }}
+                </span>
+            {% endif %}
+        {% endif %}
     </div>
 
     <!-- Real-time Attendance Status -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="metric-card {% if real_time_status.attendance_status == 'above_expectation' %}success{% elif real_time_status.attendance_status == 'weekend' %}info{% elif real_time_status.attendance_status == 'outside_hours' %}info{% else %}warning{% endif %}">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2 class="mb-0">{{ real_time_status.current_clocked_in }}</h2>
-                        <small>Currently Clocked In</small>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-users fa-2x"></i>
-                    </div>
-                </div>
+    <div class="card-grid">
+        <div class="card">
+            <div class="card-icon">👥</div>
+            <div class="card-content">
+                <div class="card-value">{{ real_time_status.current_clocked_in }}</div>
+                <div class="card-label">Currently Clocked In</div>
                 <div class="mt-2">
                     <small>
                         {% if real_time_status.working_hours_info %}
@@ -517,17 +163,12 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="metric-card info">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2 class="mb-0">{{ real_time_status.expected_attendance }}</h2>
-                        <small>Expected Attendance</small>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-target fa-2x"></i>
-                    </div>
-                </div>
+        
+        <div class="card">
+            <div class="card-icon">🎯</div>
+            <div class="card-content">
+                <div class="card-value">{{ real_time_status.expected_attendance }}</div>
+                <div class="card-label">Expected Attendance</div>
                 <div class="mt-2">
                     <small>
                         {% if real_time_status.working_hours_info %}
@@ -555,33 +196,23 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="metric-card">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2 class="mb-0">{{ attendance_trends.summary.avg_attendance_rate }}%</h2>
-                        <small>90-Day Average</small>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-chart-line fa-2x"></i>
-                    </div>
-                </div>
+        
+        <div class="card">
+            <div class="card-icon">📈</div>
+            <div class="card-content">
+                <div class="card-value">{{ attendance_trends.summary.avg_attendance_rate }}%</div>
+                <div class="card-label">90-Day Average</div>
                 <div class="mt-2">
                     <small>Last 90 days</small>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="metric-card">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2 class="mb-0">{{ employee_distribution.statistics.total_employees }}</h2>
-                        <small>Active Employees</small>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-user-check fa-2x"></i>
-                    </div>
-                </div>
+        
+        <div class="card">
+            <div class="card-icon">👤</div>
+            <div class="card-content">
+                <div class="card-value">{{ employee_distribution.statistics.total_employees }}</div>
+                <div class="card-label">Active Employees</div>
                 <div class="mt-2">
                     <small>Across {{ department_heatmap.departments|length }} departments</small>
                 </div>
@@ -590,159 +221,148 @@
     </div>
 
     <!-- Attendance Trends Chart -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-chart-line"></i> Attendance Trends Over Time (Last 90 Days)
-                    </h5>
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">
+                <i class="fas fa-chart-line"></i> Attendance Trends Over Time (Last 90 Days)
+            </h3>
+        </div>
+        <div class="section-body">
+            <div class="chart-container">
+                <canvas id="attendanceTrendsChart"></canvas>
+            </div>
+            <div class="card-grid">
+                <div class="card">
+                    <div class="card-value">{{ attendance_trends.summary.best_day_rate }}%</div>
+                    <div class="card-label">Best Day</div>
                 </div>
-                <div class="card-body">
-                    <div class="chart-container">
-                        <canvas id="attendanceTrendsChart"></canvas>
-                    </div>
-                    <div class="row mt-3">
-                        <div class="col-md-3 text-center">
-                            <h6>Best Day</h6>
-                            <p class="text-success mb-0">{{ attendance_trends.summary.best_day.date }} ({{ attendance_trends.summary.best_day.attendance_rate }}%)</p>
-                        </div>
-                        <div class="col-md-3 text-center">
-                            <h6>Worst Day</h6>
-                            <p class="text-danger mb-0">{{ attendance_trends.summary.worst_day.date }} ({{ attendance_trends.summary.worst_day.attendance_rate }}%)</p>
-                        </div>
-                        <div class="col-md-3 text-center">
-                            <h6>Average Rate</h6>
-                            <p class="text-primary mb-0">{{ attendance_trends.summary.avg_attendance_rate }}%</p>
-                        </div>
-                        <div class="col-md-3 text-center">
-                            <h6>Total Days</h6>
-                            <p class="text-info mb-0">{{ attendance_trends.summary.total_days }}</p>
-                        </div>
-                    </div>
+                <div class="card">
+                    <div class="card-value">{{ attendance_trends.summary.worst_day_rate }}%</div>
+                    <div class="card-label">Worst Day</div>
+                </div>
+                <div class="card">
+                    <div class="card-value">{{ attendance_trends.summary.avg_attendance_rate }}%</div>
+                    <div class="card-label">Average</div>
+                </div>
+                <div class="card">
+                    <div class="card-value">{{ attendance_trends.summary.total_working_days }}</div>
+                    <div class="card-label">Working Days</div>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Department Performance Heatmap -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-fire"></i> Department Performance Heatmap (Last 30 Days)
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
-                                <tr>
-                                    <th>Department</th>
-                                    <th colspan="{{ department_heatmap.date_range.days }}">Daily Performance</th>
-                                    <th>Avg</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for dept in department_heatmap.departments %}
-                                <tr>
-                                    <td><strong>{{ dept.department }}</strong></td>
-                                    {% for day in dept.daily_performance %}
-                                    <td>
-                                        <div class="heatmap-cell" 
-                                             style="background-color: {% if day.performance_score >= 80 %}#10b981{% elif day.performance_score >= 60 %}#f59e0b{% elif day.performance_score >= 40 %}#f97316{% else %}#ef4444{% endif %}"
-                                             title="{{ day.date }}: {{ day.performance_score }}%">
-                                        </div>
-                                    {% endfor %}
-                                    <td>
-                                        <strong>{{ dept.average_performance }}%</strong>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="mt-3">
-                        <small class="text-muted">
-                            <span class="d-inline-block mr-3">🟢 80%+ (Excellent)</span>
-                            <span class="d-inline-block mr-3">🟡 60-79% (Good)</span>
-                            <span class="d-inline-block mr-3">🟠 40-59% (Average)</span>
-                            <span class="d-inline-block">🔴 Below 40% (Poor)</span>
-                        </small>
-                    </div>
-                </div>
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">
+                <i class="fas fa-fire"></i> Department Performance Heatmap (Last 30 Days)
+            </h3>
+        </div>
+        <div class="section-body">
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Department</th>
+                            <th>Performance Score</th>
+                            <th>Trend</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for dept in department_heatmap.departments %}
+                        <tr>
+                            <td><strong>{{ dept.department_name }}</strong></td>
+                            <td>
+                                <span class="performance-tier tier-{{ dept.performance_tier }}">
+                                    {{ dept.performance_score }}%
+                                </span>
+                            </td>
+                            <td>
+                                {% if dept.trend == 'improving' %}
+                                    <span class="text-success">↗️ Improving</span>
+                                {% elif dept.trend == 'declining' %}
+                                    <span class="text-danger">↘️ Declining</span>
+                                {% else %}
+                                    <span class="text-info">→ Stable</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button class="btn btn-primary btn-sm" onclick="showDepartmentDetails('{{ dept.department_name }}')">
+                                    View Details
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 
     <!-- Employee Performance Distribution -->
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-chart-bar"></i> Employee Performance Distribution (Last 30 Days)
-                    </h5>
-                </div>
-                <div class="card-body">
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">
+                <i class="fas fa-users"></i> Employee Performance Distribution
+            </h3>
+        </div>
+        <div class="section-body">
+            <div class="row">
+                <div class="col-md-6">
                     <div class="chart-container">
                         <canvas id="employeeDistributionChart"></canvas>
                     </div>
                 </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="card-title mb-0">Performance Tiers</h6>
-                </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <span class="performance-tier tier-excellent">Excellent (90%+)</span>
-                        <span class="badge badge-success float-right">{{ employee_distribution.statistics.performance_tiers.excellent }}</span>
-                    </div>
-                    <div class="mb-3">
-                        <span class="performance-tier tier-good">Good (80-89%)</span>
-                        <span class="badge badge-primary float-right">{{ employee_distribution.statistics.performance_tiers.good }}</span>
-                    </div>
-                    <div class="mb-3">
-                        <span class="performance-tier tier-average">Average (70-79%)</span>
-                        <span class="badge badge-warning float-right">{{ employee_distribution.statistics.performance_tiers.average }}</span>
-                    </div>
-                    <div class="mb-3">
-                        <span class="performance-tier tier-below-average">Below Average (60-69%)</span>
-                        <span class="badge badge-warning float-right">{{ employee_distribution.statistics.performance_tiers.below_average }}</span>
-                    </div>
-                    <div class="mb-3">
-                        <span class="performance-tier tier-poor">Poor (<60%)</span>
-                        <span class="badge badge-danger float-right">{{ employee_distribution.statistics.performance_tiers.poor }}</span>
-                    </div>
-                    
-                    <hr>
-                    <div class="text-center">
-                        <h6>Statistics</h6>
-                        <p class="mb-1">Average: <strong>{{ employee_distribution.statistics.average_rate }}%</strong></p>
-                        <p class="mb-1">Range: <strong>{{ employee_distribution.statistics.min_rate }}% - {{ employee_distribution.statistics.max_rate }}%</strong></p>
+                <div class="col-md-6">
+                    <div class="card-grid">
+                        <div class="card">
+                            <div class="card-value">{{ employee_distribution.statistics.performance_tiers.excellent }}</div>
+                            <div class="card-label">Excellent</div>
+                        </div>
+                        <div class="card">
+                            <div class="card-value">{{ employee_distribution.statistics.performance_tiers.good }}</div>
+                            <div class="card-label">Good</div>
+                        </div>
+                        <div class="card">
+                            <div class="card-value">{{ employee_distribution.statistics.performance_tiers.average }}</div>
+                            <div class="card-label">Average</div>
+                        </div>
+                        <div class="card">
+                            <div class="card-value">{{ employee_distribution.statistics.performance_tiers.poor }}</div>
+                            <div class="card-label">Poor</div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Department Comparison -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-balance-scale"></i> Department Attendance Comparison (Last 90 Days)
-                    </h5>
+    <!-- System Performance Metrics -->
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">
+                <i class="fas fa-server"></i> System Performance Metrics
+            </h3>
+        </div>
+        <div class="section-body">
+            <div class="card-grid">
+                <div class="card">
+                    <div class="card-value">{{ enhanced_system_metrics.summary.avg_daily_events }}</div>
+                    <div class="card-label">Avg Daily Events</div>
                 </div>
-                <div class="card-body">
-                    <div class="chart-container">
-                        <canvas id="departmentComparisonChart"></canvas>
-                    </div>
+                <div class="card">
+                    <div class="card-value">{{ enhanced_system_metrics.summary.total_events_period }}</div>
+                    <div class="card-label">Total Events (7 days)</div>
+                </div>
+                <div class="card">
+                    <div class="card-value">{{ cache_stats.calculated_hit_rate }}%</div>
+                    <div class="card-label">Cache Hit Rate</div>
+                </div>
+                <div class="card">
+                    <div class="card-value">{{ cache_stats.total_keys }}</div>
+                    <div class="card-label">Cache Keys</div>
                 </div>
             </div>
         </div>
@@ -750,317 +370,186 @@
 
     <!-- Performance Recommendations -->
     {% if performance_recommendations %}
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-lightbulb"></i> Performance Optimization Recommendations
-                        <span class="badge badge-primary ml-2">{{ performance_recommendations|length }}</span>
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-striped">
-                            <thead class="thead-dark">
-                                <tr>
-                                    <th>Area</th>
-                                    <th>Issue</th>
-                                    <th>Suggestion</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for rec in performance_recommendations %}
-                                <tr>
-                                    <td><strong>{{ rec.view }}</strong></td>
-                                    <td>
-                                        <span class="badge badge-warning">{{ rec.issue }}</span>
-                                    </td>
-                                    <td>{{ rec.suggestion }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">
+                <i class="fas fa-lightbulb"></i> Performance Recommendations
+            </h3>
+        </div>
+        <div class="section-body">
+            <div class="card-grid">
+                {% for rec in performance_recommendations %}
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title">{{ rec.view }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Issue:</strong> {{ rec.issue }}</p>
+                        <p><strong>Suggestion:</strong> {{ rec.suggestion }}</p>
                     </div>
                 </div>
+                {% endfor %}
             </div>
         </div>
     </div>
     {% endif %}
 
     <!-- Opening Hours & Holiday Information -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-calendar-alt"></i> Upcoming Bank Holidays
-                    </h5>
-                </div>
-                <div class="card-body">
-                    {% if opening_hours_info.upcoming_holidays %}
-                        <div class="table-responsive">
-                            <table class="table table-sm">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Holiday</th>
-                                        <th>Days Until</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for holiday in opening_hours_info.upcoming_holidays|slice:":5" %}
-                                    <tr>
-                                        <td>{{ holiday.date|date:"M d, Y" }}</td>
-                                        <td>{{ holiday.name }}</td>
-                                        <td>
-                                            {% if holiday.is_today %}
-                                                <span class="badge badge-warning">Today</span>
-                                            {% else %}
-                                                <span class="badge badge-info">{{ holiday.days_until }} days</span>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    {% else %}
-                        <p class="text-muted">No upcoming bank holidays in the next 30 days.</p>
-                    {% endif %}
-                </div>
-            </div>
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">
+                <i class="fas fa-calendar-alt"></i> Opening Hours & Holiday Information
+            </h3>
         </div>
-        
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-clock"></i> Working Hours Summary
-                    </h5>
+        <div class="section-body">
+            <div class="card-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title">Upcoming Bank Holidays</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if opening_hours_info.upcoming_holidays %}
+                            <div class="table-container">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Holiday</th>
+                                            <th>Days Until</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for holiday in opening_hours_info.upcoming_holidays|slice:":5" %}
+                                        <tr>
+                                            <td>{{ holiday.date|date:"M d, Y" }}</td>
+                                            <td>{{ holiday.name }}</td>
+                                            <td>
+                                                {% if holiday.is_today %}
+                                                    <span class="badge badge-warning">Today</span>
+                                                {% else %}
+                                                    <span class="badge badge-info">{{ holiday.days_until }} days</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <p class="text-muted">No upcoming bank holidays in the next 30 days.</p>
+                        {% endif %}
+                    </div>
                 </div>
-                <div class="card-body">
-                    {% if opening_hours_info.working_hours_summary %}
-                        <div class="row">
-                            <div class="col-6">
-                                <h6>Weekly Schedule</h6>
-                                <p class="mb-1"><strong>Working Days:</strong> {{ opening_hours_info.working_hours_summary.working_days_per_week }}</p>
-                                <p class="mb-1"><strong>Total Hours:</strong> {{ opening_hours_info.working_hours_summary.total_working_hours_per_week }}h</p>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title">Working Hours Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if opening_hours_info.working_hours_summary %}
+                            <div class="row">
+                                <div class="col-6">
+                                    <h6>Weekly Schedule</h6>
+                                    <p class="mb-1"><strong>Working Days:</strong> {{ opening_hours_info.working_hours_summary.working_days_per_week }}</p>
+                                    <p class="mb-1"><strong>Total Hours:</strong> {{ opening_hours_info.working_hours_summary.total_working_hours_per_week }}h</p>
+                                </div>
+                                <div class="col-6">
+                                    <h6>Next Working Day</h6>
+                                    {% if opening_hours_info.next_working_day %}
+                                        <p class="mb-1"><strong>{{ opening_hours_info.next_working_day.day }}</strong></p>
+                                        <p class="mb-1">{{ opening_hours_info.next_working_day.start_time }} - {{ opening_hours_info.next_working_day.end_time }}</p>
+                                        <small class="text-muted">{{ opening_hours_info.next_working_day.days_until }} days away</small>
+                                    {% else %}
+                                        <p class="text-muted">No upcoming working days found.</p>
+                                    {% endif %}
+                                </div>
                             </div>
-                            <div class="col-6">
-                                <h6>Next Working Day</h6>
-                                {% if opening_hours_info.next_working_day %}
-                                    <p class="mb-1"><strong>{{ opening_hours_info.next_working_day.day }}</strong></p>
-                                    <p class="mb-1">{{ opening_hours_info.next_working_day.start_time }} - {{ opening_hours_info.next_working_day.end_time }}</p>
-                                    <small class="text-muted">{{ opening_hours_info.next_working_day.days_until }} days away</small>
-                                {% else %}
-                                    <p class="text-muted">No upcoming working days found.</p>
-                                {% endif %}
-                            </div>
-                        </div>
-                    {% else %}
-                        <p class="text-muted">Working hours information not available.</p>
-                    {% endif %}
+                        {% else %}
+                            <p class="text-muted">Working hours information not available.</p>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- All Departments Working Hours -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-building"></i> All Departments Working Hours
-                    </h5>
-                </div>
-                <div class="card-body">
-                    {% if all_departments_working_hours %}
-                        <div class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Department</th>
-                                        <th>Code</th>
-                                        <th>Working Days</th>
-                                        <th>Weekly Hours</th>
-                                        <th>Schedule</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for dept_name, dept_info in all_departments_working_hours.items %}
-                                    <tr>
-                                        <td>
-                                            <strong>{{ dept_name }}</strong>
-                                            {% if dept_info.description %}
-                                                <br><small class="text-muted">{{ dept_info.description }}</small>
-                                            {% endif %}
-                                        </td>
-                                        <td><code>{{ dept_info.code }}</code></td>
-                                        <td>{{ dept_info.working_hours.working_days_per_week }} days</td>
-                                        <td>{{ dept_info.working_hours.total_working_hours_per_week }}h</td>
-                                        <td>
-                                            {% for day, schedule in dept_info.schedule.items %}
-                                                {% if schedule.open %}
-                                                    <small class="d-block">
-                                                        <strong>{{ day|title }}:</strong> 
-                                                        {{ schedule.start|time:"H:i" }} - {{ schedule.end|time:"H:i" }}
-                                                    </small>
-                                                {% endif %}
-                                            {% endfor %}
-                                        </td>
-                                    </tr>
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">
+                <i class="fas fa-building"></i> All Departments Working Hours
+            </h3>
+        </div>
+        <div class="section-body">
+            {% if all_departments_working_hours %}
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Department</th>
+                                <th>Code</th>
+                                <th>Working Days</th>
+                                <th>Weekly Hours</th>
+                                <th>Schedule</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for dept_name, dept_info in all_departments_working_hours.items %}
+                            <tr>
+                                <td>
+                                    <strong>{{ dept_name }}</strong>
+                                    {% if dept_info.description %}
+                                        <br><small class="text-muted">{{ dept_info.description }}</small>
+                                    {% endif %}
+                                </td>
+                                <td><code>{{ dept_info.code }}</code></td>
+                                <td>{{ dept_info.working_hours.working_days_per_week }} days</td>
+                                <td>{{ dept_info.working_hours.total_working_hours_per_week }}h</td>
+                                <td>
+                                    {% for day, schedule in dept_info.schedule.items %}
+                                        {% if schedule.open %}
+                                            <small class="d-block">
+                                                <strong>{{ day|title }}:</strong> 
+                                                {{ schedule.start|time:"H:i" }} - {{ schedule.end|time:"H:i" }}
+                                            </small>
+                                        {% endif %}
                                     {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    {% else %}
-                        <p class="text-muted">Department working hours information not available.</p>
-                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
-            </div>
+            {% else %}
+                <p class="text-muted">Department working hours information not available.</p>
+            {% endif %}
         </div>
     </div>
 
     <!-- Last Updated -->
-    <div class="row">
-        <div class="col-12">
-            <div class="text-center text-muted">
-                <small>
-                    <i class="fas fa-clock"></i> Last updated: {{ last_updated|date:"M d, Y H:i:s" }}
-                </small>
-            </div>
-        </div>
+    <div class="text-center text-muted">
+        <small>
+            <i class="fas fa-clock"></i> Last updated: {{ last_updated|date:"M d, Y H:i:s" }}
+        </small>
     </div>
 </div>
 
-<!-- Debug Information -->
-<div style="display: none;" id="debug-info">
-    <h4>Debug Information:</h4>
-    <p>Attendance Trends Labels: {{ chart_data.attendance_trends_labels|safe }}</p>
-    <p>Attendance Trends Data: {{ chart_data.attendance_trends_data|safe }}</p>
-    <p>Department Labels: {{ chart_data.department_comparison_labels|safe }}</p>
-    <p>Department Data: {{ chart_data.department_comparison_data|safe }}</p>
-    <p>Performance Tiers: {{ chart_data.performance_tiers|safe }}</p>
-</div>
-
 <script>
-// Debug function to show debug info
-function showDebugInfo() {
-    document.getElementById('debug-info').style.display = 'block';
-}
-
-// Chart.js configuration
-Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
-Chart.defaults.color = '#6c757d';
-
-// Error handling for charts
-window.addEventListener('error', function(e) {
-    console.error('Chart error:', e.error);
-    showDebugInfo();
-});
-
-// Attendance Trends Chart
-try {
-    const attendanceTrendsCtx = document.getElementById('attendanceTrendsChart').getContext('2d');
-    const attendanceTrendsChart = new Chart(attendanceTrendsCtx, {
+// Chart.js initialization and data
+document.addEventListener('DOMContentLoaded', function() {
+    // Attendance Trends Chart
+    const attendanceCtx = document.getElementById('attendanceTrendsChart').getContext('2d');
+    new Chart(attendanceCtx, {
         type: 'line',
         data: {
             labels: {{ chart_data.attendance_trends_labels|safe }},
             datasets: [{
-                label: 'Daily Attendance Rate (%)',
-                data: {{ chart_data.attendance_trends_data|safe }},
-                borderColor: '#667eea',
-                backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: true,
-                    position: 'top'
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 100,
-                    ticks: {
-                        callback: function(value) {
-                            return value + '%';
-                        }
-                    }
-                }
-            }
-        }
-    });
-} catch (error) {
-    console.error('Error creating attendance trends chart:', error);
-    showDebugInfo();
-}
-
-// Employee Distribution Chart
-try {
-    const employeeDistributionCtx = document.getElementById('employeeDistributionChart').getContext('2d');
-    const employeeDistributionChart = new Chart(employeeDistributionCtx, {
-        type: 'bar',
-        data: {
-            labels: ['Excellent', 'Good', 'Average', 'Below Average', 'Poor'],
-            datasets: [{
-                label: 'Number of Employees',
-                data: {{ chart_data.performance_tiers|safe }},
-                backgroundColor: [
-                    '#10b981',
-                    '#3b82f6',
-                    '#f59e0b',
-                    '#f97316',
-                    '#ef4444'
-                ],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 1
-                    }
-                }
-            }
-        }
-    });
-} catch (error) {
-    console.error('Error creating employee distribution chart:', error);
-    showDebugInfo();
-}
-
-// Department Comparison Chart
-try {
-    const departmentComparisonCtx = document.getElementById('departmentComparisonChart').getContext('2d');
-    const departmentComparisonChart = new Chart(departmentComparisonCtx, {
-        type: 'bar',
-        data: {
-            labels: {{ chart_data.department_comparison_labels|safe }},
-            datasets: [{
                 label: 'Attendance Rate (%)',
-                data: {{ chart_data.department_comparison_data|safe }},
-                backgroundColor: 'rgba(102, 126, 234, 0.8)',
-                borderColor: '#667eea',
-                borderWidth: 1
+                data: {{ chart_data.attendance_trends_data|safe }},
+                borderColor: 'var(--primary-color)',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                tension: 0.4,
+                fill: true
             }]
         },
         options: {
@@ -1084,14 +573,52 @@ try {
             }
         }
     });
-} catch (error) {
-    console.error('Error creating department comparison chart:', error);
-    showDebugInfo();
+
+    // Employee Distribution Chart
+    const employeeCtx = document.getElementById('employeeDistributionChart').getContext('2d');
+    new Chart(employeeCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Excellent', 'Good', 'Average', 'Poor'],
+            datasets: [{
+                data: [
+                    {{ employee_distribution.statistics.performance_tiers.excellent }},
+                    {{ employee_distribution.statistics.performance_tiers.good }},
+                    {{ employee_distribution.statistics.performance_tiers.average }},
+                    {{ employee_distribution.statistics.performance_tiers.poor }}
+                ],
+                backgroundColor: [
+                    'var(--success-color)',
+                    'var(--accent-color)',
+                    'var(--warning-color)',
+                    'var(--danger-color)'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+});
+
+function showDepartmentDetails(departmentName) {
+    alert('Department details for ' + departmentName + ' would be shown here.');
 }
 
-// Auto-refresh every 5 minutes
-setTimeout(function() {
-    location.reload();
-}, 300000);
+function showDebugInfo() {
+    console.log('Real-time Status:', {{ real_time_status|safe }});
+    console.log('Attendance Trends:', {{ attendance_trends|safe }});
+    console.log('Department Heatmap:', {{ department_heatmap|safe }});
+    console.log('Employee Distribution:', {{ employee_distribution|safe }});
+    console.log('System Metrics:', {{ enhanced_system_metrics|safe }});
+    console.log('Opening Hours Info:', {{ opening_hours_info|safe }});
+    console.log('All Departments Working Hours:', {{ all_departments_working_hours|safe }});
+}
 </script>
 {% endblock %}
