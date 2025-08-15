@@ -453,7 +453,7 @@ def performance_monitoring_dashboard(request):
         }
     }
     
-    return render(request, 'performance_monitoring_dashboard.html', context)
+    return render(request, 'advanced_performance_dashboard.html', context)
 
 
 @reporting_required
@@ -463,6 +463,7 @@ def performance_monitoring_dashboard_test(request):
     Test version of performance monitoring dashboard without admin requirement.
     For testing the visualizations.
     """
+    print("DEBUG: performance_monitoring_dashboard_test view called!")  # Debug line
     from ..utils import performance_monitor
     from django.core.cache import cache
     from datetime import timedelta
@@ -579,4 +580,23 @@ def performance_monitoring_dashboard_test(request):
         }
     }
     
-    return render(request, 'performance_monitoring_dashboard.html', context)
+    return render(request, 'advanced_performance_dashboard.html', context)
+
+
+@extend_schema(exclude=True)
+def simple_test_view(request):
+    """
+    Simple test view to verify routing is working.
+    """
+    from django.http import HttpResponse
+    html = """
+    <html>
+    <head><title>Simple Test</title></head>
+    <body>
+        <h1>🚀 SIMPLE TEST VIEW WORKING! 🚀</h1>
+        <p>If you can see this, the routing is working correctly.</p>
+        <p>This means the issue is in the dashboard view or template loading.</p>
+    </body>
+    </html>
+    """
+    return HttpResponse(html)
