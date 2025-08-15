@@ -48,8 +48,10 @@ class DashboardAnalyticsService:
         current_date = start_date
         
         while current_date <= end_date:
-            # Only count working days (Monday = 0, Sunday = 6)
-            is_working_day = current_date.weekday() < 5
+            # Use opening hours service to check if it's a working day
+            from .opening_hours_service import OpeningHoursService
+            opening_hours_service = OpeningHoursService()
+            is_working_day, reason = opening_hours_service.is_working_day(current_date)
             
             if is_working_day:
                 # Count employees who clocked in on this date
@@ -69,7 +71,8 @@ class DashboardAnalyticsService:
                     'attendance_count': clock_in_count,
                     'total_employees': total_employees,
                     'attendance_rate': round(attendance_rate, 1),
-                    'is_working_day': True
+                    'is_working_day': True,
+                    'working_day_reason': reason
                 })
             
             current_date += timedelta(days=1)
@@ -338,8 +341,8 @@ class DashboardAnalyticsService:
     
     def get_real_time_attendance_status(self) -> Dict[str, Any]:
         """
-        Get real-time attendance status with proper working hours logic.
-        Working hours: Monday-Friday, 9 AM to 5 PM
+        Get real-time attendance status with comprehensive working hours logic.
+        Uses OpeningHoursService for bank holidays, department schedules, and special periods.
         
         Returns:
             Dictionary containing current attendance status
@@ -350,19 +353,18 @@ class DashboardAnalyticsService:
         if cached_data:
             return cached_data
         
-        today = timezone.now().date()
-        now = timezone.now().time()
+        # Import and initialize opening hours service
+        from .opening_hours_service import OpeningHoursService
+        opening_hours_service = OpeningHoursService()
         
-        # Check if today is a working day (Monday = 0, Sunday = 6)
-        is_working_day = today.weekday() < 5  # Monday to Friday
+        now = timezone.now()
+        today = now.date()
         
-        # Check if current time is within working hours (9 AM to 5 PM)
-        working_start = time(9, 0)  # 9:00 AM
-        working_end = time(17, 0)   # 5:00 PM
-        is_working_hours = working_start <= now <= working_end
+        # Get comprehensive working hours information
+        working_hours_info = opening_hours_service.get_working_hours_info(now)
         
         # If it's not a working day or working hours, return appropriate status
-        if not is_working_day:
+        if not working_hours_info['is_working_day']:
             result = {
                 'current_time': now.strftime('%H:%M:%S'),
                 'current_date': today.strftime('%Y-%m-%d'),
@@ -371,14 +373,15 @@ class DashboardAnalyticsService:
                 'current_percentage': 0,
                 'expected_percentage': 0,
                 'expected_attendance': 0,
-                'attendance_status': 'weekend',
-                'working_status': 'Weekend - No work expected',
+                'attendance_status': working_hours_info['status'],
+                'working_status': working_hours_info['message'],
+                'working_hours_info': working_hours_info,
                 'department_breakdown': []
             }
-            cache.set(cache_key, result, 300)  # Cache for 5 minutes on weekends
+            cache.set(cache_key, result, 300)  # Cache for 5 minutes on non-working days
             return result
         
-        if not is_working_hours:
+        if not working_hours_info['is_working_hours']:
             result = {
                 'current_time': now.strftime('%H:%M:%S'),
                 'current_date': today.strftime('%Y-%m-%d'),
@@ -387,8 +390,9 @@ class DashboardAnalyticsService:
                 'current_percentage': 0,
                 'expected_percentage': 0,
                 'expected_attendance': 0,
-                'attendance_status': 'outside_hours',
-                'working_status': 'Outside working hours (9 AM - 5 PM)',
+                'attendance_status': working_hours_info['status'],
+                'working_status': working_hours_info['message'],
+                'working_hours_info': working_hours_info,
                 'department_breakdown': []
             }
             cache.set(cache_key, result, 300)  # Cache for 5 minutes outside hours
@@ -543,3 +547,50 @@ class DashboardAnalyticsService:
         
         cache.set(cache_key, result, self.cache_timeout)
         return result
+    
+    def get_opening_hours_info(self, department_name: str = None) -> Dict[str, Any]:
+        """
+        Get opening hours information including bank holidays and department schedules.
+        
+        Args:
+            department_name: Name of the department to check
+            
+        Returns:
+            Dictionary containing opening hours information
+        """
+        from .opening_hours_service import OpeningHoursService
+        opening_hours_service = OpeningHoursService()
+        
+        now = timezone.now()
+        
+        # Get current working hours info
+        current_info = opening_hours_service.get_working_hours_info(now, department_name)
+        
+        # Get upcoming holidays
+        upcoming_holidays = opening_hours_service.get_upcoming_holidays(days_ahead=30)
+        
+        # Get working hours summary for the department
+        working_hours_summary = opening_hours_service.get_working_hours_summary(department_name)
+        
+        return {
+            'current_status': current_info,
+            'upcoming_holidays': upcoming_holidays,
+            'working_hours_summary': working_hours_summary,
+            'next_working_day': current_info.get('next_working_day'),
+            'next_working_hours': current_info.get('next_working_hours')
+        }
+    
+    def get_department_working_hours(self, department_name: str) -> Dict[str, Any]:
+        """
+        Get working hours information for a specific department.
+        
+        Args:
+            department_name: Name of the department
+            
+        Returns:
+            Dictionary containing department working hours
+        """
+        from .opening_hours_service import OpeningHoursService
+        opening_hours_service = OpeningHoursService()
+        
+        return opening_hours_service.get_working_hours_summary(department_name)

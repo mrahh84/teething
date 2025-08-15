@@ -482,12 +482,36 @@
                 </div>
                 <div class="mt-2">
                     <small>
-                        {% if real_time_status.attendance_status == 'weekend' %}
-                            Weekend - No work expected
-                        {% elif real_time_status.attendance_status == 'outside_hours' %}
-                            Outside working hours
+                        {% if real_time_status.working_hours_info %}
+                            {% if real_time_status.working_hours_info.status == 'bank_holiday' %}
+                                <span class="text-danger">
+                                    <i class="fas fa-calendar-times"></i> {{ real_time_status.working_hours_info.holiday_name }}
+                                </span>
+                            {% elif real_time_status.working_hours_info.status == 'special_period_closed' %}
+                                <span class="text-warning">
+                                    <i class="fas fa-exclamation-triangle"></i> {{ real_time_status.working_hours_info.special_period_info.description }}
+                                </span>
+                            {% elif real_time_status.working_hours_info.status == 'closed' %}
+                                <span class="text-secondary">
+                                    <i class="fas fa-door-closed"></i> {{ real_time_status.working_hours_info.message }}
+                                </span>
+                            {% elif real_time_status.working_hours_info.status == 'outside_hours' %}
+                                <span class="text-info">
+                                    <i class="fas fa-clock"></i> {{ real_time_status.working_hours_info.message }}
+                                </span>
+                            {% else %}
+                                <span class="text-success">
+                                    <i class="fas fa-door-open"></i> {{ real_time_status.working_hours_info.message }}
+                                </span>
+                            {% endif %}
                         {% else %}
-                            {{ real_time_status.current_percentage }}% of {{ real_time_status.total_employees }} employees
+                            {% if real_time_status.attendance_status == 'weekend' %}
+                                Weekend - No work expected
+                            {% elif real_time_status.attendance_status == 'outside_hours' %}
+                                Outside working hours
+                            {% else %}
+                                {{ real_time_status.current_percentage }}% of {{ real_time_status.total_employees }} employees
+                            {% endif %}
                         {% endif %}
                     </small>
                 </div>
@@ -506,12 +530,26 @@
                 </div>
                 <div class="mt-2">
                     <small>
-                        {% if real_time_status.attendance_status == 'weekend' %}
-                            Weekend - No expectations
-                        {% elif real_time_status.attendance_status == 'outside_hours' %}
-                            Outside working hours
+                        {% if real_time_status.working_hours_info %}
+                            {% if real_time_status.working_hours_info.status == 'bank_holiday' %}
+                                <span class="text-danger">Bank Holiday - No expectations</span>
+                            {% elif real_time_status.working_hours_info.status == 'special_period_closed' %}
+                                <span class="text-warning">Special Period - No expectations</span>
+                            {% elif real_time_status.working_hours_info.status == 'closed' %}
+                                <span class="text-secondary">Department Closed</span>
+                            {% elif real_time_status.working_hours_info.status == 'outside_hours' %}
+                                <span class="text-info">Outside Working Hours</span>
+                            {% else %}
+                                <span class="text-success">Target: {{ real_time_status.expected_percentage }}%</span>
+                            {% endif %}
                         {% else %}
-                            Target: {{ real_time_status.expected_percentage }}%
+                            {% if real_time_status.attendance_status == 'weekend' %}
+                                Weekend - No expectations
+                            {% elif real_time_status.attendance_status == 'outside_hours' %}
+                                Outside working hours
+                            {% else %}
+                                Target: {{ real_time_status.expected_percentage }}%
+                            {% endif %}
                         {% endif %}
                     </small>
                 </div>
@@ -749,6 +787,84 @@
         </div>
     </div>
     {% endif %}
+
+    <!-- Opening Hours & Holiday Information -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-calendar-alt"></i> Upcoming Bank Holidays
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if opening_hours_info.upcoming_holidays %}
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Holiday</th>
+                                        <th>Days Until</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for holiday in opening_hours_info.upcoming_holidays|slice:":5" %}
+                                    <tr>
+                                        <td>{{ holiday.date|date:"M d, Y" }}</td>
+                                        <td>{{ holiday.name }}</td>
+                                        <td>
+                                            {% if holiday.is_today %}
+                                                <span class="badge badge-warning">Today</span>
+                                            {% else %}
+                                                <span class="badge badge-info">{{ holiday.days_until }} days</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No upcoming bank holidays in the next 30 days.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-clock"></i> Working Hours Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if opening_hours_info.working_hours_summary %}
+                        <div class="row">
+                            <div class="col-6">
+                                <h6>Weekly Schedule</h6>
+                                <p class="mb-1"><strong>Working Days:</strong> {{ opening_hours_info.working_hours_summary.working_days_per_week }}</p>
+                                <p class="mb-1"><strong>Total Hours:</strong> {{ opening_hours_info.working_hours_summary.total_working_hours_per_week }}h</p>
+                            </div>
+                            <div class="col-6">
+                                <h6>Next Working Day</h6>
+                                {% if opening_hours_info.next_working_day %}
+                                    <p class="mb-1"><strong>{{ opening_hours_info.next_working_day.day }}</strong></p>
+                                    <p class="mb-1">{{ opening_hours_info.next_working_day.start_time }} - {{ opening_hours_info.next_working_day.end_time }}</p>
+                                    <small class="text-muted">{{ opening_hours_info.next_working_day.days_until }} days away</small>
+                                {% else %}
+                                    <p class="text-muted">No upcoming working days found.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">Working hours information not available.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Last Updated -->
     <div class="row">

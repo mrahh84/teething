@@ -76,6 +76,9 @@ def performance_dashboard(request):
     real_time_status = analytics_service.get_real_time_attendance_status()
     system_metrics = analytics_service.get_system_performance_metrics(days=7)
     
+    # Get opening hours information
+    opening_hours_info = analytics_service.get_opening_hours_info()
+    
     # Get system performance metrics
     from ..models import SystemPerformance
     
@@ -157,6 +160,7 @@ def performance_dashboard(request):
         'employee_distribution': employee_distribution,
         'real_time_status': real_time_status,
         'enhanced_system_metrics': system_metrics,
+        'opening_hours_info': opening_hours_info,
         
         # Chart data as JSON for JavaScript
         'chart_data': {
