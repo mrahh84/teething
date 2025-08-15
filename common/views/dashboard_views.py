@@ -454,3 +454,129 @@ def performance_monitoring_dashboard(request):
     }
     
     return render(request, 'performance_monitoring_dashboard.html', context)
+
+
+@reporting_required
+@extend_schema(exclude=True)
+def performance_monitoring_dashboard_test(request):
+    """
+    Test version of performance monitoring dashboard without admin requirement.
+    For testing the visualizations.
+    """
+    from ..utils import performance_monitor
+    from django.core.cache import cache
+    from datetime import timedelta
+    from ..services.dashboard_analytics_service import DashboardAnalyticsService
+    
+    # Initialize analytics service
+    analytics_service = DashboardAnalyticsService()
+    
+    # Get basic performance report from existing service
+    basic_performance_report = performance_monitor.get_performance_report()
+    
+    # Get new dashboard analytics data
+    attendance_trends = analytics_service.get_attendance_trends_data(days=90)
+    department_heatmap = analytics_service.get_department_performance_heatmap_data(days=30)
+    employee_distribution = analytics_service.get_employee_performance_distribution(days=30)
+    real_time_status = analytics_service.get_real_time_attendance_status()
+    system_metrics = analytics_service.get_system_performance_metrics(days=7)
+    
+    # Get system performance metrics
+    from ..models import SystemPerformance
+    
+    today = django_timezone.localtime(django_timezone.now()).date()
+    last_7_days = today - timedelta(days=7)
+    
+    legacy_system_metrics = SystemPerformance.objects.filter(
+        date__gte=last_7_days
+    ).order_by('-date')[:7]
+    
+    # Get cache statistics
+    cache_stats = {
+        'total_keys': len(cache._cache) if hasattr(cache, '_cache') else 'Unknown',
+        'cache_hit_rate': cache.get('cache_hit_rate', 0),
+        'total_requests': cache.get('total_cache_requests', 0),
+        'cache_misses': cache.get('cache_misses', 0)
+    }
+    
+    # Calculate cache hit rate if we have the data
+    if cache_stats['total_requests'] > 0:
+        cache_stats['calculated_hit_rate'] = round(
+            ((cache_stats['total_requests'] - cache_stats['cache_misses']) / cache_stats['total_requests']) * 100, 1
+        )
+    else:
+        cache_stats['calculated_hit_rate'] = 0
+    
+    # Generate performance recommendations based on available data
+    performance_recommendations = []
+    
+    if basic_performance_report and 'views' in basic_performance_report:
+        for view_name, metrics in basic_performance_report['views'].items():
+            if metrics.get('avg_queries', 0) > 10:
+                performance_recommendations.append({
+                    'view': view_name,
+                    'issue': 'High query count',
+                    'suggestion': 'Implement select_related/prefetch_related'
+                })
+            
+            if metrics.get('avg_time', 0) > 1.0:
+                performance_recommendations.append({
+                    'view': view_name,
+                    'issue': 'Slow execution',
+                    'suggestion': 'Add database indexes or optimize queries'
+                })
+    
+    # Add attendance-based recommendations
+    if attendance_trends['summary']['avg_attendance_rate'] < 80:
+        performance_recommendations.append({
+            'view': 'Attendance System',
+            'issue': 'Low attendance rate',
+            'suggestion': f"Current average: {attendance_trends['summary']['avg_attendance_rate']}%. Review attendance policies and employee engagement."
+        })
+    
+    # Add department performance recommendations
+    if department_heatmap['departments']:
+        worst_dept = min(department_heatmap['departments'], 
+                        key=lambda x: sum(d['performance_score'] for d in x['daily_performance']) / len(x['daily_performance']))
+        avg_performance = sum(d['performance_score'] for d in worst_dept['daily_performance']) / len(worst_dept['daily_performance'])
+        
+        if avg_performance < 70:
+            performance_recommendations.append({
+                'view': f"Department: {worst_dept['department']}",
+                'issue': 'Low department performance',
+                'suggestion': f"Average performance: {avg_performance:.1f}%. Investigate attendance issues and provide support."
+            })
+    
+    context = {
+        'page_title': 'Performance Dashboard Test (No Admin Required)',
+        'active_tab': 'performance_monitoring',
+        'basic_performance_report': basic_performance_report,
+        'legacy_system_metrics': legacy_system_metrics,
+        'cache_stats': cache_stats,
+        'performance_recommendations': performance_recommendations,
+        'last_updated': django_timezone.now(),
+        
+        # New dashboard data
+        'attendance_trends': attendance_trends,
+        'department_heatmap': department_heatmap,
+        'employee_distribution': employee_distribution,
+        'real_time_status': real_time_status,
+        'enhanced_system_metrics': system_metrics,
+        
+        # Chart data as JSON for JavaScript
+        'chart_data': {
+            'attendance_trends_labels': json.dumps([d['date'] for d in attendance_trends['daily_data']]),
+            'attendance_trends_data': json.dumps([d['attendance_rate'] for d in attendance_trends['daily_data']]),
+            'department_comparison_labels': json.dumps([d['department_name'] for d in attendance_trends['department_comparison']]),
+            'department_comparison_data': json.dumps([d['attendance_rate'] for d in attendance_trends['department_comparison']]),
+            'performance_tiers': json.dumps([
+                employee_distribution['statistics']['performance_tiers']['excellent'],
+                employee_distribution['statistics']['performance_tiers']['good'],
+                employee_distribution['statistics']['performance_tiers']['average'],
+                employee_distribution['statistics']['performance_tiers']['below_average'],
+                employee_distribution['statistics']['performance_tiers']['poor']
+            ])
+        }
+    }
+    
+    return render(request, 'performance_monitoring_dashboard.html', context)
