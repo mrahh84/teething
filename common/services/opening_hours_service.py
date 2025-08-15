@@ -45,7 +45,7 @@ class OpeningHoursService:
             '2026-12-26': 'Boxing Day',
         }
         
-        # Department-specific schedules (can be customized per department)
+        # Department-specific schedules based on actual departments in the system
         self.department_schedules = {
             'default': {
                 'monday': {'start': time(9, 0), 'end': time(17, 0), 'open': True},
@@ -53,11 +53,12 @@ class OpeningHoursService:
                 'wednesday': {'start': time(9, 0), 'end': time(17, 0), 'open': True},
                 'thursday': {'start': time(9, 0), 'end': time(17, 0), 'open': True},
                 'friday': {'start': time(9, 0), 'end': time(17, 0), 'open': True},
-                'saturday': {'start': time(9, 0), 'end': time(13, 0), 'open': False},  # Half day
+                'saturday': {'start': time(9, 0), 'end': time(13, 0), 'open': False},
                 'sunday': {'start': time(9, 0), 'end': time(17, 0), 'open': False},
             },
-            'security': {
-                'monday': {'start': time(0, 0), 'end': time(23, 59), 'open': True},  # 24/7
+            # Main Security - 24/7 operation
+            'main security': {
+                'monday': {'start': time(0, 0), 'end': time(23, 59), 'open': True},
                 'tuesday': {'start': time(0, 0), 'end': time(23, 59), 'open': True},
                 'wednesday': {'start': time(0, 0), 'end': time(23, 59), 'open': True},
                 'thursday': {'start': time(0, 0), 'end': time(23, 59), 'open': True},
@@ -65,17 +66,59 @@ class OpeningHoursService:
                 'saturday': {'start': time(0, 0), 'end': time(23, 59), 'open': True},
                 'sunday': {'start': time(0, 0), 'end': time(23, 59), 'open': True},
             },
-            'maintenance': {
-                'monday': {'start': time(7, 0), 'end': time(18, 0), 'open': True},  # Extended hours
+            # IT Support - Extended hours for maintenance
+            'it support': {
+                'monday': {'start': time(7, 0), 'end': time(18, 0), 'open': True},
                 'tuesday': {'start': time(7, 0), 'end': time(18, 0), 'open': True},
                 'wednesday': {'start': time(7, 0), 'end': time(18, 0), 'open': True},
                 'thursday': {'start': time(7, 0), 'end': time(18, 0), 'open': True},
                 'friday': {'start': time(7, 0), 'end': time(18, 0), 'open': True},
-                'saturday': {'start': time(8, 0), 'end': time(16, 0), 'open': True},  # Weekend work
+                'saturday': {'start': time(8, 0), 'end': time(16, 0), 'open': True},
                 'sunday': {'start': time(8, 0), 'end': time(16, 0), 'open': True},
             },
+            # Administration - Standard office hours
             'administration': {
-                'monday': {'start': time(8, 30), 'end': time(17, 30), 'open': True},  # Standard office
+                'monday': {'start': time(8, 30), 'end': time(17, 30), 'open': True},
+                'tuesday': {'start': time(8, 30), 'end': time(17, 30), 'open': True},
+                'wednesday': {'start': time(8, 30), 'end': time(17, 30), 'open': True},
+                'thursday': {'start': time(8, 30), 'end': time(17, 30), 'open': True},
+                'friday': {'start': time(8, 30), 'end': time(17, 30), 'open': True},
+                'saturday': {'start': time(9, 0), 'end': time(17, 0), 'open': False},
+                'sunday': {'start': time(9, 0), 'end': time(17, 0), 'open': False},
+            },
+            # Digitization Tech - Standard hours
+            'digitization tech': {
+                'monday': {'start': time(9, 0), 'end': time(17, 0), 'open': True},
+                'tuesday': {'start': time(9, 0), 'end': time(17, 0), 'open': True},
+                'wednesday': {'start': time(9, 0), 'end': time(17, 0), 'open': True},
+                'thursday': {'start': time(9, 0), 'end': time(17, 0), 'open': True},
+                'friday': {'start': time(9, 0), 'end': time(17, 0), 'open': True},
+                'saturday': {'start': time(9, 0), 'end': time(17, 0), 'open': False},
+                'sunday': {'start': time(9, 0), 'end': time(17, 0), 'open': False},
+            },
+            # Repository and Conservation - Standard hours
+            'repository and conservation': {
+                'monday': {'start': time(9, 0), 'end': time(17, 0), 'open': True},
+                'tuesday': {'start': time(9, 0), 'end': time(17, 0), 'open': True},
+                'wednesday': {'start': time(9, 0), 'end': time(17, 0), 'open': True},
+                'thursday': {'start': time(9, 0), 'end': time(17, 0), 'open': True},
+                'friday': {'start': time(9, 0), 'end': time(17, 0), 'open': True},
+                'saturday': {'start': time(9, 0), 'end': time(17, 0), 'open': False},
+                'sunday': {'start': time(9, 0), 'end': time(17, 0), 'open': False},
+            },
+            # Human Resources - Standard office hours
+            'human resources': {
+                'monday': {'start': time(8, 30), 'end': time(17, 30), 'open': True},
+                'tuesday': {'start': time(8, 30), 'end': time(17, 30), 'open': True},
+                'wednesday': {'start': time(8, 30), 'end': time(17, 30), 'open': True},
+                'thursday': {'start': time(8, 30), 'end': time(17, 30), 'open': True},
+                'friday': {'start': time(8, 30), 'end': time(17, 30), 'open': True},
+                'saturday': {'start': time(9, 0), 'end': time(17, 0), 'open': False},
+                'sunday': {'start': time(9, 0), 'end': time(17, 0), 'open': False},
+            },
+            # Finance - Standard office hours
+            'finance': {
+                'monday': {'start': time(8, 30), 'end': time(17, 30), 'open': True},
                 'tuesday': {'start': time(8, 30), 'end': time(17, 30), 'open': True},
                 'wednesday': {'start': time(8, 30), 'end': time(17, 30), 'open': True},
                 'thursday': {'start': time(8, 30), 'end': time(17, 30), 'open': True},
@@ -154,19 +197,48 @@ class OpeningHoursService:
             department_name = 'default'
         
         # Normalize department name for matching
-        department_key = department_name.lower().replace(' ', '_')
+        normalized_name = department_name.lower().strip()
         
         # Try to find exact match first
-        if department_key in self.department_schedules:
-            return self.department_schedules[department_key]
+        if normalized_name in self.department_schedules:
+            return self.department_schedules[normalized_name]
         
-        # Try partial matches
+        # Try partial matches (more flexible)
         for key, schedule in self.department_schedules.items():
-            if key in department_key or department_key in key:
+            if (normalized_name in key or key in normalized_name or 
+                normalized_name.replace(' ', '') in key.replace(' ', '') or
+                key.replace(' ', '') in normalized_name.replace(' ', '')):
                 return schedule
         
         # Fall back to default schedule
         return self.department_schedules['default']
+    
+    def get_available_departments(self) -> List[Dict[str, Any]]:
+        """
+        Get list of all available departments from the database.
+        
+        Returns:
+            List of department information
+        """
+        try:
+            from django.apps import apps
+            if apps.is_installed('common'):
+                from common.models import Department
+                departments = Department.objects.filter(is_active=True).values('name', 'code', 'description')
+                return list(departments)
+        except (ImportError, Exception):
+            pass
+        
+        # Fallback to hardcoded departments if database access fails
+        return [
+            {'name': 'Main Security', 'code': 'MAINSEC', 'description': 'Main security and access control'},
+            {'name': 'IT Support', 'code': 'ITSUPP', 'description': 'Information technology support and maintenance'},
+            {'name': 'Administration', 'code': 'ADMIN', 'description': 'Administrative and management services'},
+            {'name': 'Digitization Tech', 'code': 'DIGITECH', 'description': 'Digital technology and digitization department'},
+            {'name': 'Repository and Conservation', 'code': 'REPCONS', 'description': 'Repository management and conservation services'},
+            {'name': 'Human Resources', 'code': 'HR', 'description': 'Human resources and personnel management'},
+            {'name': 'Finance', 'code': 'FINANCE', 'description': 'Financial management and accounting'},
+        ]
     
     def is_working_day(self, check_date: date, department_name: str = None) -> Tuple[bool, str]:
         """
@@ -449,3 +521,25 @@ class OpeningHoursService:
         summary['total_working_hours_per_week'] = round(summary['total_working_hours_per_week'], 1)
         
         return summary
+    
+    def get_all_departments_working_hours(self) -> Dict[str, Any]:
+        """
+        Get working hours information for all departments.
+        
+        Returns:
+            Dictionary containing working hours for all departments
+        """
+        available_departments = self.get_available_departments()
+        all_departments_info = {}
+        
+        for dept in available_departments:
+            dept_name = dept['name']
+            summary = self.get_working_hours_summary(dept_name)
+            all_departments_info[dept_name] = {
+                'code': dept['code'],
+                'description': dept['description'],
+                'working_hours': summary,
+                'schedule': self.get_department_schedule(dept_name)
+            }
+        
+        return all_departments_info

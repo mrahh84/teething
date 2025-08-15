@@ -79,6 +79,9 @@ def performance_dashboard(request):
     # Get opening hours information
     opening_hours_info = analytics_service.get_opening_hours_info()
     
+    # Get all departments working hours
+    all_departments_working_hours = analytics_service.get_all_departments_working_hours()
+    
     # Get system performance metrics
     from ..models import SystemPerformance
     
@@ -161,6 +164,7 @@ def performance_dashboard(request):
         'real_time_status': real_time_status,
         'enhanced_system_metrics': system_metrics,
         'opening_hours_info': opening_hours_info,
+        'all_departments_working_hours': all_departments_working_hours,
         
         # Chart data as JSON for JavaScript
         'chart_data': {

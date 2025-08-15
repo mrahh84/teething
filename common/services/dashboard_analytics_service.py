@@ -594,3 +594,15 @@ class DashboardAnalyticsService:
         opening_hours_service = OpeningHoursService()
         
         return opening_hours_service.get_working_hours_summary(department_name)
+    
+    def get_all_departments_working_hours(self) -> Dict[str, Any]:
+        """
+        Get working hours information for all departments.
+        
+        Returns:
+            Dictionary containing working hours for all departments
+        """
+        from .opening_hours_service import OpeningHoursService
+        opening_hours_service = OpeningHoursService()
+        
+        return opening_hours_service.get_all_departments_working_hours()

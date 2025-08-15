@@ -866,6 +866,63 @@
         </div>
     </div>
 
+    <!-- All Departments Working Hours -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-building"></i> All Departments Working Hours
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if all_departments_working_hours %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Department</th>
+                                        <th>Code</th>
+                                        <th>Working Days</th>
+                                        <th>Weekly Hours</th>
+                                        <th>Schedule</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for dept_name, dept_info in all_departments_working_hours.items %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ dept_name }}</strong>
+                                            {% if dept_info.description %}
+                                                <br><small class="text-muted">{{ dept_info.description }}</small>
+                                            {% endif %}
+                                        </td>
+                                        <td><code>{{ dept_info.code }}</code></td>
+                                        <td>{{ dept_info.working_hours.working_days_per_week }} days</td>
+                                        <td>{{ dept_info.working_hours.total_working_hours_per_week }}h</td>
+                                        <td>
+                                            {% for day, schedule in dept_info.schedule.items %}
+                                                {% if schedule.open %}
+                                                    <small class="d-block">
+                                                        <strong>{{ day|title }}:</strong> 
+                                                        {{ schedule.start|time:"H:i" }} - {{ schedule.end|time:"H:i" }}
+                                                    </small>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">Department working hours information not available.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Last Updated -->
     <div class="row">
         <div class="col-12">
