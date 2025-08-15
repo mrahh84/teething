@@ -4,8 +4,6 @@
 {% block title %}{{ page_title }}{% endblock %}
 
 {% block extra_css %}
-<!-- Chart.js for interactive charts -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
     .chart-container {
         position: relative;
@@ -87,6 +85,9 @@
                     <span class="badge badge-success mr-3">
                         <i class="fas fa-circle real-time-indicator"></i> Live Data
                     </span>
+                    <button onclick="showDebugInfo()" class="btn btn-info mr-2">
+                        <i class="fas fa-bug"></i> Debug
+                    </button>
                     <a href="{% url 'performance_dashboard' %}" class="btn btn-secondary">
                         <i class="fas fa-arrow-left"></i> Basic Performance
                     </a>
@@ -375,14 +376,39 @@
     </div>
 </div>
 
+<!-- Chart.js for interactive charts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Debug Information -->
+<div style="display: none;" id="debug-info">
+    <h4>Debug Information:</h4>
+    <p>Attendance Trends Labels: {{ chart_data.attendance_trends_labels|safe }}</p>
+    <p>Attendance Trends Data: {{ chart_data.attendance_trends_data|safe }}</p>
+    <p>Department Labels: {{ chart_data.department_comparison_labels|safe }}</p>
+    <p>Department Data: {{ chart_data.department_comparison_data|safe }}</p>
+    <p>Performance Tiers: {{ chart_data.performance_tiers|safe }}</p>
+</div>
+
 <script>
+// Debug function to show debug info
+function showDebugInfo() {
+    document.getElementById('debug-info').style.display = 'block';
+}
+
 // Chart.js configuration
 Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 Chart.defaults.color = '#6c757d';
 
+// Error handling for charts
+window.addEventListener('error', function(e) {
+    console.error('Chart error:', e.error);
+    showDebugInfo();
+});
+
 // Attendance Trends Chart
-const attendanceTrendsCtx = document.getElementById('attendanceTrendsChart').getContext('2d');
-const attendanceTrendsChart = new Chart(attendanceTrendsCtx, {
+try {
+    const attendanceTrendsCtx = document.getElementById('attendanceTrendsChart').getContext('2d');
+    const attendanceTrendsChart = new Chart(attendanceTrendsCtx, {
     type: 'line',
     data: {
         labels: {{ chart_data.attendance_trends_labels|safe }},
@@ -417,9 +443,14 @@ const attendanceTrendsChart = new Chart(attendanceTrendsCtx, {
             }
         }
     }
-});
+    });
+} catch (error) {
+    console.error('Error creating attendance trends chart:', error);
+    showDebugInfo();
+}
 
 // Employee Distribution Chart
+try {
 const employeeDistributionCtx = document.getElementById('employeeDistributionChart').getContext('2d');
 const employeeDistributionChart = new Chart(employeeDistributionCtx, {
     type: 'bar',
@@ -455,9 +486,14 @@ const employeeDistributionChart = new Chart(employeeDistributionCtx, {
             }
         }
     }
-});
+    });
+} catch (error) {
+    console.error('Error creating employee distribution chart:', error);
+    showDebugInfo();
+}
 
 // Department Comparison Chart
+try {
 const departmentComparisonCtx = document.getElementById('departmentComparisonChart').getContext('2d');
 const departmentComparisonChart = new Chart(departmentComparisonCtx, {
     type: 'bar',
@@ -491,7 +527,11 @@ const departmentComparisonChart = new Chart(departmentComparisonCtx, {
             }
         }
     }
-});
+    });
+} catch (error) {
+    console.error('Error creating department comparison chart:', error);
+    showDebugInfo();
+}
 
 // Auto-refresh every 5 minutes
 setTimeout(function() {
