@@ -1,0 +1,625 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Performance Dashboard - Road Attendance System{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    /* Performance Dashboard Specific Styles Only */
+    .chart-container {
+        position: relative;
+        height: 400px;
+        margin-bottom: 2rem;
+    }
+    
+    .metric-card {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: var(--text-color);
+    }
+    
+    .metric-card.success {
+        border-left: 4px solid var(--success-color);
+    }
+    
+    .metric-card.warning {
+        border-left: 4px solid var(--warning-color);
+    }
+    
+    .metric-card.info {
+        border-left: 4px solid var(--accent-color);
+    }
+    
+    .metric-card.primary {
+        border-left: 4px solid var(--primary-color);
+    }
+    
+    .heatmap-cell {
+        width: 20px;
+        height: 20px;
+        display: inline-block;
+        margin: 1px;
+        border-radius: 3px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .heatmap-cell:hover {
+        transform: scale(1.2);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    
+    .performance-tier {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin: 0.25rem;
+        display: inline-block;
+    }
+    
+    .tier-excellent { background-color: var(--success-color); color: white; }
+    .tier-good { background-color: var(--accent-color); color: white; }
+    .tier-average { background-color: var(--warning-color); color: white; }
+    .tier-below-average { background-color: #f97316; color: white; }
+    .tier-poor { background-color: var(--danger-color); color: white; }
+    
+    .real-time-indicator {
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.7; }
+        100% { opacity: 1; }
+    }
+    
+    .heatmap-excellent { background: rgba(56, 161, 105, 0.2); color: var(--success-color); }
+    .heatmap-good { background: rgba(52, 152, 219, 0.2); color: var(--accent-color); }
+    .heatmap-average { background: rgba(246, 173, 85, 0.2); color: var(--warning-color); }
+    .heatmap-poor { background: rgba(229, 62, 62, 0.2); color: var(--danger-color); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">⚡ Performance Dashboard</h1>
+        <p class="dashboard-subtitle">Real-time system performance and employee attendance analytics</p>
+        
+        <!-- Working Status Badge -->
+        {% if real_time_status.working_hours_info %}
+            {% if real_time_status.working_hours_info.status == 'bank_holiday' %}
+                <span class="badge badge-danger">
+                    <i class="fas fa-calendar-times"></i> {{ real_time_status.working_hours_info.holiday_name }}
+                </span>
+            {% elif real_time_status.working_hours_info.status == 'special_period_closed' %}
+                <span class="badge badge-warning">
+                    <i class="fas fa-exclamation-triangle"></i> {{ real_time_status.working_hours_info.special_period_info.description }}
+                </span>
+            {% elif real_time_status.working_hours_info.status == 'closed' %}
+                <span class="badge badge-secondary">
+                    <i class="fas fa-door-closed"></i> {{ real_time_status.working_hours_info.message }}
+                </span>
+            {% elif real_time_status.working_hours_info.status == 'outside_hours' %}
+                <span class="badge badge-info">
+                    <i class="fas fa-clock"></i> {{ real_time_status.working_hours_info.message }}
+                </span>
+            {% else %}
+                <span class="badge badge-success">
+                    <i class="fas fa-door-open"></i> {{ real_time_status.working_hours_info.message }}
+                </span>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    <!-- Real-time Attendance Status -->
+    <div class="card-grid">
+        <div class="card">
+            <div class="card-icon">👥</div>
+            <div class="card-content">
+                <div class="card-value">{{ real_time_status.current_clocked_in }}</div>
+                <div class="card-label">Currently Clocked In</div>
+                <div class="mt-2">
+                    <small>
+                        {% if real_time_status.working_hours_info %}
+                            {% if real_time_status.working_hours_info.status == 'bank_holiday' %}
+                                <span class="text-danger">
+                                    <i class="fas fa-calendar-times"></i> {{ real_time_status.working_hours_info.holiday_name }}
+                                </span>
+                            {% elif real_time_status.working_hours_info.status == 'special_period_closed' %}
+                                <span class="text-warning">
+                                    <i class="fas fa-exclamation-triangle"></i> {{ real_time_status.working_hours_info.special_period_info.description }}
+                                </span>
+                            {% elif real_time_status.working_hours_info.status == 'closed' %}
+                                <span class="text-secondary">
+                                    <i class="fas fa-door-closed"></i> {{ real_time_status.working_hours_info.message }}
+                                </span>
+                            {% elif real_time_status.working_hours_info.status == 'outside_hours' %}
+                                <span class="text-info">
+                                    <i class="fas fa-clock"></i> {{ real_time_status.working_hours_info.message }}
+                                </span>
+                            {% else %}
+                                <span class="text-success">
+                                    <i class="fas fa-door-open"></i> {{ real_time_status.working_hours_info.message }}
+                                </span>
+                            {% endif %}
+                        {% else %}
+                            {% if real_time_status.attendance_status == 'weekend' %}
+                                Weekend - No work expected
+                            {% elif real_time_status.attendance_status == 'outside_hours' %}
+                                Outside working hours
+                            {% else %}
+                                {{ real_time_status.current_percentage }}% of {{ real_time_status.total_employees }} employees
+                            {% endif %}
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-icon">🎯</div>
+            <div class="card-content">
+                <div class="card-value">{{ real_time_status.expected_attendance }}</div>
+                <div class="card-label">Expected Attendance</div>
+                <div class="mt-2">
+                    <small>
+                        {% if real_time_status.working_hours_info %}
+                            {% if real_time_status.working_hours_info.status == 'bank_holiday' %}
+                                <span class="text-danger">Bank Holiday - No expectations</span>
+                            {% elif real_time_status.working_hours_info.status == 'special_period_closed' %}
+                                <span class="text-warning">Special Period - No expectations</span>
+                            {% elif real_time_status.working_hours_info.status == 'closed' %}
+                                <span class="text-secondary">Department Closed</span>
+                            {% elif real_time_status.working_hours_info.status == 'outside_hours' %}
+                                <span class="text-info">Outside Working Hours</span>
+                            {% else %}
+                                <span class="text-success">Target: {{ real_time_status.expected_percentage }}%</span>
+                            {% endif %}
+                        {% else %}
+                            {% if real_time_status.attendance_status == 'weekend' %}
+                                Weekend - No expectations
+                            {% elif real_time_status.attendance_status == 'outside_hours' %}
+                                Outside working hours
+                            {% else %}
+                                Target: {{ real_time_status.expected_percentage }}%
+                            {% endif %}
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-icon">📈</div>
+            <div class="card-content">
+                <div class="card-value">{{ attendance_trends.summary.avg_attendance_rate }}%</div>
+                <div class="card-label">90-Day Average</div>
+                <div class="mt-2">
+                    <small>Last 90 days</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-icon">👤</div>
+            <div class="card-content">
+                <div class="card-value">{{ employee_distribution.statistics.total_employees }}</div>
+                <div class="card-label">Active Employees</div>
+                <div class="mt-2">
+                    <small>Across {{ department_heatmap.departments|length }} departments</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Trends Chart -->
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">
+                <i class="fas fa-chart-line"></i> Attendance Trends Over Time (Last 90 Days)
+            </h3>
+        </div>
+        <div class="section-body">
+            <div class="chart-container">
+                <canvas id="attendanceTrendsChart"></canvas>
+            </div>
+            <div class="card-grid">
+                <div class="card">
+                    <div class="card-value">{{ attendance_trends.summary.best_day_rate }}%</div>
+                    <div class="card-label">Best Day</div>
+                </div>
+                <div class="card">
+                    <div class="card-value">{{ attendance_trends.summary.worst_day_rate }}%</div>
+                    <div class="card-label">Worst Day</div>
+                </div>
+                <div class="card">
+                    <div class="card-value">{{ attendance_trends.summary.avg_attendance_rate }}%</div>
+                    <div class="card-label">Average</div>
+                </div>
+                <div class="card">
+                    <div class="card-value">{{ attendance_trends.summary.total_working_days }}</div>
+                    <div class="card-label">Working Days</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Department Performance Heatmap -->
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">
+                <i class="fas fa-fire"></i> Department Performance Heatmap (Last 30 Days)
+            </h3>
+        </div>
+        <div class="section-body">
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Department</th>
+                            <th>Performance Score</th>
+                            <th>Trend</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for dept in department_heatmap.departments %}
+                        <tr>
+                            <td><strong>{{ dept.department_name }}</strong></td>
+                            <td>
+                                <span class="performance-tier tier-{{ dept.performance_tier }}">
+                                    {{ dept.performance_score }}%
+                                </span>
+                            </td>
+                            <td>
+                                {% if dept.trend == 'improving' %}
+                                    <span class="text-success">↗️ Improving</span>
+                                {% elif dept.trend == 'declining' %}
+                                    <span class="text-danger">↘️ Declining</span>
+                                {% else %}
+                                    <span class="text-info">→ Stable</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button class="btn btn-primary btn-sm" onclick="showDepartmentDetails('{{ dept.department_name }}')">
+                                    View Details
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Employee Performance Distribution -->
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">
+                <i class="fas fa-users"></i> Employee Performance Distribution
+            </h3>
+        </div>
+        <div class="section-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <canvas id="employeeDistributionChart"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card-grid">
+                        <div class="card">
+                            <div class="card-value">{{ employee_distribution.statistics.performance_tiers.excellent }}</div>
+                            <div class="card-label">Excellent</div>
+                        </div>
+                        <div class="card">
+                            <div class="card-value">{{ employee_distribution.statistics.performance_tiers.good }}</div>
+                            <div class="card-label">Good</div>
+                        </div>
+                        <div class="card">
+                            <div class="card-value">{{ employee_distribution.statistics.performance_tiers.average }}</div>
+                            <div class="card-label">Average</div>
+                        </div>
+                        <div class="card">
+                            <div class="card-value">{{ employee_distribution.statistics.performance_tiers.poor }}</div>
+                            <div class="card-label">Poor</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Performance Metrics -->
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">
+                <i class="fas fa-server"></i> System Performance Metrics
+            </h3>
+        </div>
+        <div class="section-body">
+            <div class="card-grid">
+                <div class="card">
+                    <div class="card-value">{{ enhanced_system_metrics.summary.avg_daily_events }}</div>
+                    <div class="card-label">Avg Daily Events</div>
+                </div>
+                <div class="card">
+                    <div class="card-value">{{ enhanced_system_metrics.summary.total_events_period }}</div>
+                    <div class="card-label">Total Events (7 days)</div>
+                </div>
+                <div class="card">
+                    <div class="card-value">{{ cache_stats.calculated_hit_rate }}%</div>
+                    <div class="card-label">Cache Hit Rate</div>
+                </div>
+                <div class="card">
+                    <div class="card-value">{{ cache_stats.total_keys }}</div>
+                    <div class="card-label">Cache Keys</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Recommendations -->
+    {% if performance_recommendations %}
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">
+                <i class="fas fa-lightbulb"></i> Performance Recommendations
+            </h3>
+        </div>
+        <div class="section-body">
+            <div class="card-grid">
+                {% for rec in performance_recommendations %}
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title">{{ rec.view }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Issue:</strong> {{ rec.issue }}</p>
+                        <p><strong>Suggestion:</strong> {{ rec.suggestion }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Opening Hours & Holiday Information -->
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">
+                <i class="fas fa-calendar-alt"></i> Opening Hours & Holiday Information
+            </h3>
+        </div>
+        <div class="section-body">
+            <div class="card-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title">Upcoming Bank Holidays</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if opening_hours_info.upcoming_holidays %}
+                            <div class="table-container">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Holiday</th>
+                                            <th>Days Until</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for holiday in opening_hours_info.upcoming_holidays|slice:":5" %}
+                                        <tr>
+                                            <td>{{ holiday.date|date:"M d, Y" }}</td>
+                                            <td>{{ holiday.name }}</td>
+                                            <td>
+                                                {% if holiday.is_today %}
+                                                    <span class="badge badge-warning">Today</span>
+                                                {% else %}
+                                                    <span class="badge badge-info">{{ holiday.days_until }} days</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <p class="text-muted">No upcoming bank holidays in the next 30 days.</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title">Working Hours Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if opening_hours_info.working_hours_summary %}
+                            <div class="row">
+                                <div class="col-6">
+                                    <h6>Weekly Schedule</h6>
+                                    <p class="mb-1"><strong>Working Days:</strong> {{ opening_hours_info.working_hours_summary.working_days_per_week }}</p>
+                                    <p class="mb-1"><strong>Total Hours:</strong> {{ opening_hours_info.working_hours_summary.total_working_hours_per_week }}h</p>
+                                </div>
+                                <div class="col-6">
+                                    <h6>Next Working Day</h6>
+                                    {% if opening_hours_info.next_working_day %}
+                                        <p class="mb-1"><strong>{{ opening_hours_info.next_working_day.day }}</strong></p>
+                                        <p class="mb-1">{{ opening_hours_info.next_working_day.start_time }} - {{ opening_hours_info.next_working_day.end_time }}</p>
+                                        <small class="text-muted">{{ opening_hours_info.next_working_day.days_until }} days away</small>
+                                    {% else %}
+                                        <p class="text-muted">No upcoming working days found.</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% else %}
+                            <p class="text-muted">Working hours information not available.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- All Departments Working Hours -->
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">
+                <i class="fas fa-building"></i> All Departments Working Hours
+            </h3>
+        </div>
+        <div class="section-body">
+            {% if all_departments_working_hours %}
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Department</th>
+                                <th>Code</th>
+                                <th>Working Days</th>
+                                <th>Weekly Hours</th>
+                                <th>Schedule</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for dept_name, dept_info in all_departments_working_hours.items %}
+                            <tr>
+                                <td>
+                                    <strong>{{ dept_name }}</strong>
+                                    {% if dept_info.description %}
+                                        <br><small class="text-muted">{{ dept_info.description }}</small>
+                                    {% endif %}
+                                </td>
+                                <td><code>{{ dept_info.code }}</code></td>
+                                <td>{{ dept_info.working_hours.working_days_per_week }} days</td>
+                                <td>{{ dept_info.working_hours.total_working_hours_per_week }}h</td>
+                                <td>
+                                    {% for day, schedule in dept_info.schedule.items %}
+                                        {% if schedule.open %}
+                                            <small class="d-block">
+                                                <strong>{{ day|title }}:</strong> 
+                                                {{ schedule.start|time:"H:i" }} - {{ schedule.end|time:"H:i" }}
+                                            </small>
+                                        {% endif %}
+                                    {% endfor %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-muted">Department working hours information not available.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Last Updated -->
+    <div class="text-center text-muted">
+        <small>
+            <i class="fas fa-clock"></i> Last updated: {{ last_updated|date:"M d, Y H:i:s" }}
+        </small>
+    </div>
+</div>
+
+<script>
+// Chart.js initialization and data
+document.addEventListener('DOMContentLoaded', function() {
+    // Attendance Trends Chart
+    const attendanceCtx = document.getElementById('attendanceTrendsChart').getContext('2d');
+    new Chart(attendanceCtx, {
+        type: 'line',
+        data: {
+            labels: {{ chart_data.attendance_trends_labels|safe }},
+            datasets: [{
+                label: 'Attendance Rate (%)',
+                data: {{ chart_data.attendance_trends_data|safe }},
+                borderColor: 'var(--primary-color)',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Employee Distribution Chart
+    const employeeCtx = document.getElementById('employeeDistributionChart').getContext('2d');
+    new Chart(employeeCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Excellent', 'Good', 'Average', 'Poor'],
+            datasets: [{
+                data: [
+                    {{ employee_distribution.statistics.performance_tiers.excellent }},
+                    {{ employee_distribution.statistics.performance_tiers.good }},
+                    {{ employee_distribution.statistics.performance_tiers.average }},
+                    {{ employee_distribution.statistics.performance_tiers.poor }}
+                ],
+                backgroundColor: [
+                    'var(--success-color)',
+                    'var(--accent-color)',
+                    'var(--warning-color)',
+                    'var(--danger-color)'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+});
+
+function showDepartmentDetails(departmentName) {
+    alert('Department details for ' + departmentName + ' would be shown here.');
+}
+
+function showDebugInfo() {
+    console.log('Real-time Status:', {{ real_time_status|safe }});
+    console.log('Attendance Trends:', {{ attendance_trends|safe }});
+    console.log('Department Heatmap:', {{ department_heatmap|safe }});
+    console.log('Employee Distribution:', {{ employee_distribution|safe }});
+    console.log('System Metrics:', {{ enhanced_system_metrics|safe }});
+    console.log('Opening Hours Info:', {{ opening_hours_info|safe }});
+    console.log('All Departments Working Hours:', {{ all_departments_working_hours|safe }});
+}
+</script>
+{% endblock %}

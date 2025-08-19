@@ -1,0 +1,73 @@
+# .github/ISSUE_TEMPLATE/feature_request.yml
+name: Feature Request
+description: Suggest a new feature or enhancement
+title: "[FEATURE] "
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Frontend
+        - Backend
+        - ROI Selector
+        - Infrastructure
+        - Documentation
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - Critical (P0)
+        - High (P1)
+        - Medium (P2)
+        - Low (P3)
+    validations:
+      required: true
+  - type: textarea
+    id: business-value
+    attributes:
+      label: Business Value
+      placeholder: Why is this feature important? What problem does it solve?
+    validations:
+      required: true
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: Feature Description
+      placeholder: Describe the feature you'd like to see
+    validations:
+      required: true
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed Solution
+      placeholder: How should this feature be implemented?
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      placeholder: List any dependent features, components, or systems
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      placeholder: List specific requirements that must be met
+  - type: textarea
+    id: mockups
+    attributes:
+      label: UI/UX Mockups
+      placeholder: Add any mockups, wireframes, or design files
+  - type: dropdown
+    id: effort
+    attributes:
+      label: Effort Estimation
+      options:
+        - XS (1-2 days)
+        - S (3-5 days)
+        - M (1-2 weeks)
+        - L (2-4 weeks)
+        - XL (4+ weeks)

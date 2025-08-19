@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% load static %}
+{% load attendance_extras %}
+
+{% block title %}Bulk Location Assignment - Road Attendance System{% endblock %}
+
+{% block secondary_nav %}
+{% include 'secondary_nav.html' %}
+{% block secondary_nav_tabs %}
+<a href="{% url 'location_dashboard' %}" class="secondary-nav-tab {% if request.resolver_match.url_name == 'location_dashboard' %}active{% endif %}">
+    📍 Dashboard
+</a>
+<a href="{% url 'location_assignment_list' %}" class="secondary-nav-tab {% if request.resolver_match.url_name == 'location_assignment_list' %}active{% endif %}">
+    📋 Assignments
+</a>
+{% endblock %}
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">📋 Bulk Location Assignment</h1>
+        <p class="dashboard-subtitle">Assign multiple employees to locations at once</p>
+    </div>
+    
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">📊 Bulk Assignment Form</h3>
+        </div>
+        <div class="section-body">
+            <form method="post" class="card-grid">
+                {% csrf_token %}
+                
+                <div class="card">
+                    <div class="card-label">Location</div>
+                    <select name="location" required style="width: 100%; padding: 0.5rem; margin-top: 0.5rem; border: 1px solid #e2e8f0; border-radius: 4px;">
+                        <option value="">Select Location</option>
+                        {% for location in locations %}
+                        <option value="{{ location.id }}" {% if selected_location == location.id %}selected{% endif %}>
+                            {{ location.name }} (Capacity: {{ location.capacity }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="card">
+                    <div class="card-label">Task Type</div>
+                    <select name="task_type" style="width: 100%; padding: 0.5rem; margin-top: 0.5rem; border: 1px solid #e2e8f0; border-radius: 4px;">
+                        <option value="">Select Task Type</option>
+                        <option value="general">General Assignment</option>
+                        <option value="maintenance">Maintenance</option>
+                        <option value="cleaning">Cleaning</option>
+                        <option value="security">Security</option>
+                        <option value="supervision">Supervision</option>
+                    </select>
+                </div>
+                
+                <div class="card">
+                    <div class="card-label">Assigned Date</div>
+                    <input type="date" name="assigned_date" value="{{ selected_date|default:'' }}" required style="width: 100%; padding: 0.5rem; margin-top: 0.5rem; border: 1px solid #e2e8f0; border-radius: 4px;">
+                </div>
+                
+                <div class="card">
+                    <div class="card-label">Department Filter</div>
+                    <select name="department" style="width: 100%; padding: 0.5rem; margin-top: 0.5rem; border: 1px solid #e2e8f0; border-radius: 4px;">
+                        <option value="">All Departments</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept }}" {% if selected_department == dept %}selected{% endif %}>
+                            {{ dept }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
+            
+            <div style="margin-top: 2rem; text-align: center;">
+                <button type="submit" class="btn btn-primary">📊 Start Bulk Assignment</button>
+                <a href="{% url 'location_assignment_list' %}" class="btn btn-secondary">❌ Cancel</a>
+            </div>
+        </div>
+    </div>
+    
+    {% if employees %}
+    <div class="section">
+        <div class="section-header">
+            <h3 class="section-title">👥 Employee Selection</h3>
+        </div>
+        <div class="section-body">
+            <div class="card-grid">
+                {% for employee in employees %}
+                <div class="card">
+                    <div class="card-value">{{ employee.given_name }} {{ employee.surname }}</div>
+                    <div class="card-label">
+                        {% if employee.card_number %}
+                            {{ employee.card_number.designation|get_department_from_designation }}
+                        {% else %}
+                            No Department
+                        {% endif %}
+                    </div>
+                    
+                    <div style="margin-top: 1rem;">
+                        <input type="checkbox" name="selected_employees" value="{{ employee.id }}" id="employee_{{ employee.id }}" style="margin-right: 0.5rem;">
+                        <label for="employee_{{ employee.id }}" style="font-size: 0.9rem; color: var(--text-secondary);">Select for assignment</label>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div style="margin-top: 2rem; text-align: center;">
+                <button type="submit" class="btn btn-success">💾 Assign Selected Employees</button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 

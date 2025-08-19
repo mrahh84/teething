@@ -1,4 +1,32 @@
 Django>=4.2.0
+
+# See: https://www.django-rest-framework.org
+djangorestframework
+markdown
+django-filter
+
+# See: https://drf-spectacular.readthedocs.io/en/latest/readme.html
+drf-spectacular
+
+# For environment variables and configuration management
+python-decouple
+
+# For interactive reports and data analysis
+marimo[recommended]
+pandas
+matplotlib
+plotly
+
+# Performance optimization dependencies
+psycopg2-binary>=2.9.0  # PostgreSQL optimization
+
+# Enslaver processor dependencies
 tqdm>=4.65.0
 pyzotero>=1.0.0
 requests>=2.28.0
+
+# # Notebooks
+# # uv add --group nbook [package]
+# httpx
+# pydantic
+# polars[numpy, pandas, pydantic, plot, timezone]

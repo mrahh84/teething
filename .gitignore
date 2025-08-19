@@ -140,3 +140,14 @@ dmypy.json
 
 # Django static files
 staticfiles/
+
+# Additional project-specific exclusions
+data/
+logs/
+backups/
+analysis/
+output/
+final/
+notebooks/
+__marimo__/
+test_marimo.py

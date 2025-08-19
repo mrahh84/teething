@@ -1,8 +1,31 @@
-# Enslaver Data Processor
+# Django Common App - Employee Event Tracking
 
-A Django-based web application for processing enslaver data with individual loop control, real-time progress monitoring, and a modern web interface.
+`Name to be confirmed`
+
+## Description
+
+This Django app (`common`) provides models and views for tracking employee events, primarily focusing on clock-in/clock-out status.
+
+It includes a basic web interface for security personnel and a RESTful API for programmatic access.
 
 ## Features
+
+* **Models:** Defines data structures for `Card`, `Employee`, `Location`, `EventType`, and `Event`.
+* **Clock Status:** The `Employee` model calculates current clock-in/out status based on the latest relevant `Event`.
+* **Web Interface (Login Required):**  
+   * `/common/`: Displays a list of employees, their current clock-in/out status, and provides buttons to manually clock them in or out. Includes links to individual employee event history.  
+   * `/common/employee_events/<id>/`: Shows a detailed, timestamped list of events for a specific employee, including event type and location. Provides a link to the Django admin for editing specific events.
+* **REST API:**  
+   * Provides endpoints for listing and managing Events, Employees, and Locations.  
+   * Read operations (GET) are publicly accessible.  
+   * Write operations (POST, PUT, PATCH, DELETE) require user authentication.
+* **Authentication:** Uses Django's built-in session authentication (`django.contrib.auth`) for both the web interface and API write access.
+
+## New Addition: Enslaver Data Processor
+
+This project now includes an additional Django app for processing enslaver data with individual loop control, real-time progress monitoring, and a modern web interface.
+
+### Enslaver Processor Features
 
 - **Individual Loop Control**: Run voyages loop, roles loop, or both together
 - **Real-time Progress Monitoring**: Live progress bars and status updates
@@ -11,26 +34,33 @@ A Django-based web application for processing enslaver data with individual loop
 - **Configurable Batch Sizes**: Adjustable batch processing for performance tuning
 - **Progress Bars**: Visual progress indicators using tqdm
 
+### Enslaver Processor Usage
+
+Access the enslaver processor interface at `/enslaver_processor/` after starting the Django server.
+
 ## Project Structure
 
 ```
-thething/
+attendance/
 ├── manage.py                          # Django management script
 ├── requirements.txt                   # Python dependencies
-├── index_enslaver_data.py            # Enhanced management command
-├── thething/                         # Django project settings
+├── attendance/                        # Django project settings
 │   ├── __init__.py
 │   ├── settings.py                   # Django configuration
 │   ├── urls.py                       # Main URL routing
 │   └── wsgi.py                       # WSGI configuration
-├── enslaver_processor/               # Custom Django app
-│   ├── __init__.py
-│   ├── apps.py                       # App configuration
-│   ├── urls.py                       # App URL routing
-│   └── views.py                      # Web interface views
-└── templates/                        # HTML templates
-    └── enslaver_processor/
-        └── index.html                # Main web interface
+├── common/                           # Employee attendance app
+│   ├── models.py                     # Employee, Event, Location models
+│   ├── views/                        # Web interface views
+│   ├── api/                          # REST API endpoints
+│   └── templates/                    # HTML templates
+└── enslaver_processor/               # New: Enslaver data processing app
+    ├── __init__.py
+    ├── apps.py                       # App configuration
+    ├── urls.py                       # App URL routing
+    ├── views.py                      # Web interface views
+    ├── management/                   # Management commands
+    └── templates/                    # HTML templates
 ```
 
 ## Setup Instructions
@@ -41,21 +71,56 @@ thething/
 pip install -r requirements.txt
 ```
 
-### 2. Run Django Migrations
+### 2. Environment Configuration
+
+* Create a `.env` file in the project root with the following variables:  
+```  
+# Django secret key  
+SECRET_KEY=your-generated-secret-key  
+# Debug settings  
+DEBUG=True  # Set to False in production  
+# Allowed hosts (comma separated)  
+ALLOWED_HOSTS=localhost,127.0.0.1  
+# Optional database settings  
+# DB_ENGINE=django.db.backends.postgresql  
+# DB_NAME=attendance_db  
+# DB_USER=postgres  
+# DB_PASSWORD=your-secure-password  
+# DB_HOST=localhost  
+# DB_PORT=5432  
+```  
+* Generate a secure secret key:  
+python scripts/generate_secret_key.py
+
+### 3. Run Django Migrations
 
 ```bash
-python manage.py migrate
+python3 manage.py makemigrations common  
+python3 manage.py makemigrations  
+python3 manage.py migrate
 ```
 
-### 3. Start the Development Server
+### 4. Initial Data (Required for Core Functionality)
+
+* Create an `EventType` instance with the exact name: `"Clock In"`  
+* Create an `EventType` instance with the exact name: `"Clock Out"`  
+* Create a `Location` instance with the exact name: `"Main Security"` _(This can be done via the Django admin or a data migration)._
+
+### 5. Create Users
+
+Create user accounts to log into the web interface (e.g., via `python manage.py createsuperuser`).
+
+### 6. Start the Development Server
 
 ```bash
-python manage.py runserver
+python3 manage.py runserver
 ```
 
-### 4. Access the Web Interface
+### 7. Access the Web Interfaces
 
-Open your browser and navigate to: `http://127.0.0.1:8000/`
+* **Employee Attendance**: `/common/` (login required)
+* **Enslaver Processor**: `/enslaver_processor/`
+* **API Documentation**: `/` (Swagger UI)
 
 ## Usage
 
@@ -164,6 +229,42 @@ Adjust the default batch size in the management command or web interface to opti
 3. Make your changes
 4. Test thoroughly
 5. Submit a pull request
+
+## API Endpoints (Brief)
+
+* `GET /common/api/events/` (List, public)
+* `GET /common/api/events/<id>/` (Retrieve, public)
+* `GET /common/api/employees/<id>/` (Retrieve, public)
+* `GET /common/api/locations/<id>/` (Retrieve, public)
+* _Authentication required for POST, PUT, PATCH, DELETE on detail endpoints (`.../<id>/`)._
+
+## Production Deployment
+
+When deploying to production, make sure to:
+
+1. Generate a new secure secret key using `python scripts/generate_secret_key.py`
+2. Set `DEBUG=False` in your `.env` file
+3. Specify your domain(s) in `ALLOWED_HOSTS`
+4. Use a production-grade database like PostgreSQL
+5. Set up proper HTTPS with a valid SSL certificate
+
+## Running
+
+1. Start the Django development server:
+    ```bash
+    docker-compose up
+    # python3 manage.py runserver
+    ```
+2. Access the web interface by logging in and navigating to `/common/`.
+3. Access the API endpoints under `/common/api/` and the Swagger UI at `/` i.e. the home page.
+4. Access the enslaver processor at `/enslaver_processor/`.
+
+## Generate API Schema
+
+Generate the API schema using DRF Spectacular:
+```bash
+python3 manage.py spectacular --color --validate --color --file schema.yml
+```
 
 ## License
 
