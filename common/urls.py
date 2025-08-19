@@ -30,7 +30,6 @@ from common.views import (
     period_summary_report,
     period_summary_report_csv,
     performance_dashboard,
-    performance_dashboard_test,
     generate_marimo_report,
     # Location views
     location_dashboard,
@@ -110,7 +109,6 @@ urlpatterns = [
     path('reports/period-summary/', period_summary_report, name='period_summary_report'),
     path('reports/period-summary-csv/', period_summary_report_csv, name='period_summary_report_csv'),
     path('reports/performance-dashboard/', performance_dashboard, name='performance_dashboard'),
-    path('reports/performance-dashboard-test/', performance_dashboard_test, name='performance_dashboard_test'),
     path('reports/marimo/', generate_marimo_report, name='generate_marimo_report'),
     
     # Phase 3 & 4 Optimized Reporting URLs

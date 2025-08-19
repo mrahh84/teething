@@ -481,8 +481,8 @@ class DashboardAnalyticsService:
             'expected_attendance': expected_attendance,
             'attendance_status': 'above_expectation' if actual_percentage >= expected_percentage else 'below_expectation',
             'working_status': working_status,
-            'is_working_day': is_working_day,
-            'is_working_hours': is_working_hours,
+            'is_working_day': working_hours_info['is_working_day'],
+            'is_working_hours': working_hours_info['is_working_hours'],
             'department_breakdown': dept_breakdown
         }
         
