@@ -1,5 +1,0 @@
-# # Notebooks
-# # uv add --group nbook [package]
-httpx
-pydantic
-polars[numpy, pandas, pydantic, plot, timezone]
